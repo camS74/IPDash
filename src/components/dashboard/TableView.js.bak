@@ -1,0 +1,708 @@
+import React from 'react';
+import { useExcelData } from '../../contexts/ExcelDataContext';
+import { useFilter } from '../../contexts/FilterContext';
+import './TableView.css';
+
+const TableView = () => {
+  const { excelData, selectedDivision } = useExcelData();
+  const { columnOrder, dataGenerated } = useFilter();
+
+  // Only show data if Generate button has been clicked
+  if (!dataGenerated) {
+    return (
+      <div className="table-view">
+        <h3>Financial Table</h3>
+        <div className="table-empty-state">
+          <p>Please select columns and click the Generate button to view data.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Get the Excel data based on selectedDivision
+  const divisionData = excelData[selectedDivision] || [];
+
+  // Dynamically get row labels from Excel data if available
+  let salesRows = [];
+
+  if (divisionData && divisionData.length > 0) {
+    // Use actual row labels from Excel data
+    salesRows = [
+      { key: 'sales', label: divisionData[3] ? divisionData[3][0] : 'Sales', index: 3, isHeader: true, isCalculated: false },
+      { key: 'salesVolume', label: divisionData[7] ? divisionData[7][0] : 'Sales volume (kg)', index: 7, isCalculated: false },
+      { key: 'productionVolume', label: divisionData[8] ? divisionData[8][0] : 'Production volume (kg)', index: 8, isCalculated: false },
+      { key: 'separator1', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'material', label: divisionData[4] ? divisionData[4][0] : 'Material', index: 4, isHeader: false, isCalculated: false },
+      { key: 'index5', label: divisionData[5] ? divisionData[5][0] : 'Row 5', index: 5, isHeader: false, isCalculated: false },
+      { key: 'morm', label: 'Margin over Material', index: -2, isHeader: false, isCalculated: true, formula: 'sales-material' },
+      { key: 'separator2', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index9', label: divisionData[9] ? divisionData[9][0] : 'Row 9', index: 9, isHeader: false, isCalculated: false },
+      { key: 'index10', label: divisionData[10] ? divisionData[10][0] : 'Row 10', index: 10, isHeader: false, isCalculated: false },
+      { key: 'index12', label: divisionData[12] ? divisionData[12][0] : 'Row 12', index: 12, isHeader: false, isCalculated: false },
+      { key: 'index13', label: divisionData[13] ? divisionData[13][0] : 'Row 13', index: 13, isHeader: false, isCalculated: false },
+      { key: 'index14', label: divisionData[14] ? divisionData[14][0] : 'Row 14 (Sum)', index: -3, isHeader: false, isCalculated: true, formula: 'sum9-10-12-13' },
+      { key: 'index15', label: divisionData[15] ? divisionData[15][0] : 'Row 15', index: 15, isHeader: false, isCalculated: false },
+      { key: 'index16', label: divisionData[16] ? divisionData[16][0] : 'Row 16 (Sum)', index: -4, isHeader: false, isCalculated: true, formula: 'sum14-15' },
+      { key: 'index18', label: divisionData[18] ? divisionData[18][0] : 'Row 18 (%)', index: -5, isHeader: false, isCalculated: true, formula: 'percent16-4' },
+      { key: 'separator3', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index19', label: divisionData[19] ? divisionData[19][0] : 'Row 19 (Sales-Material)', index: -6, isHeader: false, isCalculated: true, formula: 'calc19-3-4' },
+      { key: 'index21', label: divisionData[21] ? divisionData[21][0] : 'Row 21 (Row19+Row10)', index: -7, isHeader: false, isCalculated: true, formula: 'calc21-19-10' },
+      { key: 'separator4', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index31', label: divisionData[31] ? divisionData[31][0] : 'Row 31', index: 31, isHeader: false, isCalculated: false },
+      { key: 'index32', label: divisionData[32] ? divisionData[32][0] : 'Row 32', index: 32, isHeader: false, isCalculated: false },
+      { key: 'index40', label: divisionData[40] ? divisionData[40][0] : 'Row 40', index: 40, isHeader: false, isCalculated: false },
+      { key: 'index42', label: divisionData[42] ? divisionData[42][0] : 'Row 42', index: 42, isHeader: false, isCalculated: false },
+      { key: 'index43', label: divisionData[43] ? divisionData[43][0] : 'Row 43', index: 43, isHeader: false, isCalculated: false },
+      { key: 'index44', label: divisionData[44] ? divisionData[44][0] : 'Row 44', index: 44, isHeader: false, isCalculated: false },
+      { key: 'index49', label: divisionData[49] ? divisionData[49][0] : 'Row 49', index: 49, isHeader: false, isCalculated: false },
+      { key: 'index50', label: divisionData[50] ? divisionData[50][0] : 'Row 50', index: 50, isHeader: false, isCalculated: false },
+      { key: 'separator5', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index52', label: divisionData[52] ? divisionData[52][0] : 'Row 52 (Sum)', index: -8, isHeader: false, isCalculated: true, formula: 'sum-31-32-40-42-43-44-49-50' },
+      { key: 'separator6', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index59', label: divisionData[59] ? divisionData[59][0] : 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
+      { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index54', label: divisionData[54] ? divisionData[54][0] : 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
+      { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (Row54+Row19+Row42+Row44)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-19-42-44' },
+    ];
+  } else {
+    // Fallback rows if Excel data is not yet loaded
+    salesRows = [
+      { key: 'sales', label: 'Sales', index: 3, isHeader: true, isCalculated: false },
+      { key: 'salesVolume', label: 'Sales volume (kg)', index: 7, isCalculated: false },
+      { key: 'productionVolume', label: 'Production volume (kg)', index: 8, isCalculated: false },
+      { key: 'separator1', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'material', label: 'Material', index: 4, isHeader: false, isCalculated: false },
+      { key: 'index5', label: 'Row 5', index: 5, isHeader: false, isCalculated: false },
+      { key: 'morm', label: 'Margin over Material', index: -2, isHeader: false, isCalculated: true, formula: 'sales-material' },
+      { key: 'separator2', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index9', label: 'Row 9', index: 9, isHeader: false, isCalculated: false },
+      { key: 'index10', label: 'Row 10', index: 10, isHeader: false, isCalculated: false },
+      { key: 'index12', label: 'Row 12', index: 12, isHeader: false, isCalculated: false },
+      { key: 'index13', label: 'Row 13', index: 13, isHeader: false, isCalculated: false },
+      { key: 'index14', label: 'Row 14 (Sum)', index: -3, isHeader: false, isCalculated: true, formula: 'sum9-10-12-13' },
+      { key: 'index15', label: 'Row 15', index: 15, isHeader: false, isCalculated: false },
+      { key: 'index16', label: 'Row 16 (Sum)', index: -4, isHeader: false, isCalculated: true, formula: 'sum14-15' },
+      { key: 'index18', label: 'Row 18 (%)', index: -5, isHeader: false, isCalculated: true, formula: 'percent16-4' },
+      { key: 'separator3', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index19', label: 'Row 19 (Sales-Material)', index: -6, isHeader: false, isCalculated: true, formula: 'calc19-3-4' },
+      { key: 'index21', label: 'Row 21 (Row19+Row10)', index: -7, isHeader: false, isCalculated: true, formula: 'calc21-19-10' },
+      { key: 'separator4', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index31', label: 'Row 31', index: 31, isHeader: false, isCalculated: false },
+      { key: 'index32', label: 'Row 32', index: 32, isHeader: false, isCalculated: false },
+      { key: 'index40', label: 'Row 40', index: 40, isHeader: false, isCalculated: false },
+      { key: 'index42', label: 'Row 42', index: 42, isHeader: false, isCalculated: false },
+      { key: 'index43', label: 'Row 43', index: 43, isHeader: false, isCalculated: false },
+      { key: 'index44', label: 'Row 44', index: 44, isHeader: false, isCalculated: false },
+      { key: 'index49', label: 'Row 49', index: 49, isHeader: false, isCalculated: false },
+      { key: 'index50', label: 'Row 50', index: 50, isHeader: false, isCalculated: false },
+      { key: 'separator5', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index52', label: 'Row 52 (Sum)', index: -8, isHeader: false, isCalculated: true, formula: 'sum-31-32-40-42-43-44-49-50' },
+      { key: 'separator6', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index59', label: 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
+      { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
+      { key: 'index54', label: 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
+      { key: 'index56', label: 'Row 56 (Row54+Row19+Row42+Row44)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-19-42-44' },
+    ];
+  }
+
+  // Function to compute the value for a specific cell based on row index and column configuration
+  const computeCellValue = (rowIndex, column) => {
+    try {
+      // For testing purposes, return the index to verify structure
+      if (divisionData.length === 0) return rowIndex;
+
+      // Determine which months to include based on selected period
+      let monthsToInclude = [];
+      if (column.month === 'Q1') {
+        monthsToInclude = ['January', 'February', 'March'];
+      } else if (column.month === 'Q2') {
+        monthsToInclude = ['April', 'May', 'June'];
+      } else if (column.month === 'Q3') {
+        monthsToInclude = ['July', 'August', 'September'];
+      } else if (column.month === 'Q4') {
+        monthsToInclude = ['October', 'November', 'December'];
+      } else if (column.month === 'Year') {
+        monthsToInclude = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+      } else {
+        // Single month
+        monthsToInclude = [column.month];
+      }
+
+      // Find cells in the Excel data that match our criteria and sum them
+      let sum = 0;
+      let foundValues = false;
+
+      // Loop through the data to find matching cells
+      for (let c = 1; c < divisionData[0].length; c++) {
+        const cellYear = divisionData[0][c];
+        const cellMonth = divisionData[1][c];
+        const cellType = divisionData[2][c];
+
+        // Check if this cell matches our criteria
+        if (
+          cellYear == column.year &&
+          monthsToInclude.includes(cellMonth) &&
+          cellType === column.type
+        ) {
+          // Add the value to our sum if it exists
+          const value = divisionData[rowIndex][c];
+          if (value !== undefined && value !== null && !isNaN(value)) {
+            sum += parseFloat(value);
+            foundValues = true;
+          }
+        }
+      }
+
+      // Format the sum with commas if values were found, otherwise a placeholder
+      if (foundValues) {
+        // Format number with commas
+        return sum.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        });
+      } else {
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error('Error computing cell value:', error);
+      return 'Error';
+    }
+  };
+
+  // Color schemes definitions
+  const colorSchemes = [
+    { name: 'blue', primary: '#288cfa', light: '#E6F2FF', isDark: true },
+    { name: 'green', primary: '#2E865F', light: '#E6F5EF', isDark: true },
+    { name: 'yellow', primary: '#FFEA00', light: '#FFFDE6', isDark: false },
+    { name: 'orange', primary: '#FF9800', light: '#FFF3E0', isDark: false },
+    { name: 'boldContrast', primary: '#003366', light: '#E6EEF5', isDark: true }
+  ];
+
+  // Function to get column style based on the column configuration
+  const getColumnHeaderStyle = (column) => {
+    if (column.customColor) {
+      const scheme = colorSchemes.find(s => s.name === column.customColor);
+      if (scheme) {
+        return { 
+          backgroundColor: scheme.primary,
+          color: scheme.isDark ? '#FFFFFF' : '#000000',
+          fontWeight: 'bold'
+        };
+      }
+    }
+    
+    // Default blue if no custom color
+    return { 
+      backgroundColor: '#288cfa', 
+      color: '#FFFFFF',
+      fontWeight: 'bold'
+    };
+  };
+
+  // Function to get cell background color based on column configuration
+  const getCellBackgroundColor = (column) => {
+    if (column.customColor) {
+      const scheme = colorSchemes.find(s => s.name === column.customColor);
+      if (scheme) {
+        return scheme.light;
+      }
+    }
+    
+    // Default light blue if no custom color
+    return '#E6F2FF';
+  };
+
+// Function to get column style based on the column configuration
+const getColumnHeaderStyle = (column) => {
+  if (column.customColor) {
+    const scheme = colorSchemes.find(s => s.name === column.customColor);
+    if (scheme) {
+      return { 
+        backgroundColor: scheme.primary,
+        color: scheme.isDark ? '#FFFFFF' : '#000000',
+        fontWeight: 'bold'
+      };
+    }
+  }
+  
+  // Default blue if no custom color
+  return { 
+    backgroundColor: '#288cfa', 
+    color: '#FFFFFF',
+    fontWeight: 'bold'
+  };
+};
+              // If it's a separator row, render a spacer row
+              if (row.isSeparator) {
+                return (
+                  <tr key={row.key} className="separator-row">
+                    <td colSpan={columnOrder.length + 1}>&nbsp;</td>
+                  </tr>
+                );
+              }
+              
+              // Otherwise render a normal data row
+              // Check if this row should have bold styling in ledger column based on the label
+              const isImportantRow = 
+                row.label === 'Sales' || 
+                row.label === 'Margin over Material' || 
+                row.label === 'Cost of Sales' ||
+                row.label === 'Labour' ||
+                row.label === 'Dir.Cost in Stock/Stock Adj.' ||
+                row.label === 'Gross profit (after Depn.)' ||
+                row.label === 'Selling expenses' ||
+                row.label === 'Total Below GP Expenses' ||
+                row.label === 'Total Expenses' ||
+                row.label === 'Net Profit' ||
+                row.label.trim().toUpperCase() === 'EBITDA';
+              
+              return (
+                <tr key={row.key} className={`${row.isHeader ? 'section-header' : ''} ${isImportantRow ? 'important-row' : ''}`}>
+                  <td className="row-label">{row.label}</td>
+                  {columnOrder.map((column, colIndex) => {
+                    // Handle calculated fields with formulas
+                    if (row.isCalculated) {
+                      // Get background color based on the column's color scheme
+                      const bgColor = getCellBackgroundColor(column);
+
+                      // Process formulas based on the type
+                      if (row.formula === 'sales-material') {
+                        // Find the values for sales and material in this column
+                        const salesValue = computeCellValue(3, column);
+                        const materialValue = computeCellValue(4, column);
+
+                        // Convert string values with commas back to numbers for calculation
+                        const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const materialNum = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+
+                        // Calculate the result
+                        const result = salesNum - materialNum;
+
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'sum9-10-12-13') {
+                        // Find the values for rows 9, 10, 12, and 13 in this column
+                        const value9 = computeCellValue(9, column);
+                        const value10 = computeCellValue(10, column);
+                        const value12 = computeCellValue(12, column);
+                        const value13 = computeCellValue(13, column);
+
+                        // Convert string values with commas back to numbers for calculation
+                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+
+                        // Calculate the sum
+                        const result = num9 + num10 + num12 + num13;
+
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'sum14-15') {
+                        // Calculate row 14 (sum of 9, 10, 12, 13)
+                        const value9 = computeCellValue(9, column);
+                        const value10 = computeCellValue(10, column);
+                        const value12 = computeCellValue(12, column);
+                        const value13 = computeCellValue(13, column);
+
+                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+
+                        // Value for row 14
+                        const num14 = num9 + num10 + num12 + num13;
+
+                        // Get row 15 value
+                        const value15 = computeCellValue(15, column);
+                        const num15 = value15 === 'N/A' ? 0 : parseFloat(value15.replace(/,/g, ''));
+
+                        // Calculate row 16 = row 14 + row 15
+                        const result = num14 + num15;
+
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'percent16-4') {
+                        // First calculate row 16 (sum of row 14 + row 15)
+                        // We need to get row 14 first (sum of 9, 10, 12, 13)
+                        const value9 = computeCellValue(9, column);
+                        const value10 = computeCellValue(10, column);
+                        const value12 = computeCellValue(12, column);
+                        const value13 = computeCellValue(13, column);
+                        
+                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+
+                        // Value for row 14
+                        const num14 = num9 + num10 + num12 + num13;
+                        
+                        // Get row 15 value
+                        const value15 = computeCellValue(15, column);
+                        const num15 = value15 === 'N/A' ? 0 : parseFloat(value15.replace(/,/g, ''));
+
+                        // Calculate row 16 = row 14 + row 15
+                        const num16 = num14 + num15;
+
+                        // Get Material value (row 4)
+                        const materialValue = computeCellValue(4, column);
+                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+
+                        // Calculate row 16 as percentage of row 4 (Material)
+                        let percentResult = 0;
+                        if (material !== 0) {
+                          percentResult = (num16 / material) * 100;
+                        }
+                        
+                        // Format the result as percentage with 1 decimal place
+                        const percentFormatted = percentResult.toLocaleString('en-US', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1
+                        }) + '%';
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {percentFormatted}
+                          </td>
+                        );
+                      } else if (row.formula === 'calc19-3-4') {
+                        // Get Sales value (row 3)
+                        const salesValue = computeCellValue(3, column);
+                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        
+                        // Get Material value (row 4)
+                        const materialValue = computeCellValue(4, column);
+                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        
+                        // Calculate row 19 = Sales - Material
+                        const result = sales - material;
+                        
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+                        
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'calc21-19-10') {
+                        // Calculate Row 19 (Sales - Material) first
+                        const salesValue = computeCellValue(3, column);
+                        const materialValue = computeCellValue(4, column);
+                        
+                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        
+                        const row19 = sales - material;
+                        
+                        // Get Row 10 value
+                        const row10Value = computeCellValue(10, column);
+                        const row10 = row10Value === 'N/A' ? 0 : parseFloat(row10Value.replace(/,/g, ''));
+                        
+                        // Calculate Row 21 = Row 19 + Row 10
+                        const result = row19 + row10;
+                        
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+                        
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'sum-31-32-40-42-43-44-49-50') {
+                        // Get values for all rows to be summed
+                        const value31 = computeCellValue(31, column);
+                        const value32 = computeCellValue(32, column);
+                        const value40 = computeCellValue(40, column);
+                        const value42 = computeCellValue(42, column);
+                        const value43 = computeCellValue(43, column);
+                        const value44 = computeCellValue(44, column);
+                        const value49 = computeCellValue(49, column);
+                        const value50 = computeCellValue(50, column);
+
+                        // Convert to numbers, handling 'N/A' values as 0
+                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+
+                        // Calculate the sum of all rows
+                        const result = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'sum-14-52') {
+                        // For Row 14, we need to calculate it based on rows 9, 10, 12, 13
+                        const value9 = computeCellValue(9, column);
+                        const value10 = computeCellValue(10, column);
+                        const value12 = computeCellValue(12, column);
+                        const value13 = computeCellValue(13, column);
+
+                        // Parse values to numbers
+                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+
+                        // Calculate Row 14 as sum of rows 9, 10, 12, 13
+                        const row14 = num9 + num10 + num12 + num13;
+                        
+                        // For Row 52, we need to calculate it based on rows 31, 32, 40, 42, 43, 44, 49, 50
+                        const value31 = computeCellValue(31, column);
+                        const value32 = computeCellValue(32, column);
+                        const value40 = computeCellValue(40, column);
+                        const value42 = computeCellValue(42, column);
+                        const value43 = computeCellValue(43, column);
+                        const value44 = computeCellValue(44, column);
+                        const value49 = computeCellValue(49, column);
+                        const value50 = computeCellValue(50, column);
+
+                        // Parse values to numbers
+                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+
+                        // Calculate Row 52 as sum of rows 31, 32, 40, 42, 43, 44, 49, 50
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        
+                        // Calculate Row 59 as Row 14 + Row 52
+                        const result = row14 + row52;
+                        
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'diff-19-52') {
+                        // First calculate Row 19 (Sales - Material)
+                        const salesValue = computeCellValue(3, column);
+                        const materialValue = computeCellValue(4, column);
+                        
+                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        
+                        const row19 = sales - material;
+                        
+                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50)
+                        const value31 = computeCellValue(31, column);
+                        const value32 = computeCellValue(32, column);
+                        const value40 = computeCellValue(40, column);
+                        const value42 = computeCellValue(42, column);
+                        const value43 = computeCellValue(43, column);
+                        const value44 = computeCellValue(44, column);
+                        const value49 = computeCellValue(49, column);
+                        const value50 = computeCellValue(50, column);
+
+                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        
+                        // Calculate Row 54 = Row 19 - Row 52
+                        const result = row19 - row52;
+                        
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else if (row.formula === 'sum-54-19-42-44') {
+                        // Calculate Row 54 (Row19 - Row52)
+                        // First calculate Row 19 (Sales - Material)
+                        const salesValue = computeCellValue(3, column);
+                        const materialValue = computeCellValue(4, column);
+                        
+                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        
+                        const row19 = sales - material;
+                        
+                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50)
+                        const value31 = computeCellValue(31, column);
+                        const value32 = computeCellValue(32, column);
+                        const value40 = computeCellValue(40, column);
+                        const value42 = computeCellValue(42, column);
+                        const value43 = computeCellValue(43, column);
+                        const value44 = computeCellValue(44, column);
+                        const value49 = computeCellValue(49, column);
+                        const value50 = computeCellValue(50, column);
+
+                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        
+                        // Calculate Row 54
+                        const row54 = row19 - row52;
+                        
+                        // Now calculate Row 56 = Row 54 + Row 19 + Row 42 + Row 44
+                        const result = row54 + row19 + num42 + num44;
+                        
+                        // Format the result with commas
+                        const formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {formattedResult}
+                          </td>
+                        );
+                      } else {
+                        // Fallback for unknown formulas
+                        return (
+                          <td
+                            key={`${row.key}-${colIndex}`}
+                            className="calculated-cell"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            N/A
+                          </td>
+                        );
+                      }
+                    }
+
+                    // Regular data cells (not calculated)
+                    const cellValue = computeCellValue(row.index, column);
+                    const bgColor = getCellBackgroundColor(column);
+                    return (
+                      <td 
+                        key={`${row.key}-${colIndex}`}
+                        style={{ backgroundColor: bgColor }}
+                      >
+                        {cellValue}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default TableView;
