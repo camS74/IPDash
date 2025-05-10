@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
-import PDFExport from './PDFExport';
 import './TableView.css';
 
 // Helper function for safely removing DOM elements
@@ -426,14 +425,7 @@ const TableView = () => {
   return (
     <div className="table-view">
       <div className="table-header">
-        <div className="table-title">
-          <h3>Financial Table - {selectedDivision}</h3>
-          <div className="table-subtitle">(AED)</div>
-        </div>
-        <PDFExport 
-          tableRef={tableRef} 
-          selectedDivision={selectedDivision}
-        />
+        <h3>Financial Table</h3>
       </div>
       <div className="table-container" ref={tableRef}>
         <table className="financial-table">

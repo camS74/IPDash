@@ -12,31 +12,14 @@
 
 .table-header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  position: relative;
+  margin-bottom: 15px;
 }
 
-.table-title {
-  text-align: center;
-  flex: 1;
-}
-
-.table-title h3 {
+.table-header h3 {
   margin: 0;
-  font-size: 1.5rem;
   color: #333;
-  text-align: center;
-}
-
-.table-subtitle {
-  font-style: italic;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 5px;
-  color: #000000;
-  font-size: 1.1rem;
 }
 
 .table-container {
@@ -193,49 +176,6 @@
   border: 1px dashed #ddd;
   margin: 20px 0;
   color: #666;
-}
-
-/* Add styles for PDF export button positioning */
-.table-header > :last-child {
-  position: absolute;
-  right: 0;
-}
-
-/* Floating PDF export button styles */
-.pdf-export-button {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  z-index: 1000;
-  background-color: #288cfa;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.pdf-export-button:hover {
-  background-color: #1a7ae0;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-}
-
-.pdf-export-button:active {
-  background-color: #1565c0;
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Hide PDF export button in print/export */
-@media print {
-  .pdf-export-button {
-    display: none !important;
-  }
 }
 
 

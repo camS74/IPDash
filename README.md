@@ -1,5 +1,7 @@
 # Getting Started with Create React App
 
+> **Important Note**: This project should be run using Git Bash on Windows. PowerShell commands may not work as expected due to different command syntax.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
