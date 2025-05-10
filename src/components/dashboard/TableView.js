@@ -1,8 +1,6 @@
 import React, { useRef } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import './TableView.css';
 
 // Helper function for safely removing DOM elements
@@ -18,7 +16,7 @@ const safelyRemoveElement = (element) => {
     }
     
     // Fallback: check if it's in document.body
-    if (document.body.contains(element)) {
+    if (document.body && document.body.contains(element)) {
       document.body.removeChild(element);
       return;
     }
@@ -33,7 +31,27 @@ const safelyRemoveElement = (element) => {
       });
     }
   } catch (cleanupError) {
-    console.error('Error removing element:', cleanupError);
+    console.warn('Error removing element:', cleanupError);
+    // Try one more approach with a slight delay
+    setTimeout(() => {
+      try {
+        // Final attempt to remove loading overlays
+        const overlays = document.querySelectorAll('.loading-overlay');
+        overlays.forEach(overlay => {
+          try {
+            if (overlay && overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            } else if (document.body && document.body.contains(overlay)) {
+              document.body.removeChild(overlay);
+            }
+          } catch (e) {
+            // Silently fail
+          }
+        });
+      } catch (e) {
+        // Last effort failed, nothing more we can do
+      }
+    }, 500);
   }
 };
 
@@ -143,8 +161,28 @@ const TableView = () => {
   // Function to compute the value for a specific cell based on row index and column configuration
   const computeCellValue = (rowIndex, column) => {
     try {
+      // Validate inputs
+      if (!column || typeof column !== 'object') {
+        console.warn('Invalid column parameter:', column);
+        return 'N/A';
+      }
+      
+      if (typeof rowIndex !== 'number') {
+        console.warn('Invalid rowIndex parameter:', rowIndex);
+        return 'N/A';
+      }
+
       // For testing purposes, return the index to verify structure
-      if (divisionData.length === 0) return rowIndex;
+      if (!divisionData || !Array.isArray(divisionData) || divisionData.length === 0) {
+        console.warn('No division data available');
+        return 'N/A';
+      }
+      
+      // Check if rowIndex is within bounds
+      if (rowIndex < 0 || rowIndex >= divisionData.length) {
+        console.warn(`Row index ${rowIndex} out of bounds`);
+        return 'N/A';
+      }
 
       // Determine which months to include based on selected period
       let monthsToInclude = [];
@@ -172,9 +210,10 @@ const TableView = () => {
 
       // Loop through the data to find matching cells
       for (let c = 1; c < divisionData[0].length; c++) {
-        const cellYear = divisionData[0][c];
-        const cellMonth = divisionData[1][c];
-        const cellType = divisionData[2][c];
+        // Safely access data
+        const cellYear = divisionData[0] && divisionData[0][c];
+        const cellMonth = divisionData[1] && divisionData[1][c];
+        const cellType = divisionData[2] && divisionData[2][c];
 
         // Check if this cell matches our criteria
         if (
@@ -184,7 +223,7 @@ const TableView = () => {
         ) {
           // Add the value to our sum if it exists
           const value = divisionData[rowIndex][c];
-          if (value !== undefined && value !== null && !isNaN(value)) {
+          if (value !== undefined && value !== null && !isNaN(parseFloat(value))) {
             sum += parseFloat(value);
             foundValues = true;
           }
@@ -203,59 +242,91 @@ const TableView = () => {
       }
     } catch (error) {
       console.error('Error computing cell value:', error);
-      return 'Error';
+      return 'N/A'; // Changed from 'Error' to 'N/A' for consistency
     }
   };
 
-  // Function to calculate percentage of sales
+  // Function to compute percent of sales for a specific cell
   const computePercentOfSales = (rowIndex, column) => {
     try {
-      const cellValue = computeCellValue(rowIndex, column);
-      const salesValue = computeCellValue(3, column); // Row 3 is Sales
+      // Validate inputs
+      if (!column || typeof column !== 'object') {
+        console.warn('Invalid column parameter in computePercentOfSales');
+        return '';
+      }
       
-      // Convert string values with commas back to numbers
-      const cellNum = cellValue === 'N/A' ? 0 : parseFloat(cellValue.replace(/,/g, ''));
-      const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-      
-      // Calculate percentage
-      if (salesNum === 0) return 'N/A';
-      
-      const percentValue = (cellNum / salesNum) * 100;
-      
-      // Format with 2 decimal places
-      return percentValue.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }) + '%';
+      if (typeof rowIndex !== 'number') {
+        console.warn('Invalid rowIndex parameter in computePercentOfSales');
+        return '';
+      }
+
+      // Skip for Sales row itself
+      if (rowIndex === 3) return '';
+
+      // Get the value for this row and the sales row
+      const value = computeCellValue(rowIndex, column);
+      const salesValue = computeCellValue(3, column);
+
+      // If either is N/A, return empty string
+      if (value === 'N/A' || value === 'Error' || salesValue === 'N/A' || salesValue === 'Error') return '';
+
+      // Parse the values (remove commas)
+      const numValue = parseFloat(value.replace(/,/g, ''));
+      const numSalesValue = parseFloat(salesValue.replace(/,/g, ''));
+
+      // Check for valid numbers
+      if (isNaN(numValue) || isNaN(numSalesValue)) return '';
+
+      // Calculate percentage if sales is not zero
+      if (numSalesValue === 0) return '0.0%';
+
+      const percentage = (numValue / numSalesValue) * 100;
+      return percentage.toFixed(1) + '%';
     } catch (error) {
       console.error('Error computing percent of sales:', error);
-      return 'Error';
+      return '';
     }
   };
 
-  // Function to calculate sales per kg
+  // Function to compute sales per kg
   const computeSalesPerKg = (rowIndex, column) => {
     try {
-      const cellValue = computeCellValue(rowIndex, column);
-      const salesVolumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
+      // Validate inputs
+      if (!column || typeof column !== 'object') {
+        console.warn('Invalid column parameter in computeSalesPerKg');
+        return '';
+      }
       
-      // Convert string values with commas back to numbers
-      const cellNum = cellValue === 'N/A' ? 0 : parseFloat(cellValue.replace(/,/g, ''));
-      const salesVolumeNum = salesVolumeValue === 'N/A' ? 0 : parseFloat(salesVolumeValue.replace(/,/g, ''));
-      
-      // Calculate sales per kg
-      if (salesVolumeNum === 0) return 'N/A';
-      
-      const perKgValue = cellNum / salesVolumeNum;
-      
-      // Format with 2 decimal places
-      return perKgValue.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
+      if (typeof rowIndex !== 'number') {
+        console.warn('Invalid rowIndex parameter in computeSalesPerKg');
+        return '';
+      }
+
+      // Skip for certain rows
+      if (rowIndex === 3) return ''; // Skip for Sales row itself
+
+      // Get the value for this row and the volume row
+      const value = computeCellValue(rowIndex, column);
+      const volumeValue = computeCellValue(7, column); // Volume row
+
+      // If either is N/A, return empty string
+      if (value === 'N/A' || value === 'Error' || volumeValue === 'N/A' || volumeValue === 'Error') return '';
+
+      // Parse the values (remove commas)
+      const numValue = parseFloat(value.replace(/,/g, ''));
+      const numVolumeValue = parseFloat(volumeValue.replace(/,/g, ''));
+
+      // Check for valid numbers
+      if (isNaN(numValue) || isNaN(numVolumeValue)) return '';
+
+      // Calculate sales per kg if volume is not zero
+      if (numVolumeValue === 0) return '0.0';
+
+      const salesPerKg = numValue / numVolumeValue;
+      return salesPerKg.toFixed(1);
     } catch (error) {
       console.error('Error computing sales per kg:', error);
-      return 'Error';
+      return '';
     }
   };
 
@@ -351,247 +422,13 @@ const TableView = () => {
     return colorSchemes.find(s => s.name === 'blue').light;
   };
 
-  // Function to export table as PDF
-  const exportToPDF = () => {
-    if (!tableRef.current) return;
-    
-    // Show loading state
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.className = 'loading-overlay';
-    loadingOverlay.innerHTML = '<div class="loading-spinner"></div><div>Generating PDF...</div>';
-    document.body.appendChild(loadingOverlay);
-    
-    // Get date for filename
-    const today = new Date();
-    const dateString = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    const fileName = `Financial_Table_${selectedDivision}_${dateString}.pdf`;
-    
-    // Create variables outside try block so we can access them in catch/finally
-    let wrapper = null;
-    
-    try {
-      // Create a wrapper div for better control
-      wrapper = document.createElement('div');
-      wrapper.className = 'pdf-export-wrapper';
-      wrapper.style.width = '277mm'; // A4 landscape width minus 20mm margins
-      wrapper.style.boxSizing = 'border-box';
-      wrapper.style.margin = '0';
-      wrapper.style.padding = '0';
-      wrapper.style.backgroundColor = '#ffffff';
-      document.body.appendChild(wrapper);
-      
-      // Create title for PDF
-      const titleDiv = document.createElement('div');
-      titleDiv.innerHTML = `
-        <h2 style="text-align:center; margin-bottom:5px; margin-top:0; color:#333; font-size:18px;">Financial Table</h2>
-        <div style="text-align:center; margin-bottom:10px; font-weight:bold; font-size:12px;">(AED)</div>
-      `;
-      wrapper.appendChild(titleDiv);
-      
-      // Clone the table with proper styling preserved
-      const tableContent = document.createElement('div');
-      tableContent.className = 'pdf-table-container';
-      tableContent.style.width = '100%';
-      tableContent.style.overflow = 'visible';
-      tableContent.style.margin = '0';
-      tableContent.style.padding = '0';
-      
-      // Clone the original table
-      const tableClone = tableRef.current.cloneNode(true);
-      tableClone.className = 'financial-table pdf-export-table';
-      tableClone.style.width = '100%';
-      tableClone.style.tableLayout = 'fixed';
-      tableClone.style.borderCollapse = 'collapse';
-      tableClone.style.margin = '0 auto';
-      tableClone.style.fontSize = '9px';
-      
-      // Adjust cell styles directly
-      const allCells = tableClone.querySelectorAll('th, td');
-      allCells.forEach(cell => {
-        cell.style.fontFamily = 'Arial, sans-serif';
-        cell.style.padding = '3px 4px';
-        cell.style.fontSize = '9px';
-        cell.style.overflow = 'hidden';
-        cell.style.textOverflow = 'ellipsis';
-        cell.style.whiteSpace = 'nowrap';
-        cell.style.border = '1px solid #ddd';
-      });
-      
-      // Handle header styling
-      const headerCells = tableClone.querySelectorAll('thead th');
-      headerCells.forEach(cell => {
-        cell.style.fontWeight = 'bold';
-        cell.style.textAlign = 'center';
-      });
-      
-      // Handle first column cells
-      const firstColCells = tableClone.querySelectorAll('td:first-child');
-      firstColCells.forEach(cell => {
-        cell.style.textAlign = 'left';
-        cell.style.paddingLeft = '6px';
-        cell.style.backgroundColor = '#ffffff';
-      });
-      
-      // Handle amount cells
-      const amountCells = tableClone.querySelectorAll('td:nth-child(3n+2)');
-      amountCells.forEach(cell => {
-        cell.style.textAlign = 'right';
-        cell.style.paddingRight = '8px';
-      });
-      
-      // Apply header colors safely
-      const headerRows = tableClone.querySelectorAll('thead tr');
-      headerRows.forEach((row, rowIndex) => {
-        const headerCells = row.querySelectorAll('th');
-        headerCells.forEach((cell, cellIndex) => {
-          // Skip the first empty cell in the header
-          if (rowIndex === 0 && cellIndex === 0) return;
-          
-          // Apply default header styling if column information is missing
-          let backgroundColor = '#288cfa'; // Default blue
-          let textColor = '#FFFFFF';      // Default white text
-          
-          try {
-            // Try to get column information safely
-            const colIndex = Math.floor((cellIndex - 1) / 3);
-            if (colIndex < columnOrder.length) {
-              const column = columnOrder[colIndex];
-              if (column) {
-                // Get style safely with fallbacks
-                const style = getColumnHeaderStyle(column);
-                if (style) {
-                  backgroundColor = style.backgroundColor || backgroundColor;
-                  textColor = style.color || textColor;
-                }
-              }
-            }
-          } catch (error) {
-            console.log('Error applying header color, using default', error);
-          }
-          
-          // Apply the styles
-          cell.style.backgroundColor = backgroundColor;
-          cell.style.color = textColor;
-        });
-      });
-      
-      // Apply cell background colors safely
-      const dataRows = tableClone.querySelectorAll('tbody tr:not(.separator-row)');
-      dataRows.forEach(row => {
-        const dataCells = row.querySelectorAll('td:not(:first-child)');
-        dataCells.forEach((cell, cellIndex) => {
-          try {
-            const colIndex = Math.floor(cellIndex / 3);
-            if (colIndex < columnOrder.length) {
-              const column = columnOrder[colIndex];
-              if (column) {
-                // Get background color safely
-                const bgColor = getCellBackgroundColor(column);
-                if (bgColor) {
-                  cell.style.backgroundColor = bgColor;
-                }
-              }
-            }
-          } catch (error) {
-            console.log('Error applying cell background color', error);
-          }
-        });
-      });
-      
-      // Ensure separator rows have proper styling
-      const separatorRows = tableClone.querySelectorAll('tr.separator-row');
-      separatorRows.forEach(row => {
-        row.style.height = '4px';
-        const cells = row.querySelectorAll('td');
-        cells.forEach(cell => {
-          cell.style.padding = '0';
-          cell.style.border = 'none';
-          cell.style.backgroundColor = '#f9f9f9';
-        });
-      });
-      
-      // Add table to the wrapper
-      tableContent.appendChild(tableClone);
-      wrapper.appendChild(tableContent);
-      
-      // Use html2canvas with improved settings
-      html2canvas(wrapper, {
-        scale: 2, // Higher scale for better quality
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        allowTaint: true,
-        width: 277*3.78, // Convert mm to px for better scaling
-        height: 190*3.78  // Convert mm to px for better scaling
-      }).then(canvas => {
-        // Define A4 landscape dimensions (297mm × 210mm)
-        const pdfWidth = 297;
-        const pdfHeight = 210;
-        
-        // Create PDF in landscape orientation
-        const pdf = new jsPDF('landscape', 'mm', 'a4');
-        
-        // Calculate margins
-        const marginLeft = 10;
-        const marginTop = 10;
-        const contentWidth = pdfWidth - (marginLeft * 2);
-        const contentHeight = pdfHeight - (marginTop * 2);
-        
-        // Add the canvas as image
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', marginLeft, marginTop, contentWidth, contentHeight);
-        
-        // Add footer
-        pdf.setFontSize(8);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`Generated on: ${new Date().toLocaleDateString()} - ${selectedDivision}`, pdfWidth - 15, pdfHeight - 5, { align: 'right' });
-        
-        // Save PDF
-        pdf.save(fileName);
-        
-        // Clean up using our safe helper
-        safelyRemoveElement(wrapper);
-        safelyRemoveElement(loadingOverlay);
-      }).catch(error => {
-        console.error('Error generating PDF canvas:', error);
-        alert('Error generating PDF. Please try again.');
-      }).finally(() => {
-        // Cleanup after promise completes (success or error)
-        safelyRemoveElement(wrapper);
-        safelyRemoveElement(loadingOverlay);
-      });
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Error generating PDF. Please try again.');
-      
-      // Cleanup in case of error before promise
-      safelyRemoveElement(wrapper);
-      safelyRemoveElement(loadingOverlay);
-    }
-  }; // End of exportToPDF function
-  
   return (
     <div className="table-view">
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <button 
-              onClick={exportToPDF} 
-              className="export-pdf-btn"
-              title="Export to PDF"
-            >
-              Export to PDF
-            </button>
-          </div>
-          <div style={{ flex: 2, textAlign: 'center' }}>
-            <h3 style={{ marginBottom: '2px', color: '#333' }}>Financial Table</h3>
-            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>(AED)</div>
-          </div>
-          <div style={{ flex: 1 }}></div>
-        </div>
+      <div className="table-header">
+        <h3>Financial Table</h3>
       </div>
-      <div className="table-container" style={{ display: 'flex', justifyContent: 'center' }}>
-        <table className="financial-table" ref={tableRef}>
+      <div className="table-container" ref={tableRef}>
+        <table className="financial-table">
           <colgroup>
             <col style={{ width: '302px' }}/>
           </colgroup>

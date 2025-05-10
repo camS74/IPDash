@@ -9,9 +9,6 @@
     "@testing-library/user-event": "^13.5.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1",
-    "jspdf-autotable": "^5.0.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-scripts": "5.0.1",
@@ -41,5 +38,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "http://localhost:3001"
 }

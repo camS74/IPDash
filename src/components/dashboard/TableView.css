@@ -5,34 +5,38 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-top: 20px;
-  max-width: 98%; /* Increase max width to use most of the screen space */
+  max-width: 100%; /* Use full width of container */
   margin-left: auto;
   margin-right: auto;
 }
 
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.table-header h3 {
+  margin: 0;
+  color: #333;
+}
+
 .table-container {
   width: 100%;
-  overflow-x: auto;
   margin-top: 15px;
   display: flex;
   justify-content: center; /* Center table */
-  /* For landscape mode on most screens */
-  max-width: 100%;
-  max-height: 75vh; /* Set max height for vertical scrolling */
-  overflow-y: auto;
-  /* Ensure scrollbar only appears when needed */
-  scrollbar-width: thin;
-  /* Improve scrolling behavior */
-  -webkit-overflow-scrolling: touch;
-  position: relative; /* This helps with positioning sticky elements */
+  position: relative;
 }
 
 .financial-table {
   border-collapse: collapse;
   font-size: 14px;
   margin: 0 auto; /* Center table */
-  width: auto; /* Let the content determine width */
-  table-layout: fixed; /* Fixed layout for equal column widths */
+  width: 100%; /* Full width */
+  min-width: 1200px; /* Ensure minimum width */
+  table-layout: auto; /* Auto layout for better content fit */
   text-align: center; /* Center content within cells */
 }
 
@@ -54,10 +58,8 @@
 /* Set consistent widths for the 3 columns in each period group */
 .financial-table th:nth-child(3n+2),
 .financial-table td:nth-child(3n+2) {
-  width: 265px; /* Amount column - 7 cm */
+  width: 120px; /* Fixed width for amount column */
   font-size: 13px; /* Slightly smaller font for amount values */
-  overflow: hidden; /* Prevent overflow */
-  text-overflow: ellipsis; /* Add ellipsis if text overflows */
 }
 
 .financial-table th:nth-child(3n+3),
@@ -74,7 +76,7 @@
 
 /* Force equal width distribution for each period column group */
 .period-column-group {
-  width: 379px; /* Set fixed width for each period group - 10 cm */
+  width: auto;
   display: inline-block;
 }
 
@@ -90,20 +92,16 @@
 
 /* Handle text overflow in cells */
 .financial-table td {
-  max-width: 110px; /* Match the largest column width */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 5px;
+  white-space: normal;
 }
 
 .financial-table th:first-child,
 .financial-table td:first-child {
   text-align: left;
   font-weight: normal;
-  width: 302px; /* 8 cm */
+  width: 160px; /* Reduced by 20% from 200px */
   background-color: #ffffff;
-  position: sticky;
-  left: 0;
-  box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1);
 }
 
 /* Special styling for empty header cells in the first column */
@@ -121,19 +119,14 @@
   vertical-align: middle;
 }
 
-/* Make headers sticky when scrolling */
+/* Header styling */
 .financial-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   background-color: white;
 }
 
 .financial-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 1px 1px rgba(0,0,0,0.1); /* Add subtle shadow for visual separation */
+  background-color: white;
+  border-bottom: 2px solid #ddd; /* Add border for visual separation */
 }
 
 /* Ensure all header cells have same style */
@@ -185,157 +178,6 @@
   color: #666;
 }
 
-/* PDF Export Button */
-.export-pdf-btn {
-  background-color: #2E865F;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: background-color 0.3s, transform 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
 
-.export-pdf-btn:hover {
-  background-color: #246D4D;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 5px rgba(0,0,0,0.15);
-}
 
-.export-pdf-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
 
-/* Loading overlay when generating PDF */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  font-size: 16px;
-  color: #333;
-}
-
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #2E865F;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Styles specific for PDF export */
-/* PDF Export Styling */
-.pdf-export-wrapper {
-  background-color: white;
-  padding: 0;
-  margin: 0;
-  font-family: Arial, sans-serif;
-  box-sizing: border-box;
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-}
-
-.pdf-table-container {
-  width: 100%;
-  overflow: visible;
-  margin: 0;
-  padding: 0;
-}
-
-.pdf-export-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  border-spacing: 0 !important;
-  font-size: 9px !important;
-  table-layout: fixed !important;
-}
-
-.pdf-export-table th,
-.pdf-export-table td {
-  border: 1px solid #ddd !important;
-  text-align: center !important;
-  padding: 3px 4px !important;
-  font-size: 9px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
-.pdf-export-table th:first-child,
-.pdf-export-table td:first-child {
-  text-align: left !important;
-  font-weight: normal !important;
-  background-color: #ffffff !important;
-}
-
-.pdf-export-table th {
-  font-weight: bold !important;
-  font-size: 9px !important;
-}
-
-/* Money value cells in PDF */
-.pdf-export-table td:nth-child(3n+2) {
-  text-align: right !important;
-  padding-right: 8px !important;
-  font-family: monospace !important;
-}
-
-/* Percentage cells in PDF */
-.pdf-export-table td:nth-child(3n+3) {
-  text-align: right !important;
-  padding-right: 4px !important;
-}
-
-/* Per kg cells in PDF */
-.pdf-export-table td:nth-child(3n+4) {
-  text-align: right !important;
-  padding-right: 4px !important;
-}
-
-/* Style for important rows in PDF */
-.pdf-export-table .important-row td {
-  font-weight: bold !important;
-}
-
-/* Style for separator rows in PDF */
-.pdf-export-table .separator-row td {
-  height: 4px !important;
-  padding: 0 !important;
-  border: none !important;
-  background: #f8f8f8 !important;
-}
-
-/* Style for calculated cells in PDF */
-.pdf-export-table .calculated-cell {
-  font-style: italic !important;
-}
-
-/* Remove any unwanted margin or padding that might affect the PDF */
-@media print {
-  body, html {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-}

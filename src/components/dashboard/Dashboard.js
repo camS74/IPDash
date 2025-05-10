@@ -5,7 +5,6 @@ import FilterPanel from './FilterPanel';
 import ColumnConfigGrid from './ColumnConfigGrid';
 import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
-import ChartView from './ChartView';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -15,7 +14,7 @@ const Dashboard = () => {
   const loadData = useCallback(() => {
     console.log('Dashboard mounted, attempting to load Excel data...');
     // Load Excel data when component mounts - pointing to our backend server
-    loadExcelData('http://localhost:3001/api/financials.xlsx')
+    loadExcelData('/api/financials.xlsx')
       .catch(err => {
         console.error('Error in Dashboard useEffect:', err);
       });
@@ -56,8 +55,10 @@ const Dashboard = () => {
             <Tab label="Data Table">
               <TableView />
             </Tab>
-            <Tab label="Visualizations">
-              <ChartView />
+            <Tab label="Charts">
+              <div className="empty-charts-container">
+                <p>Charts functionality is not currently implemented.</p>
+              </div>
             </Tab>
           </TabsComponent>
         </div>

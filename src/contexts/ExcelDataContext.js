@@ -14,7 +14,7 @@ export const ExcelDataProvider = ({ children }) => {
   const [dataLoaded, setDataLoaded] = useState(false);
   
   // Function to load Excel file from API endpoint - use useCallback to prevent infinite loops
-  const loadExcelData = useCallback(async (url) => {
+  const loadExcelData = useCallback(async (url = '/api/financials.xlsx') => {
     // Prevent loading if we're already loading or already have data
     if (loading || dataLoaded) {
       return;
