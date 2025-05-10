@@ -1,11 +1,46 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import './TableView.css';
+
+// Helper function for safely removing DOM elements
+const safelyRemoveElement = (element) => {
+  try {
+    // Check if element exists
+    if (!element) return;
+    
+    // Try direct removal if element has parent
+    if (element.parentNode) {
+      element.parentNode.removeChild(element);
+      return;
+    }
+    
+    // Fallback: check if it's in document.body
+    if (document.body.contains(element)) {
+      document.body.removeChild(element);
+      return;
+    }
+    
+    // Fallback for loading overlays: find by class
+    if (element.classList && element.classList.contains('loading-overlay')) {
+      const overlays = document.querySelectorAll('.loading-overlay');
+      overlays.forEach(overlay => {
+        if (overlay && overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      });
+    }
+  } catch (cleanupError) {
+    console.error('Error removing element:', cleanupError);
+  }
+};
 
 const TableView = () => {
   const { excelData, selectedDivision } = useExcelData();
   const { columnOrder, dataGenerated } = useFilter();
+  const tableRef = useRef(null);
 
   // Only show data if Generate button has been clicked
   if (!dataGenerated) {
@@ -172,17 +207,79 @@ const TableView = () => {
     }
   };
 
-  // Color schemes definitions
+  // Function to calculate percentage of sales
+  const computePercentOfSales = (rowIndex, column) => {
+    try {
+      const cellValue = computeCellValue(rowIndex, column);
+      const salesValue = computeCellValue(3, column); // Row 3 is Sales
+      
+      // Convert string values with commas back to numbers
+      const cellNum = cellValue === 'N/A' ? 0 : parseFloat(cellValue.replace(/,/g, ''));
+      const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+      
+      // Calculate percentage
+      if (salesNum === 0) return 'N/A';
+      
+      const percentValue = (cellNum / salesNum) * 100;
+      
+      // Format with 2 decimal places
+      return percentValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + '%';
+    } catch (error) {
+      console.error('Error computing percent of sales:', error);
+      return 'Error';
+    }
+  };
+
+  // Function to calculate sales per kg
+  const computeSalesPerKg = (rowIndex, column) => {
+    try {
+      const cellValue = computeCellValue(rowIndex, column);
+      const salesVolumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
+      
+      // Convert string values with commas back to numbers
+      const cellNum = cellValue === 'N/A' ? 0 : parseFloat(cellValue.replace(/,/g, ''));
+      const salesVolumeNum = salesVolumeValue === 'N/A' ? 0 : parseFloat(salesVolumeValue.replace(/,/g, ''));
+      
+      // Calculate sales per kg
+      if (salesVolumeNum === 0) return 'N/A';
+      
+      const perKgValue = cellNum / salesVolumeNum;
+      
+      // Format with 2 decimal places
+      return perKgValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    } catch (error) {
+      console.error('Error computing sales per kg:', error);
+      return 'Error';
+    }
+  };
+
+  // Color schemes available for columns - MUST MATCH ColumnConfigGrid.js exactly
   const colorSchemes = [
-    { name: 'blue', primary: '#288cfa', light: '#E6F2FF', isDark: true },
-    { name: 'green', primary: '#2E865F', light: '#E6F5EF', isDark: true },
-    { name: 'yellow', primary: '#FFEA00', light: '#FFFDE6', isDark: false },
-    { name: 'orange', primary: '#FF9800', light: '#FFF3E0', isDark: false },
-    { name: 'boldContrast', primary: '#003366', light: '#E6EEF5', isDark: true }
+    { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', light: '#E3F2FD', isDark: true },
+    { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', light: '#E8F5E9', isDark: true },
+    { name: 'yellow', label: 'Yellow', primary: '#FFEA00', secondary: '#FFFDE7', light: '#FFFDE7', isDark: false },
+    { name: 'orange', label: 'Orange', primary: '#FF9800', secondary: '#FFE0B2', light: '#FFF3E0', isDark: false },
+    { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#E6EEF5', light: '#E6EEF5', isDark: true }
   ];
 
   // Function to get column style based on the column configuration
   const getColumnHeaderStyle = (column) => {
+    // Ensure column is defined
+    if (!column) {
+      return { 
+        backgroundColor: '#288cfa', 
+        color: '#FFFFFF',
+        fontWeight: 'bold'
+      };
+    }
+    
+    // Check if column has customColor property safely
     if (column.customColor) {
       const scheme = colorSchemes.find(s => s.name === column.customColor);
       if (scheme) {
@@ -194,7 +291,34 @@ const TableView = () => {
       }
     }
     
-    // Default blue if no custom color
+    // Default color assignment based on month/type
+    if (column.month === 'Q1' || column.month === 'Q2' || column.month === 'Q3' || column.month === 'Q4') {
+      return {
+        backgroundColor: '#FF9800', // Orange
+        color: '#000000',
+        fontWeight: 'bold'
+      };
+    } else if (column.month === 'January') {
+      return {
+        backgroundColor: '#FFEA00', // Yellow
+        color: '#000000',
+        fontWeight: 'bold'
+      };
+    } else if (column.month === 'Year') {
+      return {
+        backgroundColor: '#288cfa', // Blue
+        color: '#FFFFFF',
+        fontWeight: 'bold'
+      };
+    } else if (column.type === 'Budget') {
+      return {
+        backgroundColor: '#2E865F', // Green
+        color: '#FFFFFF',
+        fontWeight: 'bold'
+      };
+    }
+    
+    // Default to blue
     return { 
       backgroundColor: '#288cfa', 
       color: '#FFFFFF',
@@ -204,6 +328,7 @@ const TableView = () => {
 
   // Function to get cell background color based on column configuration
   const getCellBackgroundColor = (column) => {
+    // Use exactly the same color logic as in ColumnConfigGrid.js but for cell backgrounds
     if (column.customColor) {
       const scheme = colorSchemes.find(s => s.name === column.customColor);
       if (scheme) {
@@ -211,49 +336,321 @@ const TableView = () => {
       }
     }
     
-    // Default light blue if no custom color
-    return '#E6F2FF';
+    // Default color assignment based on month/type
+    if (column.month === 'Q1' || column.month === 'Q2' || column.month === 'Q3' || column.month === 'Q4') {
+      return colorSchemes.find(s => s.name === 'orange').light;
+    } else if (column.month === 'January') {
+      return colorSchemes.find(s => s.name === 'yellow').light;
+    } else if (column.month === 'Year') {
+      return colorSchemes.find(s => s.name === 'blue').light;
+    } else if (column.type === 'Budget') {
+      return colorSchemes.find(s => s.name === 'green').light;
+    }
+    
+    // Default to blue
+    return colorSchemes.find(s => s.name === 'blue').light;
   };
 
+  // Function to export table as PDF
+  const exportToPDF = () => {
+    if (!tableRef.current) return;
+    
+    // Show loading state
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = '<div class="loading-spinner"></div><div>Generating PDF...</div>';
+    document.body.appendChild(loadingOverlay);
+    
+    // Get date for filename
+    const today = new Date();
+    const dateString = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    const fileName = `Financial_Table_${selectedDivision}_${dateString}.pdf`;
+    
+    // Create variables outside try block so we can access them in catch/finally
+    let wrapper = null;
+    
+    try {
+      // Create a wrapper div for better control
+      wrapper = document.createElement('div');
+      wrapper.className = 'pdf-export-wrapper';
+      wrapper.style.width = '277mm'; // A4 landscape width minus 20mm margins
+      wrapper.style.boxSizing = 'border-box';
+      wrapper.style.margin = '0';
+      wrapper.style.padding = '0';
+      wrapper.style.backgroundColor = '#ffffff';
+      document.body.appendChild(wrapper);
+      
+      // Create title for PDF
+      const titleDiv = document.createElement('div');
+      titleDiv.innerHTML = `
+        <h2 style="text-align:center; margin-bottom:5px; margin-top:0; color:#333; font-size:18px;">Financial Table</h2>
+        <div style="text-align:center; margin-bottom:10px; font-weight:bold; font-size:12px;">(AED)</div>
+      `;
+      wrapper.appendChild(titleDiv);
+      
+      // Clone the table with proper styling preserved
+      const tableContent = document.createElement('div');
+      tableContent.className = 'pdf-table-container';
+      tableContent.style.width = '100%';
+      tableContent.style.overflow = 'visible';
+      tableContent.style.margin = '0';
+      tableContent.style.padding = '0';
+      
+      // Clone the original table
+      const tableClone = tableRef.current.cloneNode(true);
+      tableClone.className = 'financial-table pdf-export-table';
+      tableClone.style.width = '100%';
+      tableClone.style.tableLayout = 'fixed';
+      tableClone.style.borderCollapse = 'collapse';
+      tableClone.style.margin = '0 auto';
+      tableClone.style.fontSize = '9px';
+      
+      // Adjust cell styles directly
+      const allCells = tableClone.querySelectorAll('th, td');
+      allCells.forEach(cell => {
+        cell.style.fontFamily = 'Arial, sans-serif';
+        cell.style.padding = '3px 4px';
+        cell.style.fontSize = '9px';
+        cell.style.overflow = 'hidden';
+        cell.style.textOverflow = 'ellipsis';
+        cell.style.whiteSpace = 'nowrap';
+        cell.style.border = '1px solid #ddd';
+      });
+      
+      // Handle header styling
+      const headerCells = tableClone.querySelectorAll('thead th');
+      headerCells.forEach(cell => {
+        cell.style.fontWeight = 'bold';
+        cell.style.textAlign = 'center';
+      });
+      
+      // Handle first column cells
+      const firstColCells = tableClone.querySelectorAll('td:first-child');
+      firstColCells.forEach(cell => {
+        cell.style.textAlign = 'left';
+        cell.style.paddingLeft = '6px';
+        cell.style.backgroundColor = '#ffffff';
+      });
+      
+      // Handle amount cells
+      const amountCells = tableClone.querySelectorAll('td:nth-child(3n+2)');
+      amountCells.forEach(cell => {
+        cell.style.textAlign = 'right';
+        cell.style.paddingRight = '8px';
+      });
+      
+      // Apply header colors safely
+      const headerRows = tableClone.querySelectorAll('thead tr');
+      headerRows.forEach((row, rowIndex) => {
+        const headerCells = row.querySelectorAll('th');
+        headerCells.forEach((cell, cellIndex) => {
+          // Skip the first empty cell in the header
+          if (rowIndex === 0 && cellIndex === 0) return;
+          
+          // Apply default header styling if column information is missing
+          let backgroundColor = '#288cfa'; // Default blue
+          let textColor = '#FFFFFF';      // Default white text
+          
+          try {
+            // Try to get column information safely
+            const colIndex = Math.floor((cellIndex - 1) / 3);
+            if (colIndex < columnOrder.length) {
+              const column = columnOrder[colIndex];
+              if (column) {
+                // Get style safely with fallbacks
+                const style = getColumnHeaderStyle(column);
+                if (style) {
+                  backgroundColor = style.backgroundColor || backgroundColor;
+                  textColor = style.color || textColor;
+                }
+              }
+            }
+          } catch (error) {
+            console.log('Error applying header color, using default', error);
+          }
+          
+          // Apply the styles
+          cell.style.backgroundColor = backgroundColor;
+          cell.style.color = textColor;
+        });
+      });
+      
+      // Apply cell background colors safely
+      const dataRows = tableClone.querySelectorAll('tbody tr:not(.separator-row)');
+      dataRows.forEach(row => {
+        const dataCells = row.querySelectorAll('td:not(:first-child)');
+        dataCells.forEach((cell, cellIndex) => {
+          try {
+            const colIndex = Math.floor(cellIndex / 3);
+            if (colIndex < columnOrder.length) {
+              const column = columnOrder[colIndex];
+              if (column) {
+                // Get background color safely
+                const bgColor = getCellBackgroundColor(column);
+                if (bgColor) {
+                  cell.style.backgroundColor = bgColor;
+                }
+              }
+            }
+          } catch (error) {
+            console.log('Error applying cell background color', error);
+          }
+        });
+      });
+      
+      // Ensure separator rows have proper styling
+      const separatorRows = tableClone.querySelectorAll('tr.separator-row');
+      separatorRows.forEach(row => {
+        row.style.height = '4px';
+        const cells = row.querySelectorAll('td');
+        cells.forEach(cell => {
+          cell.style.padding = '0';
+          cell.style.border = 'none';
+          cell.style.backgroundColor = '#f9f9f9';
+        });
+      });
+      
+      // Add table to the wrapper
+      tableContent.appendChild(tableClone);
+      wrapper.appendChild(tableContent);
+      
+      // Use html2canvas with improved settings
+      html2canvas(wrapper, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        allowTaint: true,
+        width: 277*3.78, // Convert mm to px for better scaling
+        height: 190*3.78  // Convert mm to px for better scaling
+      }).then(canvas => {
+        // Define A4 landscape dimensions (297mm × 210mm)
+        const pdfWidth = 297;
+        const pdfHeight = 210;
+        
+        // Create PDF in landscape orientation
+        const pdf = new jsPDF('landscape', 'mm', 'a4');
+        
+        // Calculate margins
+        const marginLeft = 10;
+        const marginTop = 10;
+        const contentWidth = pdfWidth - (marginLeft * 2);
+        const contentHeight = pdfHeight - (marginTop * 2);
+        
+        // Add the canvas as image
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', marginLeft, marginTop, contentWidth, contentHeight);
+        
+        // Add footer
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Generated on: ${new Date().toLocaleDateString()} - ${selectedDivision}`, pdfWidth - 15, pdfHeight - 5, { align: 'right' });
+        
+        // Save PDF
+        pdf.save(fileName);
+        
+        // Clean up using our safe helper
+        safelyRemoveElement(wrapper);
+        safelyRemoveElement(loadingOverlay);
+      }).catch(error => {
+        console.error('Error generating PDF canvas:', error);
+        alert('Error generating PDF. Please try again.');
+      }).finally(() => {
+        // Cleanup after promise completes (success or error)
+        safelyRemoveElement(wrapper);
+        safelyRemoveElement(loadingOverlay);
+      });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Error generating PDF. Please try again.');
+      
+      // Cleanup in case of error before promise
+      safelyRemoveElement(wrapper);
+      safelyRemoveElement(loadingOverlay);
+    }
+  }; // End of exportToPDF function
+  
   return (
     <div className="table-view">
-      <h3>Data Table</h3>
-      <div className="table-container">
-        {/* Financial data table */}
-        <table className="financial-table">
+      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <button 
+              onClick={exportToPDF} 
+              className="export-pdf-btn"
+              title="Export to PDF"
+            >
+              Export to PDF
+            </button>
+          </div>
+          <div style={{ flex: 2, textAlign: 'center' }}>
+            <h3 style={{ marginBottom: '2px', color: '#333' }}>Financial Table</h3>
+            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>(AED)</div>
+          </div>
+          <div style={{ flex: 1 }}></div>
+        </div>
+      </div>
+      <div className="table-container" style={{ display: 'flex', justifyContent: 'center' }}>
+        <table className="financial-table" ref={tableRef}>
+          <colgroup>
+            <col style={{ width: '302px' }}/>
+          </colgroup>
+          {columnOrder.map((_, index) => (
+            <colgroup key={`colgroup-${index}`} className="period-column-group">
+              <col style={{ width: '80px' }}/>
+              <col style={{ width: '48px' }}/>
+              <col style={{ width: '57px' }}/>
+            </colgroup>
+          ))}
           <thead>
             <tr>
-              <th className="empty-header"></th> {/* Empty cell for row labels with special class */}
+              <th className="empty-header" rowSpan="4"></th>
               {columnOrder.map((column, index) => (
-                <th 
-                  key={`col-${index}`}
+                <th
+                  key={`year-${index}`}
                   style={getColumnHeaderStyle(column)}
-                  colSpan="1"
+                  colSpan="3"
                 >
                   {column.year}
                 </th>
               ))}
             </tr>
             <tr>
-              <th className="empty-header"></th> {/* Empty cell for row labels with special class */}
               {columnOrder.map((column, index) => (
-                <th 
-                  key={`period-${index}`}
+                <th
+                  key={`month-${index}`}
                   style={getColumnHeaderStyle(column)}
+                  colSpan="3"
                 >
                   {column.month}
                 </th>
               ))}
             </tr>
             <tr>
-              <th className="empty-header"></th> {/* Empty cell for row labels with special class */}
               {columnOrder.map((column, index) => (
                 <th 
                   key={`type-${index}`}
                   style={getColumnHeaderStyle(column)}
+                  colSpan="3"
                 >
                   {column.type}
                 </th>
+              ))}
+            </tr>
+            
+            <tr>
+              {columnOrder.map((column, index) => (
+                <React.Fragment key={`metric-${index}`}>
+                  <th style={{...getColumnHeaderStyle(column), fontSize: '13px', width: '80px'}}>
+                    Amount
+                  </th>
+                  <th style={{...getColumnHeaderStyle(column), fontSize: '12px', lineHeight: '1.1', width: '48px', textAlign: 'center', padding: '2px'}}>
+                    %<br/>of<br/>Sales
+                  </th>
+                  <th style={{...getColumnHeaderStyle(column), fontSize: '12px', lineHeight: '1.1', width: '57px', textAlign: 'center', padding: '2px'}}>
+                    Sales<br/>per<br/>Kg
+                  </th>
+                </React.Fragment>
               ))}
             </tr>
           </thead>
@@ -287,13 +684,14 @@ const TableView = () => {
               return (
                 <tr key={row.key} className={`${row.isHeader ? 'section-header' : ''} ${isImportantRow ? 'important-row' : ''}`}>
                   <td className="row-label">{row.label}</td>
-                  {columnOrder.map((column, colIndex) => {
+                  {columnOrder.flatMap((column, colIndex) => {
                     // Handle calculated fields with formulas
                     if (row.isCalculated) {
-                      // Get background color based on the column's color scheme
+                      // Get background color based on the column's properties
                       const bgColor = getCellBackgroundColor(column);
 
                       // Process formulas based on the type
+                      let formattedResult = 'N/A';
                       if (row.formula === 'sales-material') {
                         // Find the values for sales and material in this column
                         const salesValue = computeCellValue(3, column);
@@ -307,20 +705,10 @@ const TableView = () => {
                         const result = salesNum - materialNum;
 
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'sum9-10-12-13') {
                         // Find the values for rows 9, 10, 12, and 13 in this column
                         const value9 = computeCellValue(9, column);
@@ -338,20 +726,10 @@ const TableView = () => {
                         const result = num9 + num10 + num12 + num13;
 
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'sum14-15') {
                         // Calculate row 14 (sum of 9, 10, 12, 13)
                         const value9 = computeCellValue(9, column);
@@ -375,20 +753,10 @@ const TableView = () => {
                         const result = num14 + num15;
 
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'percent16-4') {
                         // First calculate row 16 (sum of row 14 + row 15)
                         // We need to get row 14 first (sum of 9, 10, 12, 13)
@@ -423,20 +791,10 @@ const TableView = () => {
                         }
                         
                         // Format the result as percentage with 1 decimal place
-                        const percentFormatted = percentResult.toLocaleString('en-US', {
+                        formattedResult = percentResult.toLocaleString('en-US', {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1
                         }) + '%';
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {percentFormatted}
-                          </td>
-                        );
                       } else if (row.formula === 'calc19-3-4') {
                         // Get Sales value (row 3)
                         const salesValue = computeCellValue(3, column);
@@ -450,20 +808,10 @@ const TableView = () => {
                         const result = sales - material;
                         
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-                        
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'calc21-19-10') {
                         // Calculate Row 19 (Sales - Material) first
                         const salesValue = computeCellValue(3, column);
@@ -482,20 +830,10 @@ const TableView = () => {
                         const result = row19 + row10;
                         
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-                        
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'sum-31-32-40-42-43-44-49-50') {
                         // Get values for all rows to be summed
                         const value31 = computeCellValue(31, column);
@@ -521,20 +859,10 @@ const TableView = () => {
                         const result = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
                         
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'sum-14-52') {
                         // For Row 14, we need to calculate it based on rows 9, 10, 12, 13
                         const value9 = computeCellValue(9, column);
@@ -578,20 +906,10 @@ const TableView = () => {
                         const result = row14 + row52;
                         
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'diff-19-52') {
                         // First calculate Row 19 (Sales - Material)
                         const salesValue = computeCellValue(3, column);
@@ -627,20 +945,10 @@ const TableView = () => {
                         const result = row19 - row52;
                         
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
                       } else if (row.formula === 'sum-54-19-42-44') {
                         // Calculate Row 54 (Row19 - Row52)
                         // First calculate Row 19 (Sales - Material)
@@ -680,45 +988,113 @@ const TableView = () => {
                         const result = row54 + row19 + num42 + num44;
                         
                         // Format the result with commas
-                        const formattedResult = result.toLocaleString('en-US', {
+                        formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {formattedResult}
-                          </td>
-                        );
-                      } else {
-                        // Fallback for unknown formulas
-                        return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            N/A
-                          </td>
-                        );
                       }
+                      
+                      // Return an array of cells instead of using React.Fragment
+                      return [
+                        <td
+                          key={`amount-${row.key}-${colIndex}`}
+                          className="calculated-cell"
+                          style={{ backgroundColor: bgColor, width: '80px' }}
+                        >
+                          {formattedResult}
+                        </td>,
+                        <td
+                          key={`percent-${row.key}-${colIndex}`}
+                          className="calculated-cell"
+                          style={{ backgroundColor: bgColor, width: '57px' }}
+                        >
+                          {(() => {
+                            // For Direct cost as % of C.O.G.S (index -5), show empty cell
+                            if (row.index === -5) return '';
+                            
+                            try {
+                              // Convert formattedResult to number for calculation
+                              const cellNum = formattedResult === 'N/A' ? 0 : parseFloat(formattedResult.replace(/,/g, ''));
+                              const salesValue = computeCellValue(3, column); // Row 3 is Sales
+                              const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                              
+                              // Calculate percentage
+                              if (salesNum === 0) return 'N/A';
+                              
+                              const percentValue = (cellNum / salesNum) * 100;
+                              
+                              // Format with 2 decimal places
+                              return percentValue.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              }) + '%';
+                            } catch (error) {
+                              console.error('Error computing percent of sales for calculated cell:', error);
+                              return 'Error';
+                            }
+                          })()}
+                        </td>,
+                        <td
+                          key={`perkg-${row.key}-${colIndex}`}
+                          className="calculated-cell"
+                          style={{ backgroundColor: bgColor, width: '57px' }}
+                        >
+                          {(() => {
+                            // For Direct cost as % of C.O.G.S (index -5), show empty cell
+                            if (row.index === -5) return '';
+                            
+                            try {
+                              // Convert formattedResult to number for calculation
+                              const cellNum = formattedResult === 'N/A' ? 0 : parseFloat(formattedResult.replace(/,/g, ''));
+                              const salesVolumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
+                              const salesVolumeNum = salesVolumeValue === 'N/A' ? 0 : parseFloat(salesVolumeValue.replace(/,/g, ''));
+                              
+                              // Calculate sales per kg
+                              if (salesVolumeNum === 0) return 'N/A';
+                              
+                              const perKgValue = cellNum / salesVolumeNum;
+                              
+                              // Format with 2 decimal places
+                              return perKgValue.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              });
+                            } catch (error) {
+                              console.error('Error computing sales per kg for calculated cell:', error);
+                              return 'Error';
+                            }
+                          })()}
+                        </td>
+                      ];
                     }
 
                     // Regular data cells (not calculated)
                     const cellValue = computeCellValue(row.index, column);
                     const bgColor = getCellBackgroundColor(column);
-                    return (
+                    
+                    // Return an array of cells instead of using React.Fragment
+                    return [
                       <td 
-                        key={`${row.key}-${colIndex}`}
-                        style={{ backgroundColor: bgColor }}
+                        key={`amount-${row.key}-${colIndex}`}
+                        style={{ backgroundColor: bgColor, width: '80px' }}
                       >
                         {cellValue}
+                      </td>,
+                      <td 
+                        key={`percent-${row.key}-${colIndex}`}
+                        style={{ backgroundColor: bgColor, width: '57px' }}
+                      >
+                        {/* Keep % of Sales empty for specific rows */}
+                        {row.index !== 7 && row.index !== 8 && row.index !== -5 ? computePercentOfSales(row.index, column) : ''}
+                      </td>,
+                      <td 
+                        key={`perkg-${row.key}-${colIndex}`}
+                        style={{ backgroundColor: bgColor, width: '57px' }}
+                      >
+                        {/* Keep Sales per kg empty for specific rows */}
+                        {row.index !== 7 && row.index !== 8 && row.index !== -5 ? computeSalesPerKg(row.index, column) : ''}
                       </td>
-                    );
+                    ];
                   })}
                 </tr>
               );

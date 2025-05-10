@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import './TableView.css';
@@ -63,16 +63,6 @@ const TableView = () => {
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: divisionData[54] ? divisionData[54][0] : 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
       { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (Row54+Row19+Row42+Row44)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-19-42-44' },
-      { key: 'separator8', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'grossProfitBefore', label: 'Gross profit (before Depn.)', index: -11, isHeader: false, isCalculated: true, formula: 'gross-profit-before', isImportant: true },
-      { key: 'grossProfitAfter', label: 'Gross profit (after Depn.)', index: -12, isHeader: false, isCalculated: true, formula: 'gross-profit-after', isImportant: true },
-      { key: 'separator9', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'totalBelowGP', label: 'Total Below GP Expenses', index: -13, isHeader: false, isCalculated: true, formula: 'total-below-gp', isImportant: true },
-      { key: 'separator10', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'totalExpenses', label: 'Total Expenses', index: -14, isHeader: false, isCalculated: true, formula: 'total-expenses', isImportant: true },
-      { key: 'separator11', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'netProfit', label: 'Net Profit', index: -15, isHeader: false, isCalculated: true, formula: 'net-profit', isImportant: true },
-      { key: 'ebitda', label: 'EBITDA', index: -16, isHeader: false, isCalculated: true, formula: 'ebitda', isImportant: true },
     ];
   } else {
     // Fallback rows if Excel data is not yet loaded
@@ -182,6 +172,87 @@ const TableView = () => {
     }
   };
 
+  // Function to calculate percentage of sales
+  const computePercentOfSales = (rowIndex, column) => {
+    try {
+      const cellValue = computeCellValue(rowIndex, column);
+      const salesValue = computeCellValue(3, column); // Row 3 is Sales
+      
+      // Convert string values with commas back to numbers
+      const cellNum = cellValue === 'N/A' ? 0 : parseFloat(cellValue.replace(/,/g, ''));
+      const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+      
+      // Calculate percentage
+      if (salesNum === 0) return 'N/A';
+      
+      const percentValue = (cellNum / salesNum) * 100;
+      
+      // Format with 2 decimal places
+      return percentValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + '%';
+    } catch (error) {
+      console.error('Error computing percent of sales:', error);
+      return 'Error';
+    }
+  };
+
+  // Function to calculate sales per kg
+  const computeSalesPerKg = (rowIndex, column) => {
+    try {
+      const cellValue = computeCellValue(rowIndex, column);
+      const salesVolumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
+      
+      // Convert string values with commas back to numbers
+      const cellNum = cellValue === 'N/A' ? 0 : parseFloat(cellValue.replace(/,/g, ''));
+      const salesVolumeNum = salesVolumeValue === 'N/A' ? 0 : parseFloat(salesVolumeValue.replace(/,/g, ''));
+      
+      // Calculate sales per kg
+      if (salesVolumeNum === 0) return 'N/A';
+      
+      const perKgValue = cellNum / salesVolumeNum;
+      
+      // Format with 2 decimal places
+      return perKgValue.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    } catch (error) {
+      console.error('Error computing sales per kg:', error);
+      return 'Error';
+    }
+  };
+
+  // Helper function to render a calculated cell with all three metrics
+  const renderCalculatedCell = (row, colIndex, column, formattedValue) => {
+    const bgColor = getCellBackgroundColor(column);
+    const rowIndex = row.index !== undefined ? row.index : 3; // Default to sales row if no index
+    
+    return (
+      <React.Fragment key={`${row.key}-${colIndex}`}>
+        <td
+          className="calculated-cell"
+          style={{ backgroundColor: bgColor }}
+        >
+          {formattedValue}
+        </td>
+        <td
+          className="calculated-cell"
+          style={{ backgroundColor: bgColor }}
+        >
+          {computePercentOfSales(rowIndex, column)}
+        </td>
+        <td
+          className="calculated-cell"
+          style={{ backgroundColor: bgColor }}
+        >
+          {computeSalesPerKg(rowIndex, column)}
+        </td>
+      </React.Fragment>
+    );
+  };
+
   // Color schemes definitions
   const colorSchemes = [
     { name: 'blue', primary: '#288cfa', light: '#E6F2FF', isDark: true },
@@ -289,14 +360,27 @@ const TableView = () => {
               if (row.isSeparator) {
                 return (
                   <tr key={row.key} className="separator-row">
-                    <td colSpan={columnOrder.length + 1}>&nbsp;</td>
+                    <td colSpan={(columnOrder.length * 3) + 1}>&nbsp;</td>
+                  </tr>
+                );
               }
               
-              // Format the result as percentage with 1 decimal place
-              const percentFormatted = percentResult.toLocaleString('en-US', {
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1
-              }) + '%';
+              // Otherwise render a normal data row
+              // Check if this row should have bold styling in ledger column based on the label
+              const isImportantRow = 
+                row.label === 'Sales' || 
+                row.label === 'Margin over Material' || 
+                row.label === 'Cost of Sales' ||
+                row.label === 'Labour' ||
+                row.label === 'Dir.Cost in Stock/Stock Adj.' ||
+                row.label === 'Gross profit (after Depn.)' ||
+                row.label === 'Selling expenses' ||
+                row.label === 'Total Below GP Expenses' ||
+                row.label === 'Total Expenses' ||
+                row.label === 'Net Profit' ||
+                row.label.trim().toUpperCase() === 'EBITDA';
+              
+              return (
                 <tr key={row.key} className={`${row.isHeader ? 'section-header' : ''} ${isImportantRow ? 'important-row' : ''}`}>
                   <td className="row-label">{row.label}</td>
                   {columnOrder.map((column, colIndex) => {
@@ -441,13 +525,26 @@ const TableView = () => {
                         }) + '%';
 
                         return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {percentFormatted}
-                          </td>
+                          <React.Fragment key={`${row.key}-${colIndex}`}>
+                            <td
+                              className="calculated-cell"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              {percentFormatted}
+                            </td>
+                            <td
+                              className="calculated-cell"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              {computePercentOfSales(row.index !== undefined ? row.index : 3, column)}
+                            </td>
+                            <td
+                              className="calculated-cell"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              {computeSalesPerKg(row.index !== undefined ? row.index : 3, column)}
+                            </td>
+                          </React.Fragment>
                         );
                       } else if (row.formula === 'calc19-3-4') {
                         // Get Sales value (row 3)
@@ -709,13 +806,26 @@ const TableView = () => {
                       } else {
                         // Fallback for unknown formulas
                         return (
-                          <td
-                            key={`${row.key}-${colIndex}`}
-                            className="calculated-cell"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            N/A
-                          </td>
+                          <React.Fragment key={`${row.key}-${colIndex}`}>
+                            <td
+                              className="calculated-cell"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              N/A
+                            </td>
+                            <td
+                              className="calculated-cell"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              N/A
+                            </td>
+                            <td
+                              className="calculated-cell"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              N/A
+                            </td>
+                          </React.Fragment>
                         );
                       }
                     }
@@ -724,12 +834,23 @@ const TableView = () => {
                     const cellValue = computeCellValue(row.index, column);
                     const bgColor = getCellBackgroundColor(column);
                     return (
-                      <td 
-                        key={`${row.key}-${colIndex}`}
-                        style={{ backgroundColor: bgColor }}
-                      >
-                        {cellValue}
-                      </td>
+                      <React.Fragment key={`${row.key}-${colIndex}`}>
+                        <td 
+                          style={{ backgroundColor: bgColor }}
+                        >
+                          {cellValue}
+                        </td>
+                        <td 
+                          style={{ backgroundColor: bgColor }}
+                        >
+                          {computePercentOfSales(row.index, column)}
+                        </td>
+                        <td 
+                          style={{ backgroundColor: bgColor }}
+                        >
+                          {computeSalesPerKg(row.index, column)}
+                        </td>
+                      </React.Fragment>
                     );
                   })}
                 </tr>
