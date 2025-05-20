@@ -5,7 +5,7 @@ import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 const KPICard = ({ title, value, previousValue, format = 'number' }) => {
   const calculateChange = () => {
     if (!previousValue || !value) return 0;
-    return ((value - previousValue) / previousValue) * 100;
+    return ((value - previousValue) / Math.abs(previousValue)) * 100;
   };
 
   const change = calculateChange();
@@ -14,9 +14,8 @@ const KPICard = ({ title, value, previousValue, format = 'number' }) => {
   const formatValue = (val) => {
     if (format === 'currency') {
       return `$${val.toLocaleString()}`;
-    }
-    if (format === 'percent') {
-      return `${val.toFixed(2)}%`;
+    } else if (format === 'percentage') {
+      return `${val.toFixed(1)}%`;
     }
     return val.toLocaleString();
   };
@@ -29,13 +28,15 @@ const KPICard = ({ title, value, previousValue, format = 'number' }) => {
         precision={2}
         valueStyle={{ color: isPositive ? '#3f8600' : '#cf1322' }}
         prefix={isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-        suffix={format === 'percent' ? '%' : ''}
+        suffix={format === 'percentage' ? '%' : ''}
         formatter={(value) => formatValue(value)}
       />
       <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
-        {change !== 0 && (
-          <span style={{ color: isPositive ? '#3f8600' : '#cf1322' }}>
-            {isPositive ? '+' : ''}{change.toFixed(2)}% from previous period
+        {previousValue && (
+          <span>
+            Previous: {formatValue(previousValue)}
+            {' | '}
+            Change: {change.toFixed(1)}%
           </span>
         )}
       </div>
@@ -43,4 +44,4 @@ const KPICard = ({ title, value, previousValue, format = 'number' }) => {
   );
 };
 
-export default KPICard;
+export default KPICard; 

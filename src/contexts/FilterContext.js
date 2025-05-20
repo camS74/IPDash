@@ -16,7 +16,50 @@ export const FilterProvider = ({ children }) => {
   });
   
   // Column order state - explicitly added by user
-  const [columnOrder, setColumnOrder] = useState([]);
+  const [columnOrder, setColumnOrder] = useState(() => {
+    // Try to load standard selection from localStorage on initial load
+    const savedStandard = localStorage.getItem('standardColumnSelection');
+    return savedStandard ? JSON.parse(savedStandard) : [];
+  });
+  
+  // Chart visible columns - track which columns are visible in charts
+  const [chartVisibleColumns, setChartVisibleColumns] = useState(() => {
+    // By default, all columns are visible
+    const savedVisibility = localStorage.getItem('chartVisibleColumns');
+    return savedVisibility ? JSON.parse(savedVisibility) : [];
+  });
+  
+  // Update chart visibility when columnOrder changes
+  useEffect(() => {
+    // Make sure all columns have a visibility setting
+    setChartVisibleColumns(prev => {
+      // Find any columns that aren't in the visibility list yet
+      const newColumns = columnOrder.filter(col => !prev.includes(col.id));
+      
+      // If there are any new columns, add them to the visibility list
+      if (newColumns.length > 0) {
+        const updatedVisibility = [...prev, ...newColumns.map(col => col.id)];
+        // Save to localStorage immediately
+        localStorage.setItem('chartVisibleColumns', JSON.stringify(updatedVisibility));
+        return updatedVisibility;
+      }
+      
+      // If all columns already have visibility settings, just return the current list
+      // But filter out any columns that no longer exist
+      const filtered = prev.filter(id => columnOrder.some(col => col.id === id));
+      if (filtered.length !== prev.length) {
+        // Save the filtered list if it changed
+        localStorage.setItem('chartVisibleColumns', JSON.stringify(filtered));
+      }
+      return filtered;
+    });
+  }, [columnOrder]);
+  
+  // Base period index state
+  const [basePeriodIndex, setBasePeriodIndex] = useState(() => {
+    const savedBase = localStorage.getItem('basePeriodIndex');
+    return savedBase !== null ? JSON.parse(savedBase) : null;
+  });
   
   // State to track if data has been generated
   const [dataGenerated, setDataGenerated] = useState(false);
@@ -113,6 +156,51 @@ export const FilterProvider = ({ children }) => {
     return false;
   };
 
+  // Function to save current selection as standard
+  const saveAsStandardSelection = () => {
+    if (columnOrder.length > 0) {
+      localStorage.setItem('standardColumnSelection', JSON.stringify(columnOrder));
+      return true;
+    }
+    return false;
+  };
+
+  // Function to clear standard selection
+  const clearStandardSelection = () => {
+    localStorage.removeItem('standardColumnSelection');
+    return true;
+  };
+
+  // Function to set base period
+  const setBasePeriod = (index) => {
+    setBasePeriodIndex(index);
+    localStorage.setItem('basePeriodIndex', JSON.stringify(index));
+  };
+
+  // Function to clear base period
+  const clearBasePeriod = () => {
+    setBasePeriodIndex(null);
+    localStorage.removeItem('basePeriodIndex');
+  };
+
+  // Toggle visibility of a column in charts
+  const toggleChartColumnVisibility = (columnId) => {
+    setChartVisibleColumns(prev => {
+      const newVisibility = prev.includes(columnId) 
+        ? prev.filter(id => id !== columnId)  // Remove if present (hide)
+        : [...prev, columnId];                // Add if not present (show)
+      
+      // Save to localStorage
+      localStorage.setItem('chartVisibleColumns', JSON.stringify(newVisibility));
+      return newVisibility;
+    });
+  };
+  
+  // Check if a column is visible in charts
+  const isColumnVisibleInChart = (columnId) => {
+    return chartVisibleColumns.includes(columnId);
+  };
+
   // Values to expose in the context
   const value = {
     availableFilters,
@@ -124,7 +212,15 @@ export const FilterProvider = ({ children }) => {
     generateData,
     dataGenerated,
     fullYear,
-    quarters
+    quarters,
+    saveAsStandardSelection,
+    clearStandardSelection,
+    basePeriodIndex,
+    setBasePeriod,
+    clearBasePeriod,
+    chartVisibleColumns,
+    toggleChartColumnVisibility,
+    isColumnVisibleInChart
   };
   
   return (

@@ -3,13 +3,30 @@ import { useFilter } from '../../contexts/FilterContext';
 import './ColumnConfigGrid.css';
 
 const ColumnConfigGrid = () => {
-  const { columnOrder, updateColumnOrder, removeColumn, clearAllColumns, generateData, dataGenerated } = useFilter();
+  const { 
+    columnOrder, 
+    updateColumnOrder, 
+    removeColumn, 
+    clearAllColumns, 
+    generateData, 
+    dataGenerated,
+    saveAsStandardSelection,
+    clearStandardSelection,
+    basePeriodIndex,
+    setBasePeriod,
+    clearBasePeriod,
+    chartVisibleColumns,
+    toggleChartColumnVisibility,
+    isColumnVisibleInChart
+  } = useFilter();
   const [selectedColumnIndex, setSelectedColumnIndex] = useState(null);
+  const [standardSaved, setStandardSaved] = useState(false);
   
   // Handle Clear All with resetting selection
   const handleClearAll = () => {
     clearAllColumns();
     setSelectedColumnIndex(null); // Reset selected column when clearing all
+    clearBasePeriod(); // Reset base period when clearing all
   };
   
   // Handle data generation
@@ -121,20 +138,54 @@ const ColumnConfigGrid = () => {
     }
   };
   
+  // Handle saving as standard selection
+  const handleSaveAsStandard = () => {
+    if (saveAsStandardSelection()) {
+      setStandardSaved(true);
+      // Reset the saved state after 2 seconds
+      setTimeout(() => setStandardSaved(false), 2000);
+    }
+  };
+
+  // Handle clearing standard selection
+  const handleClearStandard = () => {
+    if (clearStandardSelection()) {
+      setStandardSaved(false);
+    }
+  };
+  
   return (
     <div className="column-config-container">
       <div className="column-config-header">
         <div className="header-title-actions">
           <h3>Column Configuration</h3>
-          <div className="header-buttons">
+          <div className="header-buttons-container">
             {columnOrder.length > 0 && (
               <>
+                <div className="standard-buttons">
+                  <button 
+                    onClick={handleSaveAsStandard} 
+                    className={`standard-btn ${standardSaved ? 'saved' : ''}`}
+                    title="Save current selection as standard"
+                  >
+                    {standardSaved ? 'Saved as Standard!' : 'Save as Standard'}
+                  </button>
+                  <button 
+                    onClick={handleClearStandard} 
+                    className="clear-standard-btn"
+                    title="Clear standard selection"
+                  >
+                    Clear Standard
+                  </button>
+                </div>
+                <div className="action-buttons">
                 <button onClick={handleGenerate} className="generate-btn" disabled={dataGenerated}>
                   {dataGenerated ? 'Generated' : 'Generate'}
                 </button>
                 <button onClick={handleClearAll} className="clear-all-btn">
                   Clear All
                 </button>
+                </div>
               </>
             )}
           </div>
@@ -171,6 +222,40 @@ const ColumnConfigGrid = () => {
       <div className="config-grid">
         {columnOrder.length > 0 ? (
           <>
+            {/* Base period selector row aligned with columns */}
+            <div className="config-row base-period-row">
+              {columnOrder.map((column, index) => (
+                <div
+                  key={`base-period-${index}`}
+                  className={`base-period-selector${basePeriodIndex === index ? ' selected' : ''}${basePeriodIndex !== null && basePeriodIndex !== index ? ' faded' : ''}`}
+                  onClick={() => setBasePeriod(index)}
+                  title={basePeriodIndex === index ? 'Base Period' : 'Set as Base Period'}
+                >
+                  {basePeriodIndex === index ? '★' : '☆'}
+                </div>
+              ))}
+              <div className="row-description">
+                <strong><em>Select a column as the base period for comparisons</em></strong>
+              </div>
+            </div>
+            {/* End base period selector row */}
+            {/* Chart visibility row */}
+            <div className="config-row chart-visibility-row">
+              {columnOrder.map((column, index) => (
+                <div
+                  key={`chart-visibility-${index}`}
+                  className={`chart-visibility-selector${isColumnVisibleInChart(column.id) ? ' visible' : ' hidden'}`}
+                  onClick={() => toggleChartColumnVisibility(column.id)}
+                  title={isColumnVisibleInChart(column.id) ? 'Visible in Chart (click to hide)' : 'Hidden from Chart (click to show)'}
+                >
+                  {isColumnVisibleInChart(column.id) ? '✓' : ''}
+                </div>
+              ))}
+              <div className="row-description">
+                <strong><em>Select which columns appear in charts</em></strong>
+              </div>
+            </div>
+            {/* End chart visibility row */}
             <div className="config-row year-row">
               {columnOrder.map((column, index) => (
                 <div 

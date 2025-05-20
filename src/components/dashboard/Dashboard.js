@@ -1,14 +1,18 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
+import { useFilter } from '../../contexts/FilterContext';
 import DivisionSelector from './DivisionSelector';
 import FilterPanel from './FilterPanel';
 import ColumnConfigGrid from './ColumnConfigGrid';
 import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
+import ChartView from './ChartView';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const { loadExcelData, loading, error, selectedDivision, excelData } = useExcelData();
+  const { columnOrder, dataGenerated } = useFilter();
+  const [selectedPeriods, setSelectedPeriods] = useState([]);
   
   // Use useCallback to memoize the function to prevent it from changing on every render
   const loadData = useCallback(() => {
@@ -27,6 +31,18 @@ const Dashboard = () => {
       loadData();
     }
   }, [loadData, excelData]);
+
+  // Update selected periods when column order changes
+  useEffect(() => {
+    if (columnOrder.length > 0) {
+      const periods = columnOrder.map(col => ({
+        year: col.year,
+        month: col.month,
+        type: col.type
+      }));
+      setSelectedPeriods(periods);
+    }
+  }, [columnOrder]);
   
   console.log('Dashboard render state:', { loading, error, selectedDivision });
   
@@ -56,9 +72,16 @@ const Dashboard = () => {
               <TableView />
             </Tab>
             <Tab label="Charts">
-              <div className="empty-charts-container">
-                <p>Charts functionality is not currently implemented.</p>
-              </div>
+              {dataGenerated ? (
+                <ChartView 
+                  tableData={excelData}
+                  selectedPeriods={selectedPeriods}
+                />
+              ) : (
+                <div className="empty-charts-container">
+                  <p>Please select columns and click the Generate button to view charts.</p>
+                </div>
+              )}
             </Tab>
           </TabsComponent>
         </div>

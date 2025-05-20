@@ -17,6 +17,7 @@ export const ExcelDataProvider = ({ children }) => {
   const loadExcelData = useCallback(async (url = '/api/financials.xlsx') => {
     // Prevent loading if we're already loading or already have data
     if (loading || dataLoaded) {
+      console.log('Skipping load - already loading or data loaded:', { loading, dataLoaded });
       return;
     }
     
@@ -56,7 +57,14 @@ export const ExcelDataProvider = ({ children }) => {
       const parsedData = {};
       sheetNames.forEach(name => {
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1 });
-        console.log(`Sheet ${name} data:`, sheetData);
+        console.log(`Sheet ${name} data structure:`, {
+          rowCount: sheetData.length,
+          columnCount: sheetData[0]?.length || 0,
+          headers: sheetData[0],
+          months: sheetData[1],
+          types: sheetData[2],
+          sampleSales: sheetData[3]?.slice(0, 5) // First 5 sales values
+        });
         if (!sheetData || sheetData.length === 0) {
           console.warn(`Warning: Sheet ${name} is empty`);
         }
