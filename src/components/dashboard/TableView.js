@@ -3,6 +3,7 @@ import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import PDFExport from './PDFExport';
 import './TableView.css';
+import { computeCellValue as sharedComputeCellValue } from '../../utils/computeCellValue';
 
 // Helper function for safely removing DOM elements
 const safelyRemoveElement = (element) => {
@@ -86,8 +87,8 @@ const TableView = () => {
       { key: 'salesVolume', label: divisionData[7] ? divisionData[7][0] : 'Sales volume (kg)', index: 7, isCalculated: false },
       { key: 'productionVolume', label: divisionData[8] ? divisionData[8][0] : 'Production volume (kg)', index: 8, isCalculated: false },
       { key: 'separator1', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'material', label: divisionData[4] ? divisionData[4][0] : 'Material', index: 4, isHeader: false, isCalculated: false },
-      { key: 'index5', label: divisionData[5] ? divisionData[5][0] : 'Row 5', index: 5, isHeader: false, isCalculated: false },
+      { key: 'costOfSales', label: divisionData[4] ? divisionData[4][0] : 'Cost of Sales', index: 4, isHeader: false, isCalculated: false },
+      { key: 'material', label: divisionData[5] ? divisionData[5][0] : 'Material', index: 5, isHeader: false, isCalculated: false },
       { key: 'morm', label: 'Margin over Material', index: -2, isHeader: false, isCalculated: true, formula: 'sales-material' },
       { key: 'separator2', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index9', label: divisionData[9] ? divisionData[9][0] : 'Row 9', index: 9, isHeader: false, isCalculated: false },
@@ -116,7 +117,7 @@ const TableView = () => {
       { key: 'index59', label: divisionData[59] ? divisionData[59][0] : 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: divisionData[54] ? divisionData[54][0] : 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
-      { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (Row54+Row19+Row42+Row44)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-19-42-44' },
+      { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44' },
     ];
   } else {
     // Fallback rows if Excel data is not yet loaded
@@ -125,8 +126,8 @@ const TableView = () => {
       { key: 'salesVolume', label: 'Sales volume (kg)', index: 7, isCalculated: false },
       { key: 'productionVolume', label: 'Production volume (kg)', index: 8, isCalculated: false },
       { key: 'separator1', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'material', label: 'Material', index: 4, isHeader: false, isCalculated: false },
-      { key: 'index5', label: 'Row 5', index: 5, isHeader: false, isCalculated: false },
+      { key: 'costOfSales', label: 'Cost of Sales', index: 4, isHeader: false, isCalculated: false },
+      { key: 'material', label: 'Material', index: 5, isHeader: false, isCalculated: false },
       { key: 'morm', label: 'Margin over Material', index: -2, isHeader: false, isCalculated: true, formula: 'sales-material' },
       { key: 'separator2', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index9', label: 'Row 9', index: 9, isHeader: false, isCalculated: false },
@@ -155,96 +156,18 @@ const TableView = () => {
       { key: 'index59', label: 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
-      { key: 'index56', label: 'Row 56 (Row54+Row19+Row42+Row44)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-19-42-44' },
+      { key: 'index56', label: 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44' },
     ];
   }
 
   // Function to compute the value for a specific cell based on row index and column configuration
   const computeCellValue = (rowIndex, column) => {
-    try {
-      // Validate inputs
-      if (!column || typeof column !== 'object') {
-        console.warn('Invalid column parameter:', column);
-        return 'N/A';
-      }
-      
-      if (typeof rowIndex !== 'number') {
-        console.warn('Invalid rowIndex parameter:', rowIndex);
-        return 'N/A';
-      }
-
-      // For testing purposes, return the index to verify structure
-      if (!divisionData || !Array.isArray(divisionData) || divisionData.length === 0) {
-        console.warn('No division data available');
-        return 'N/A';
-      }
-      
-      // Check if rowIndex is within bounds
-      if (rowIndex < 0 || rowIndex >= divisionData.length) {
-        console.warn(`Row index ${rowIndex} out of bounds`);
-        return 'N/A';
-      }
-
-      // Determine which months to include based on selected period
-      let monthsToInclude = [];
-      if (column.month === 'Q1') {
-        monthsToInclude = ['January', 'February', 'March'];
-      } else if (column.month === 'Q2') {
-        monthsToInclude = ['April', 'May', 'June'];
-      } else if (column.month === 'Q3') {
-        monthsToInclude = ['July', 'August', 'September'];
-      } else if (column.month === 'Q4') {
-        monthsToInclude = ['October', 'November', 'December'];
-      } else if (column.month === 'Year') {
-        monthsToInclude = [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-      } else {
-        // Single month
-        monthsToInclude = [column.month];
-      }
-
-      // Find cells in the Excel data that match our criteria and sum them
-      let sum = 0;
-      let foundValues = false;
-
-      // Loop through the data to find matching cells
-      for (let c = 1; c < divisionData[0].length; c++) {
-        // Safely access data
-        const cellYear = divisionData[0] && divisionData[0][c];
-        const cellMonth = divisionData[1] && divisionData[1][c];
-        const cellType = divisionData[2] && divisionData[2][c];
-
-        // Check if this cell matches our criteria
-        if (
-          cellYear == column.year &&
-          monthsToInclude.includes(cellMonth) &&
-          cellType === column.type
-        ) {
-          // Add the value to our sum if it exists
-          const value = divisionData[rowIndex][c];
-          if (value !== undefined && value !== null && !isNaN(parseFloat(value))) {
-            sum += parseFloat(value);
-            foundValues = true;
-          }
-        }
-      }
-
-      // Format the sum with commas if values were found, otherwise a placeholder
-      if (foundValues) {
-        // Format number with commas
-        return sum.toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0
-        });
-      } else {
-        return 'N/A';
-      }
-    } catch (error) {
-      console.error('Error computing cell value:', error);
-      return 'N/A'; // Changed from 'Error' to 'N/A' for consistency
-    }
+    const value = sharedComputeCellValue(divisionData, rowIndex, column);
+    if (value === 0) return 'N/A';
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
   };
 
   // Function to compute percent of sales for a specific cell
@@ -279,10 +202,10 @@ const TableView = () => {
       if (isNaN(numValue) || isNaN(numSalesValue)) return '';
 
       // Calculate percentage if sales is not zero
-      if (numSalesValue === 0) return '0.0%';
+      if (numSalesValue === 0) return '0.00%';
 
       const percentage = (numValue / numSalesValue) * 100;
-      return percentage.toFixed(1) + '%';
+      return percentage.toFixed(2) + '%';
     } catch (error) {
       console.error('Error computing percent of sales:', error);
       return '';
@@ -303,28 +226,38 @@ const TableView = () => {
         return '';
       }
 
-      // Skip for certain rows
-      if (rowIndex === 3) return ''; // Skip for Sales row itself
+      // Skip for Sales Volume and Production Volume rows
+      if (rowIndex === 7 || rowIndex === 8) return '';
 
-      // Get the value for this row and the volume row
-      const value = computeCellValue(rowIndex, column);
-      const volumeValue = computeCellValue(7, column); // Volume row
-
-      // If either is N/A, return empty string
-      if (value === 'N/A' || value === 'Error' || volumeValue === 'N/A' || volumeValue === 'Error') return '';
-
-      // Parse the values (remove commas)
-      const numValue = parseFloat(value.replace(/,/g, ''));
+      // Get the sales volume value (always from row 7)
+      const volumeValue = computeCellValue(7, column); // Sales Volume row
+      
+      // If volume is N/A, return empty string
+      if (volumeValue === 'N/A' || volumeValue === 'Error') return '';
+      
+      // Parse the volume value
       const numVolumeValue = parseFloat(volumeValue.replace(/,/g, ''));
-
-      // Check for valid numbers
-      if (isNaN(numValue) || isNaN(numVolumeValue)) return '';
-
-      // Calculate sales per kg if volume is not zero
-      if (numVolumeValue === 0) return '0.0';
-
-      const salesPerKg = numValue / numVolumeValue;
-      return salesPerKg.toFixed(1);
+      
+      // Check for valid numbers and non-zero volume
+      if (isNaN(numVolumeValue) || numVolumeValue === 0) return '0.00';
+      
+      // Get the value for the current row
+      const currentValue = computeCellValue(rowIndex, column);
+      
+      // If the current row value is N/A, return empty string
+      if (currentValue === 'N/A' || currentValue === 'Error') return '';
+      
+      // Parse the current row value
+      const numCurrentValue = parseFloat(currentValue.replace(/,/g, ''));
+      
+      // Check for valid number
+      if (isNaN(numCurrentValue)) return '';
+      
+      // Calculate per kg value (current row value divided by sales volume)
+      const perKgValue = numCurrentValue / numVolumeValue;
+      
+      // Format with exactly 2 decimal places
+      return perKgValue.toFixed(2);
     } catch (error) {
       console.error('Error computing sales per kg:', error);
       return '';
@@ -540,7 +473,7 @@ const TableView = () => {
                       if (row.formula === 'sales-material') {
                         // Find the values for sales and material in this column
                         const salesValue = computeCellValue(3, column);
-                        const materialValue = computeCellValue(4, column);
+                        const materialValue = computeCellValue(5, column);
 
                         // Convert string values with commas back to numbers for calculation
                         const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
@@ -548,6 +481,9 @@ const TableView = () => {
 
                         // Calculate the result
                         const result = salesNum - materialNum;
+
+                        // Debug log for comparison
+                        console.log(`DEBUG: Period: ${column.year} ${column.month || ''} ${column.type} | Sales: ${salesNum} | Material: ${materialNum} | Margin over Material: ${result}`);
 
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {
@@ -794,43 +730,21 @@ const TableView = () => {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-                      } else if (row.formula === 'sum-54-19-42-44') {
-                        // Calculate Row 54 (Row19 - Row52)
-                        // First calculate Row 19 (Sales - Material)
-                        const salesValue = computeCellValue(3, column);
-                        const materialValue = computeCellValue(4, column);
-                        
-                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
-                        
-                        const row19 = sales - material;
-                        
-                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50)
-                        const value31 = computeCellValue(31, column);
-                        const value32 = computeCellValue(32, column);
-                        const value40 = computeCellValue(40, column);
+                      } else if (row.formula === 'sum-54-10-42-44') {
+                        // Get values for rows 54, 10, 42, and 44
+                        const value54 = computeCellValue(54, column);
+                        const value10 = computeCellValue(10, column);
                         const value42 = computeCellValue(42, column);
-                        const value43 = computeCellValue(43, column);
                         const value44 = computeCellValue(44, column);
-                        const value49 = computeCellValue(49, column);
-                        const value50 = computeCellValue(50, column);
 
-                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
-                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
-                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        // Parse values to numbers
+                        const num54 = value54 === 'N/A' ? 0 : parseFloat(value54.replace(/,/g, ''));
+                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
                         const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
-                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
                         const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
-                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
-                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
 
-                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
-                        
-                        // Calculate Row 54
-                        const row54 = row19 - row52;
-                        
-                        // Now calculate Row 56 = Row 54 + Row 19 + Row 42 + Row 44
-                        const result = row54 + row19 + num42 + num44;
+                        // Calculate EBITDA as sum of rows 54, 10, 42, and 44
+                        const result = num54 + num10 + num42 + num44;
                         
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {
@@ -864,15 +778,12 @@ const TableView = () => {
                               const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
                               
                               // Calculate percentage
-                              if (salesNum === 0) return 'N/A';
+                              if (salesNum === 0) return '0.00%';
                               
                               const percentValue = (cellNum / salesNum) * 100;
                               
-                              // Format with 2 decimal places
-                              return percentValue.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              }) + '%';
+                              // Format with exactly 2 decimal places
+                              return percentValue.toFixed(2) + '%';
                             } catch (error) {
                               console.error('Error computing percent of sales for calculated cell:', error);
                               return 'Error';
@@ -882,31 +793,35 @@ const TableView = () => {
                         <td
                           key={`perkg-${row.key}-${colIndex}`}
                           className="calculated-cell"
-                          style={{ backgroundColor: bgColor, width: '57px' }}
+                          style={{ 
+                            backgroundColor: bgColor, 
+                            width: '57px', 
+                            color: row.index === 3 ? '#2E865F' : 'inherit', 
+                            fontWeight: row.index === 3 ? 'bold' : 'inherit' 
+                          }}
                         >
+                          {/* Handle calculated fields specifically */}
                           {(() => {
-                            // For Direct cost as % of C.O.G.S (index -5), show empty cell
-                            if (row.index === -5) return '';
+                            // Skip for rows with specific logic
+                            if (row.index === -5) return ''; // Direct cost as % of C.O.G.S
                             
                             try {
                               // Convert formattedResult to number for calculation
                               const cellNum = formattedResult === 'N/A' ? 0 : parseFloat(formattedResult.replace(/,/g, ''));
-                              const salesVolumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
-                              const salesVolumeNum = salesVolumeValue === 'N/A' ? 0 : parseFloat(salesVolumeValue.replace(/,/g, ''));
+                              const volumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
+                              const volumeNum = volumeValue === 'N/A' ? 0 : parseFloat(volumeValue.replace(/,/g, ''));
+                              
+                              // Check for valid numbers and non-zero volume
+                              if (isNaN(cellNum) || isNaN(volumeNum) || volumeNum === 0) return '0.00';
                               
                               // Calculate sales per kg
-                              if (salesVolumeNum === 0) return 'N/A';
+                              const perKgValue = cellNum / volumeNum;
                               
-                              const perKgValue = cellNum / salesVolumeNum;
-                              
-                              // Format with 2 decimal places
-                              return perKgValue.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              });
+                              // Format with exactly 2 decimal places
+                              return perKgValue.toFixed(2);
                             } catch (error) {
                               console.error('Error computing sales per kg for calculated cell:', error);
-                              return 'Error';
+                              return '';
                             }
                           })()}
                         </td>
@@ -934,10 +849,15 @@ const TableView = () => {
                       </td>,
                       <td 
                         key={`perkg-${row.key}-${colIndex}`}
-                        style={{ backgroundColor: bgColor, width: '57px' }}
+                        style={{ 
+                          backgroundColor: bgColor, 
+                          width: '57px', 
+                          color: row.index === 3 ? '#2E865F' : 'inherit', 
+                          fontWeight: row.index === 3 ? 'bold' : 'inherit' 
+                        }}
                       >
-                        {/* Keep Sales per kg empty for specific rows */}
-                        {row.index !== 7 && row.index !== 8 && row.index !== -5 ? computeSalesPerKg(row.index, column) : ''}
+                        {/* Show Sales per kg for all rows except Sales Volume and Production Volume */}
+                        {computeSalesPerKg(row.index, column)}
                       </td>
                     ];
                   })}
