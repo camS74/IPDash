@@ -27,25 +27,58 @@ export const ExcelDataProvider = ({ children }) => {
     
     try {
       console.log('Fetching data...');
-      const res = await fetch(url);
+      let res;
+      try {
+        res = await fetch(url);
+      } catch (networkError) {
+        // Handle network errors (e.g., fetch fails)
+        console.error('Network error:', networkError);
+        setError("A network error occurred. Please check your internet connection and try again.");
+        throw networkError; // Re-throw to allow component to handle the error
+      }
+      
       console.log('Response status:', res.status);
       
+      // Handle HTTP errors (e.g., res.ok is false)
       if (!res.ok) {
+        let httpErrorMessage;
+        if (res.status === 404) {
+          httpErrorMessage = "The financial data file could not be found on the server. Please contact support.";
+        } else {
+          httpErrorMessage = `An error occurred while fetching the financial data (HTTP Status: ${res.status}). Please try again later.`;
+        }
+        console.error('HTTP error:', httpErrorMessage);
+        setError(httpErrorMessage);
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
       const buffer = await res.arrayBuffer();
       console.log('Received buffer size:', buffer.byteLength);
       
+      // Handle empty file error
       if (buffer.byteLength === 0) {
+        console.error('Empty file error: Received empty file');
+        setError("The financial data file appears to be empty.");
         throw new Error('Received empty file');
       }
       
       // Parse Excel data using xlsx library
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      let workbook;
+      try {
+        workbook = XLSX.read(buffer, { type: 'buffer' });
+      } catch (parsingError) {
+        // Handle general parsing errors
+        console.error('File parsing error:', parsingError);
+        setError("An error occurred while parsing the financial data file. It might be corrupted or in an unsupported format.");
+        throw parsingError;
+      }
+      
       console.log('Workbook sheets:', workbook.SheetNames);
       
+      // Handle no sheets in workbook error
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        console.error('No sheets error: No sheets found in Excel file');
+        setError("The financial data file does not contain any sheets.");
         throw new Error('No sheets found in Excel file');
       }
       
@@ -81,8 +114,13 @@ export const ExcelDataProvider = ({ children }) => {
       
       return parsedData;
     } catch (err) {
+      // General catch block for any errors not handled above or re-thrown
       console.error('Error loading Excel data:', err);
-      setError('Failed to load Excel data: ' + err.message);
+      // If setError has not been called yet with a specific message, set a generic one.
+      // Otherwise, the more specific message from a previous catch block will be preserved.
+      if (!error) {
+        setError('An unexpected error occurred while loading the data.');
+      }
       throw err; // Re-throw to allow component to handle the error
     } finally {
       setLoading(false);
