@@ -153,8 +153,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
         }),
       };
 
-      // Set option
-      myChart.setOption({
+        // Set option
+        myChart.setOption({
         title: {
           text: 'Sales and Volume',
           subtext: 'Overview\n(AED)',
@@ -163,7 +163,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
           textStyle: {
             fontSize: 22,
             fontWeight: 'bold'
-          },
+            },
           subtextStyle: {
             fontSize: 18,
             lineHeight: 24,
@@ -178,7 +178,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
           left: '5%',
           right: '0%',
           bottom: 140,
-          top: 30,
+          top: 25,
           containLabel: true
         },
         xAxis: {
@@ -217,8 +217,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
             length: 4,
             lineStyle: {
               color: '#ccc'
+              }
             }
-          }
         },
         yAxis: [
           {
@@ -227,7 +227,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
             scale: true,
             max: function(value) {
               return value.max * 1.15;
-            }
+              }
           }
         ],
         series: [
@@ -295,7 +295,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
           },
         ],
         tooltip: {
-          show: false
+          show: false, // Completely disable tooltips to prevent white panel
+          trigger: 'none'
         },
         animation: false
       });
@@ -314,8 +315,10 @@ const BarChart = ({ data, periods, basePeriod }) => {
   };
 
   useEffect(() => {
-    // Initialize chart with a longer delay to ensure DOM is ready
-    const timer = setTimeout(initChart, 300);
+    // Initialize only the main chart
+    const timer = setTimeout(() => {
+      initChart();
+    }, 300);
 
     // Add window resize listener with debounce
     const handleResize = debounce(() => {
@@ -361,8 +364,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
     <div className="bar-chart-container" style={{ 
       position: 'relative', 
       width: '100%', 
-      height: '900px',
-      minHeight: '700px',
+      height: '900px', // Restore original height
+      minHeight: '700px', // Restore original min-height
       backgroundColor: '#fff',
       borderRadius: '8px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -374,31 +377,31 @@ const BarChart = ({ data, periods, basePeriod }) => {
     }}>
       {/* Chart area */}
       <div style={{ flex: 1, width: '100%', height: '100%', marginBottom: '-40px' }}>
-        {periods && periods.length > 0 ? (
-          <div 
-            ref={chartRef} 
-            className="bar-chart" 
-            style={{ 
-              width: '100%', 
-              height: '100%'
-            }} 
-          />
-        ) : (
-          <div className="no-data-message" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%',
-            color: '#666',
-            fontStyle: 'italic',
-            textAlign: 'center'
-          }}>
-            <div>
-              <p>No periods visible in chart.</p>
-              <p>Use the eye icons in Column Configuration to select which periods to display.</p>
-            </div>
+      {periods && periods.length > 0 ? (
+        <div 
+          ref={chartRef} 
+          className="bar-chart" 
+          style={{ 
+            width: '100%', 
+            height: '100%'
+          }} 
+        />
+      ) : (
+        <div className="no-data-message" style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          color: '#666',
+          fontStyle: 'italic',
+          textAlign: 'center'
+        }}>
+          <div>
+            <p>No periods visible in chart.</p>
+            <p>Use the eye icons in Column Configuration to select which periods to display.</p>
           </div>
-        )}
+        </div>
+      )}
       </div>
       
       {/* Volume legend and values */}

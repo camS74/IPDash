@@ -3,6 +3,8 @@ import { Typography, Select } from 'antd';
 import { useFilter } from '../../../contexts/FilterContext';
 import { useExcelData } from '../../../contexts/ExcelDataContext';
 import BarChart from './BarChart';
+import ModernMarginGauge from './ModernMarginGauge';
+import ManufacturingCostChart from './ManufacturingCostChart';
 import { calculatePeriodDifferences } from '../utils/chartCalculations';
 import './ChartContainer.css';
 import { computeCellValue as sharedComputeCellValue } from '../../../utils/computeCellValue';
@@ -21,7 +23,10 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
 
   // --- Compute cell value logic (copied from TableView) ---
   const computeCellValue = (rowIndex, column) => {
-    return sharedComputeCellValue(divisionData, rowIndex, column);
+    console.log(`Computing cell value for row ${rowIndex}, column:`, column);
+    const value = sharedComputeCellValue(divisionData, rowIndex, column);
+    console.log(`Cell value result: ${value}`);
+    return value;
   };
 
   // --- Build chart data from processed table data ---
@@ -39,6 +44,14 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
     allVisibleIds: chartVisibleColumns
   });
 
+  // Log the entire division data structure to verify row indices
+  console.log('Full division data structure:', {
+    divisionName: selectedDivision,
+    rowCount: divisionData.length,
+    // Sample first few rows to verify data structure
+    sampleRows: divisionData.slice(0, 10)
+  });
+
   // Build chart data for visible columns
   const chartData = {};
   
@@ -47,33 +60,27 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
     console.warn('No visible periods for chart - showing all periods by default');
     // If no periods are visible, show all periods
     periods.forEach((col, index) => {
-      // Include month in the periodKey to differentiate between Year, Q1, etc.
       const periodKey = `${col.year}-${col.month || 'Year'}-${col.type}`;
-      // Use the same computeCellValue logic as the table
-      const sales = computeCellValue(3, col);           // Sales
-      const salesVolume = computeCellValue(7, col);     // Sales Volume
-      const productionVolume = computeCellValue(8, col); // Production Volume
-      chartData[periodKey] = { sales, salesVolume, productionVolume };
+      const sales = computeCellValue(3, col);           // Sales (row 3)
+      const materialCost = computeCellValue(5, col);    // Material Cost (row 5)
+      const salesVolume = computeCellValue(7, col);     // Sales Volume (row 7)
+      const productionVolume = computeCellValue(8, col); // Production Volume (row 8)
+      const marginOverMaterial = sales - materialCost;
+      const marginPerKg = salesVolume > 0 ? marginOverMaterial / salesVolume : null;
+      chartData[periodKey] = { sales, materialCost, salesVolume, productionVolume, marginPerKg };
+      console.log('DEBUG:', { periodKey, sales, materialCost, salesVolume, productionVolume, marginPerKg });
     });
   } else {
-    // Process only the visible periods
     filteredPeriods.forEach((col, index) => {
-      // Include month in the periodKey to differentiate between Year, Q1, etc.
       const periodKey = `${col.year}-${col.month || 'Year'}-${col.type}`;
-      // Double-check the column structure
-      console.log(`Period ${index+1} structure:`, JSON.stringify(col));
-      // Use the same computeCellValue logic as the table
-      const sales = computeCellValue(3, col);           // Sales
-      const salesVolume = computeCellValue(7, col);     // Sales Volume
-      const productionVolume = computeCellValue(8, col); // Production Volume
-      // Debug log for each period
-      console.log(`Processing chart period ${index+1} (${periodKey}):`, {
-        column: col,
-        sales,
-        salesVolume,
-        productionVolume
-      });
-      chartData[periodKey] = { sales, salesVolume, productionVolume };
+      const sales = computeCellValue(3, col);           // Sales (row 3)
+      const materialCost = computeCellValue(5, col);    // Material Cost (row 5)
+      const salesVolume = computeCellValue(7, col);     // Sales Volume (row 7)
+      const productionVolume = computeCellValue(8, col); // Production Volume (row 8)
+      const marginOverMaterial = sales - materialCost;
+      const marginPerKg = salesVolume > 0 ? marginOverMaterial / salesVolume : null;
+      chartData[periodKey] = { sales, materialCost, salesVolume, productionVolume, marginPerKg };
+      console.log('DEBUG:', { periodKey, sales, materialCost, salesVolume, productionVolume, marginPerKg });
     });
   }
 
@@ -90,18 +97,33 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
       display: 'flex', 
       flexDirection: 'column', 
       width: '100%', 
-      height: '1000px',
+      height: 'auto',
       padding: '16px',
       backgroundColor: '#f5f5f5',
       borderRadius: '12px'
     }}>
-      <div style={{ flex: 1, minHeight: '900px' }}>
+      {/* Bar chart container - match gauge panel style */}
+      <div className="modern-margin-gauge-panel" style={{ marginTop: 60 }}>
         <BarChart
           data={chartData}
           periods={filteredPeriods}
           basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
         />
       </div>
+      {/* New Modern Gauge chart */}
+      <ModernMarginGauge
+        data={chartData}
+        periods={filteredPeriods}
+        basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
+        style={{ marginTop: 60 }}
+      />
+      {/* Manufacturing Cost chart panel after gauges */}
+      <ManufacturingCostChart
+        tableData={tableData}
+        selectedPeriods={selectedPeriods}
+        computeCellValue={computeCellValue}
+        style={{ marginTop: 60 }}
+      />
     </div>
   );
 };

@@ -5,16 +5,8 @@ import { CHART_COLORS } from '../utils/chartConfigs';
 const LineChartComponent = ({ data, periods, basePeriod }) => {
   const options = {
     tooltip: {
-      trigger: 'axis',
-      formatter: function(params) {
-        let result = `${params[0].axisValue}<br/>`;
-        params.forEach(param => {
-          const value = param.value;
-          const sign = value >= 0 ? '+' : '';
-          result += `${param.marker} ${param.seriesName}: ${sign}${value.toFixed(1)}%<br/>`;
-        });
-        return result;
-      }
+      show: false,
+      trigger: 'none'
     },
     legend: {
       data: ['Sales', 'Sales Volume', 'Production Volume']

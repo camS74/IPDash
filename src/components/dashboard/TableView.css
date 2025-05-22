@@ -170,7 +170,15 @@
 
 /* Make ledger cell and numeric figures bold for important rows */
 .financial-table .important-row td {
-  font-weight: bold;
+  font-weight: bold !important;
+}
+
+/* Apply bold more specifically to all cells in important rows */
+.financial-table tr.important-row td:first-child,
+.financial-table tr.important-row td:nth-child(3n+2),
+.financial-table tr.important-row td:nth-child(3n+3),
+.financial-table tr.important-row td:nth-child(3n+4) {
+  font-weight: bold !important;
 }
 
 .financial-table .separator-row td {

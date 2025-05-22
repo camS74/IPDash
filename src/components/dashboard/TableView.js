@@ -444,23 +444,23 @@ const TableView = () => {
                 );
               }
               
-              // Otherwise render a normal data row
-              // Check if this row should have bold styling in ledger column based on the label
-              const isImportantRow = 
-                row.label === 'Sales' || 
-                row.label === 'Margin over Material' || 
-                row.label === 'Cost of Sales' ||
-                row.label === 'Labour' ||
-                row.label === 'Dir.Cost in Stock/Stock Adj.' ||
-                row.label === 'Gross profit (after Depn.)' ||
-                row.label === 'Selling expenses' ||
-                row.label === 'Total Below GP Expenses' ||
-                row.label === 'Total Expenses' ||
-                row.label === 'Net Profit' ||
-                row.label.trim().toUpperCase() === 'EBITDA';
+              // Check if this row should have bold styling in ledger column based on the specific rows shown in the image
+              const isBoldRow = 
+                row.label === 'Margin over Material' ||
+                row.label === 'Row 14 (Sum)' || 
+                row.label.includes('Actual Direct Cost') ||
+                row.label === 'Row 19 (Sales-Material)' ||
+                row.label.includes('Gross profit') ||
+                row.label === 'Row 52 (Sum)' ||
+                row.label.includes('Total Below GP Expenses') ||
+                row.label.includes('Total Expenses') ||
+                row.label === 'Row 54 (Row19-Row52)' || 
+                row.label.includes('Net Profit') ||
+                row.label === 'Row 56 (EBITDA)' ||
+                row.label.includes('EBITDA');
               
               return (
-                <tr key={row.key} className={`${row.isHeader ? 'section-header' : ''} ${isImportantRow ? 'important-row' : ''}`}>
+                <tr key={row.key} className={`${row.isHeader ? 'section-header' : ''} ${isBoldRow ? 'important-row' : ''}`}>
                   <td className="row-label">{row.label}</td>
                   {columnOrder.flatMap((column, colIndex) => {
                     // Handle calculated fields with formulas

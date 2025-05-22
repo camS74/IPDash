@@ -12,10 +12,8 @@ const StackedBarChart = ({ data, options = {} }) => {
       data={formattedData}
       options={{
         tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
-          }
+          show: false,
+          trigger: 'none'
         },
         legend: {
           data: formattedData.series.map(s => s.name)

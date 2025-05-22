@@ -38,7 +38,9 @@ const Dashboard = () => {
       const periods = columnOrder.map(col => ({
         year: col.year,
         month: col.month,
-        type: col.type
+        type: col.type,
+        customColor: col.customColor,
+        id: col.id
       }));
       setSelectedPeriods(periods);
     }
