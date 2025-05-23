@@ -128,16 +128,13 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
   // Process data for gauges
   const gaugeData = periods.map((period, index) => {
     const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
-    
     // Get raw values from data object
     const salesValue = data[periodKey]?.sales || 0;
     const materialCost = data[periodKey]?.materialCost || 0;
     const marginPerKg = data[periodKey]?.marginPerKg;
     const perKgValue = (typeof marginPerKg === 'number' && !isNaN(marginPerKg)) ? marginPerKg.toFixed(2) : '--';
-    
     // Calculate Margin over Material - Sales minus Material
     const marginOverMaterial = salesValue - materialCost;
-    
     // Calculate it as a percentage of Sales for the gauge
     let marginPercentage = 0;
     if (salesValue > 0) {
@@ -145,20 +142,8 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
       // Round to 2 decimal places
       marginPercentage = Math.round(marginPercentage * 100) / 100;
     }
-    
     // Format the absolute value for display without $ sign
     const formattedValue = `${(marginOverMaterial / 1000000).toFixed(1)}M`;
-    
-    // Debug log raw calculation
-    console.log(`GAUGE ${index} DATA:`, { 
-      period: periodKey,
-      sales: salesValue, 
-      material: materialCost, 
-      margin: marginOverMaterial,
-      rawPercentage: marginPercentage,
-      formattedValue
-    });
-    
     // Determine the color based on period's customColor property
     let color;
     if (period.customColor && colorSchemes[period.customColor]) {
@@ -167,14 +152,22 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
       // Fall back to default colors
       color = defaultColors[index % defaultColors.length];
     }
-    
     return {
       title: `${period.year} ${period.month || ''} ${period.type}`,
       value: marginPercentage,
       absoluteValue: formattedValue,
+      absRaw: marginOverMaterial, // for variance calculation
       perKgValue,
       color
     };
+  });
+
+  // Calculate variances between cards (absolute value, as % of previous)
+  const variances = gaugeData.map((g, idx) => {
+    if (idx === 0) return null;
+    const prev = gaugeData[idx - 1];
+    if (!prev || prev.absRaw === 0) return null;
+    return ((g.absRaw - prev.absRaw) / Math.abs(prev.absRaw)) * 100;
   });
 
   return (
@@ -187,18 +180,50 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
       ...(style || {}) // Apply any style props passed from parent component
     }}>
       <h2 className="modern-gauge-heading">Margin over Material</h2>
-      
-      <div className="modern-gauge-container">
-        {gaugeData.map((gauge, index) => (
-          <SingleGauge
-            key={index}
-            value={gauge.value}
-            absoluteValue={gauge.absoluteValue}
-            perKgValue={gauge.perKgValue}
-            title={gauge.title}
-            color={gauge.color}
-            index={index}
-          />
+      <div className="modern-gauge-container" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 8 }}>
+        {gaugeData.map((gauge, idx) => (
+          <React.Fragment key={gauge.title}>
+            <SingleGauge
+              value={gauge.value}
+              absoluteValue={gauge.absoluteValue}
+              perKgValue={gauge.perKgValue}
+              title={gauge.title}
+              color={gauge.color}
+              index={idx}
+            />
+            {/* Variance badge between cards */}
+            {idx < gaugeData.length - 1 && (() => {
+              const variance = variances[idx + 1];
+              let badgeColor = '#888', arrow = '–';
+              if (variance !== null && !isNaN(variance)) {
+                if (variance > 0) { badgeColor = '#2E865F'; arrow = '▲'; }
+                else if (variance < 0) { badgeColor = '#cf1322'; arrow = '▼'; }
+              }
+              return (
+                <div style={{
+                  alignSelf: 'center',
+                  margin: '0 2px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  minWidth: 40,
+                  width: 40,
+                  height: 60,
+                  justifyContent: 'center',
+                }}>
+                  {variance === null || isNaN(variance) ? (
+                    <span style={{ color: '#888', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>N/A</span>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 22, fontWeight: 'bold', color: badgeColor, lineHeight: 1 }}>{arrow}</span>
+                      <span style={{ fontSize: 18, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>{Math.abs(variance).toFixed(1)}</span>
+                      <span style={{ fontSize: 16, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>%</span>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+          </React.Fragment>
         ))}
       </div>
     </div>

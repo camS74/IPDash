@@ -446,7 +446,7 @@ const TableView = () => {
               
               // Check if this row should have bold styling in ledger column based on the specific rows shown in the image
               const isBoldRow = 
-                row.label === 'Margin over Material' ||
+                row.label === 'Margin over Material' || 
                 row.label === 'Row 14 (Sum)' || 
                 row.label.includes('Actual Direct Cost') ||
                 row.label === 'Row 19 (Sales-Material)' ||

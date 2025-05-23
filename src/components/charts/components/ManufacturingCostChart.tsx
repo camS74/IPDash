@@ -256,8 +256,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           
           // Format values with appropriate precision
           const millionsValue = (data.amount / 1000000).toFixed(2);
-          const percentValue = data.percentOfSales.toFixed(2);
-          const perKgValue = data.perKg.toFixed(2);
+          const percentValue = data.percentOfSales.toFixed(1);
+          const perKgValue = data.perKg.toFixed(1);
           
           return [
             `${millionsValue}M`,
@@ -267,7 +267,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
             `${perKgValue} per kg`
           ].join('\n');
         },
-        fontSize: 10, // Even smaller font size to avoid overlapping
+        fontSize: 14,
         fontWeight: 'bold',
         color: textColor, // Dynamic text color based on background
         backgroundColor: 'transparent',
@@ -308,12 +308,12 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Format percentage values
   const formatPercent = value => {
-    return `${(Number(value) || 0).toFixed(2)}% of Sales`;
+    return `${(Number(value) || 0).toFixed(1)}% of Sales`;
   };
 
   // Format per kg values
   const formatPerKg = value => {
-    return `${(Number(value) || 0).toFixed(2)} per kg`;
+    return `${(Number(value) || 0).toFixed(1)} per kg`;
   };
 
   // Format for tooltip values with bold styling
@@ -370,11 +370,11 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
               </div>
               <div style="display:flex;justify-content:space-between;margin-bottom:2px">
                 <span style="color:#666">% of Sales:</span> 
-                <span style="font-weight:bold;color:#222">${data.percentOfSales.toFixed(2)}%</span>
+                <span style="font-weight:bold;color:#222">${data.percentOfSales.toFixed(1)}%</span>
               </div>
               <div style="display:flex;justify-content:space-between">
                 <span style="color:#666">Per Kg:</span> 
-                <span style="font-weight:bold;color:#222">${data.perKg.toFixed(2)}</span>
+                <span style="font-weight:bold;color:#222">${data.perKg.toFixed(1)}</span>
               </div>
             </div>
           </div>`;
@@ -495,8 +495,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           
           // Format values with proper decimal places
           const formattedMillions = (totals.amount / 1000000).toFixed(2);
-          const formattedPercent = totals.percentOfSales.toFixed(2);
-          const formattedPerKg = totals.perKg.toFixed(2);
+          const formattedPercent = totals.percentOfSales.toFixed(1);
+          const formattedPerKg = totals.perKg.toFixed(1);
           
           // Get color for period
           let color;

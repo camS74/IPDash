@@ -401,14 +401,13 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           if (value.length > 25) {
             return value.substring(0, 22) + '...';
           }
-          // Split "Others Mfg. Overheads" into two lines
+          // Split 'Others Mfg. Overheads' into two lines: 'Manufacturing' and 'Overheads'
           if (value === 'Others Mfg. Overheads') {
-            return 'Others Mfg.\nOverheads';
+            return 'Manufacturing\n\nOverheads';
           }
           return value;
         },
         rich: {
-          // Rich text styling for multi-line labels
           a: {
             fontWeight: 'bold',
             fontSize: 13,
@@ -437,103 +436,125 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
     return (
       <div style={{ 
         display: 'flex', 
-        flexWrap: 'wrap', 
-        justifyContent: 'space-around', 
+        flexWrap: 'nowrap', 
+        justifyContent: 'center', 
+        alignItems: 'flex-end', 
+        gap: '4px', 
         marginTop: 20,
-        gap: '5px' // Reduced gap from 10px to 5px
+        marginBottom: 0,
+        width: '100%',
+        overflowX: 'auto',
+        padding: '0 16px',
       }}>
-        {periodsToUse.map((period, index) => {
+        {periodsToUse.map((period, idx) => {
+          // Move all variable declarations here for each card
           const periodName = `${period.year} ${period.month || ''} ${period.type}`;
           const totals = periodTotals[periodName] || { amount: 0, percentOfSales: 0, perKg: 0 };
-          
-          // Format values with proper decimal places
           const formattedMillions = (totals.amount / 1000000).toFixed(2);
           const formattedPercent = totals.percentOfSales.toFixed(2);
           const formattedPerKg = totals.perKg.toFixed(2);
-          
-          // Get color for period
           let color;
-          // Check for period-specific customColor (instead of relying on index)
           if (period.customColor && colorSchemes[period.customColor]) {
             color = colorSchemes[period.customColor];
           } else {
-            // If no custom color, use the default color for this specific period based on its name
-            // Match the period year+type with the corresponding one in the gauges
             if (periodName.includes('2024') && periodName.includes('Actual')) {
-              color = colorSchemes.yellow; // 2024 Q1 Actual - yellow
+              color = colorSchemes.yellow;
             } else if (periodName.includes('2025') && periodName.includes('Actual')) {
-              color = colorSchemes.blue; // 2025 Q1 Actual - blue
+              color = colorSchemes.blue;
             } else if (periodName.includes('2025') && periodName.includes('Budget')) {
-              color = colorSchemes.boldContrast; // 2025 Q1 Budget - dark blue/navy
+              color = colorSchemes.boldContrast;
             } else if (periodName.includes('2023') && periodName.includes('Actual')) {
-              color = colorSchemes.orange; // 2023 Q1 Actual - orange
+              color = colorSchemes.orange;
             } else if (periodName.includes('2022') && periodName.includes('Actual')) {
-              color = colorSchemes.green; // 2022 Q1 Actual - green
+              color = colorSchemes.green;
             } else {
-              // Default fallback if nothing matches
-              color = defaultColors[index % defaultColors.length];
+              color = defaultColors[idx % defaultColors.length];
             }
           }
-          
-          // Function to determine if a color is dark (for text contrast)
           const isColorDark = (hexColor) => {
-            // Convert hex to RGB
             const r = parseInt(hexColor.substring(1, 3), 16);
             const g = parseInt(hexColor.substring(3, 5), 16);
             const b = parseInt(hexColor.substring(5, 7), 16);
-            // Calculate brightness (perceived luminance)
             return (r * 0.299 + g * 0.587 + b * 0.114) < 150;
           };
-          
-          // Get appropriate text color based on background
           const textColor = isColorDark(color) ? '#fff' : '#333';
-          
           return (
-            <div key={index} style={{ 
-              padding: '12px 15px', 
-              borderRadius: '6px',
-              backgroundColor: color, // Use exact same color as bars
-              border: `1px solid ${color}`,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
-              minWidth: '200px',
-              maxWidth: '210px', // Slightly reduced max-width
-              flex: '1',
-              textAlign: 'center',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {/* No need for color strip at top since the entire card has the color */}
-              
-              <div style={{ 
-                fontSize: 14, 
-                color: textColor, // Text color based on background brightness
-                fontWeight: 500,
-                marginTop: 4
-              }}>
-                {periodName}
-              </div>
-              
-              <div style={{ 
-                fontWeight: 'bold', 
-                fontSize: 22,
-                color: textColor, // Text color based on background brightness
-                marginTop: 8
-              }}>
-                {formattedMillions}M
-              </div>
-              
-              <div style={{ 
+            <React.Fragment key={period.year + period.month + period.type}>
+              {/* Card */}
+              <div style={{
+                padding: '12px 15px',
+                borderRadius: '6px',
+                backgroundColor: color,
+                border: `1px solid ${color}`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+                minWidth: '180px',
+                maxWidth: '180px',
+                width: '180px',
+                flex: '1',
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden',
                 display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 12,
-                fontWeight: 'bold', // Made bold as requested
-                color: textColor, // Text color based on background brightness
-                marginTop: 8
+                flexDirection: 'column',
+                alignItems: 'center',
               }}>
-                <div>{formattedPercent}% of Sales</div>
-                <div>{formattedPerKg} per kg</div>
+                <div style={{ fontSize: 14, color: textColor, fontWeight: 500, marginTop: 4 }}>{periodName}</div>
+                <div style={{ fontWeight: 'bold', fontSize: 22, color: textColor, marginTop: 8 }}>
+                  {formattedMillions}M
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  color: textColor,
+                  marginTop: 8,
+                  width: '100%'
+                }}>
+                  <div>{formattedPercent}% of Sales</div>
+                  <div>{formattedPerKg} per kg</div>
+                </div>
               </div>
-            </div>
+              {/* Variance badge between cards */}
+              {idx < periodsToUse.length - 1 && (() => {
+                // Calculate variance vs next card
+                const nextPeriod = periodsToUse[idx + 1];
+                const nextPeriodName = `${nextPeriod.year} ${nextPeriod.month || ''} ${nextPeriod.type}`;
+                const nextTotals = periodTotals[nextPeriodName] || { amount: 0 };
+                let variance = null;
+                if (totals.amount !== 0) {
+                  variance = ((nextTotals.amount - totals.amount) / Math.abs(totals.amount)) * 100;
+                }
+                let badgeColor = '#888', arrow = '–';
+                if (variance !== null && !isNaN(variance)) {
+                  if (variance > 0) { badgeColor = '#2E865F'; arrow = '▲'; }
+                  else if (variance < 0) { badgeColor = '#cf1322'; arrow = '▼'; }
+                }
+                return (
+                  <div style={{
+                    alignSelf: 'center',
+                    margin: '0 2px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minWidth: 40,
+                    width: 40,
+                    height: 60,
+                    justifyContent: 'center',
+                  }}>
+                    {variance === null || isNaN(variance) ? (
+                      <span style={{ color: '#888', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>N/A</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 22, fontWeight: 'bold', color: badgeColor, lineHeight: 1 }}>{arrow}</span>
+                        <span style={{ fontSize: 18, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>{Math.abs(variance).toFixed(1)}</span>
+                        <span style={{ fontSize: 16, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>%</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </React.Fragment>
           );
         })}
       </div>

@@ -173,36 +173,36 @@ const BarChart = ({ data, periods, basePeriod }) => {
         },
         legend: {
           show: false
-        },
-        grid: {
-          left: '5%',
+    },
+    grid: {
+            left: '5%',
           right: '0%',
           bottom: 140,
           top: 25,
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: periodLabels,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+            data: periodLabels,
           position: 'bottom',
-          axisLabel: {
-            rotate: 0,
+            axisLabel: {
+              rotate: 0,
             fontWeight: 'bold',
             fontSize: 18,
             color: '#000',
-            formatter: function(value) {
-              const parts = value.split('-');
-              if (parts.length >= 3) {
-                const year = parts[0];
-                const month = parts[1];
-                const type = parts[2];
-                if (month === 'Year') {
-                  return `${year} ${type}`;
-                } else {
-                  return `${year} ${month} ${type}`;
+              formatter: function(value) {
+                const parts = value.split('-');
+                if (parts.length >= 3) {
+                  const year = parts[0];
+                  const month = parts[1];
+                  const type = parts[2];
+                  if (month === 'Year') {
+                    return `${year} ${type}`;
+                  } else {
+                    return `${year} ${month} ${type}`;
+                  }
                 }
-              }
-              return value;
+                return value;
             },
             margin: 30,
           },
@@ -219,44 +219,44 @@ const BarChart = ({ data, periods, basePeriod }) => {
               color: '#ccc'
               }
             }
-        },
+    },
         yAxis: [
           {
-            type: 'value',
+      type: 'value',
             show: false,
             scale: true,
             max: function(value) {
               return value.max * 1.15;
               }
-          }
+      }
         ],
-        series: [
-          {
+    series: [
+      {
             name: '',
-            data: seriesData,
-            type: 'bar',
+              data: seriesData,
+        type: 'bar',
             barMaxWidth: '70%',
             barWidth: '65%',
-            itemStyle: {
-              color: function(params) {
+        itemStyle: {
+                color: function(params) {
                 return barColors[params.dataIndex];
-              }
-            },
-            label: {
-              show: true,
-              position: 'top',
+        }
+      },
+              label: {
+                show: true,
+                position: 'top',
               fontWeight: 'bold',
               fontSize: 18,
               color: '#222',
-              formatter: function(params) {
-                const value = params.value;
-                if (value >= 1000000) {
-                  return (value / 1000000).toFixed(1) + 'M';
-                } else if (value >= 1000) {
-                  return (value / 1000).toFixed(1) + 'K';
+                formatter: function(params) {
+                  const value = params.value;
+                  if (value >= 1000000) {
+                    return (value / 1000000).toFixed(1) + 'M';
+                  } else if (value >= 1000) {
+                    return (value / 1000).toFixed(1) + 'K';
+                  }
+                  return value;
                 }
-                return value;
-              }
             },
             emphasis: {
               focus: 'series'

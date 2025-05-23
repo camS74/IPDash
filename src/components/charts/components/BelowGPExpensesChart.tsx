@@ -246,9 +246,10 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       name: periodName,
       type: 'bar',
       stack: 'total',
+      hoverLayerThreshold: Infinity, // Disable hover layer
       label: {
         show: true,
-        position: 'inside', // Always position labels inside as shown in the screenshot
+        position: 'inside',
         formatter: params => {
           // Show all metrics - amount, % of sales, and per kg
           const data = ledgersList.find(l => l.label === params.name)?.values[periodName];
@@ -256,26 +257,26 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
           
           // Format values with appropriate precision
           const millionsValue = (data.amount / 1000000).toFixed(2);
-          const percentValue = data.percentOfSales.toFixed(2);
-          const perKgValue = data.perKg.toFixed(2);
+          const percentValue = data.percentOfSales.toFixed(1);
+          const perKgValue = data.perKg.toFixed(1);
           
           return [
             `${millionsValue}M`,
             '', // Add empty line for spacing
-            `${percentValue}% of Sales`,
+            `${percentValue}%/S`,
             '', // Add empty line for spacing
-            `${perKgValue} per kg`
+            `${perKgValue}/kg`
           ].join('\n');
         },
-        fontSize: 10, // Even smaller font size to avoid overlapping
+        fontSize: 14,
         fontWeight: 'bold',
-        color: textColor, // Dynamic text color based on background
+        color: textColor,
         backgroundColor: 'transparent',
         padding: [2, 4],
         borderRadius: 0,
         textBorderWidth: 0,
         shadowBlur: 0,
-        lineHeight: 12, // Reduced line height for better control with empty lines
+        lineHeight: 12,
         align: 'center',
         verticalAlign: 'middle'
       },
@@ -293,11 +294,11 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       }),
       itemStyle: {
         color: color,
-        borderRadius: [0, 2, 2, 0] // Rounded corners on right side only
+        borderRadius: [0, 2, 2, 0]
       },
-      barWidth: '80%', // Slightly wider bars
-      barGap: '20%', // Reduced gap between bars of different series
-      barCategoryGap: '30%' // Gap between bar categories
+      barWidth: '80%',
+      barGap: '20%',
+      barCategoryGap: '30%'
     };
   });
 
@@ -308,12 +309,12 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
 
   // Format percentage values
   const formatPercent = value => {
-    return `${(Number(value) || 0).toFixed(2)}% of Sales`;
+    return `${(Number(value) || 0).toFixed(1)}% of Sales`;
   };
 
   // Format per kg values
   const formatPerKg = value => {
-    return `${(Number(value) || 0).toFixed(2)} per kg`;
+    return `${(Number(value) || 0).toFixed(1)} per kg`;
   };
 
   // Format for tooltip values with bold styling
@@ -324,73 +325,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
 
   // Create ECharts option with improved styling
   const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { 
-        type: 'shadow',
-        shadowStyle: {
-          color: 'rgba(0,0,0,0.05)'
-        }
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#ddd',
-      borderWidth: 1,
-      padding: [10, 15],
-      textStyle: {
-        color: '#333',
-        fontSize: 12
-      },
-      extraCssText: 'box-shadow: 0 3px 10px rgba(0,0,0,0.15); border-radius: 4px;',
-      formatter: function(params) {
-        let result = `<div style="font-weight:bold;font-size:15px;margin-bottom:8px;color:#222">${params[0].name}</div>`;
-        
-        // Add each period's values
-        let total = 0;
-        params.forEach(param => {
-          const value = param.value;
-          total += value;
-          
-          // Get the full data
-          const ledgerLabel = param.name;
-          const periodName = param.seriesName;
-          const ledger = ledgersList.find(l => l.label === ledgerLabel);
-          const data = ledger?.values[periodName] || { amount: value, percentOfSales: 0, perKg: 0 };
-          
-          result += `<div style="margin-top:8px;border-top:1px solid #eee;padding-top:5px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <span style="display:flex;align-items:center">
-                <span style="display:inline-block;margin-right:8px;border-radius:3px;width:10px;height:10px;background-color:${param.color}"></span>
-                <span style="font-weight:600;color:#444">${param.seriesName}:</span>
-              </span>
-            </div>
-            <div style="margin-left:18px;margin-top:3px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-                <span style="color:#666">Amount:</span> 
-                <span style="font-weight:bold;color:#222">${formatTooltipValue(data.amount)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-                <span style="color:#666">% of Sales:</span> 
-                <span style="font-weight:bold;color:#222">${data.percentOfSales.toFixed(2)}%</span>
-              </div>
-              <div style="display:flex;justify-content:space-between">
-                <span style="color:#666">Per Kg:</span> 
-                <span style="font-weight:bold;color:#222">${data.perKg.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>`;
-        });
-        
-        // Add total for this ledger across all displayed periods if more than one period
-        if (params.length > 1) {
-          result += `<div style="margin-top:10px;font-weight:bold;border-top:2px solid #ddd;padding-top:6px;display:flex;justify-content:space-between">
-            <span>Total:</span>
-            <span>${formatTooltipValue(total)}</span>
-          </div>`;
-        }
-        
-        return result;
-      }
-    },
+    tooltip: { trigger: 'none', show: false },
     legend: {
       data: periodNames,
       type: 'scroll',
@@ -416,7 +351,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       containLabel: true
     },
     xAxis: {
-      show: true, // Show x-axis
+      show: true,
       type: 'value',
       axisLine: {
         show: false
@@ -425,7 +360,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
         show: false
       },
       axisLabel: {
-        show: false // Hide axis labels
+        show: false
       },
       splitLine: {
         show: true,
@@ -433,6 +368,9 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
           color: '#eee',
           type: 'dashed'
         }
+      },
+      axisPointer: {
+        show: false // Disable axis pointer
       }
     },
     yAxis: {
@@ -480,87 +418,113 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
     return (
       <div style={{ 
         display: 'flex', 
-        flexWrap: 'wrap', 
-        justifyContent: 'space-around', 
+        flexWrap: 'nowrap', 
+        justifyContent: 'center', 
+        alignItems: 'flex-end', 
+        gap: '4px', 
         marginTop: 20,
-        gap: '5px' // Reduced gap from 10px to 5px
+        marginBottom: 0,
+        width: '100%',
+        overflowX: 'auto',
+        padding: '0 16px',
       }}>
-        {periodsToUse.map((period, index) => {
+        {periodsToUse.map((period, idx) => {
+          // Move all variable declarations here for each card
           const periodName = `${period.year} ${period.month || ''} ${period.type}`;
           const totals = periodTotals[periodName] || { amount: 0, percentOfSales: 0, perKg: 0 };
-          
-          // Format values with proper decimal places
           const formattedMillions = (totals.amount / 1000000).toFixed(2);
-          const formattedPercent = totals.percentOfSales.toFixed(2);
-          const formattedPerKg = totals.perKg.toFixed(2);
-          
-          // Get color for period
+          const formattedPercent = totals.percentOfSales.toFixed(1);
+          const formattedPerKg = totals.perKg.toFixed(1);
           let color;
           if (period.customColor && colorSchemes[period.customColor]) {
             color = colorSchemes[period.customColor];
           } else {
-            color = defaultColors[index % defaultColors.length];
+            color = defaultColors[idx % defaultColors.length];
           }
-          
-          // Function to determine if a color is dark (for text contrast)
-          const isColorDark = (hexColor) => {
-            // Convert hex to RGB
+          const isColorDark = (hexColor: string) => {
             const r = parseInt(hexColor.substring(1, 3), 16);
             const g = parseInt(hexColor.substring(3, 5), 16);
             const b = parseInt(hexColor.substring(5, 7), 16);
-            // Calculate brightness (perceived luminance)
             return (r * 0.299 + g * 0.587 + b * 0.114) < 150;
           };
-          
-          // Get appropriate text color based on background
           const textColor = isColorDark(color) ? '#fff' : '#333';
-          
           return (
-            <div key={index} style={{ 
-              padding: '12px 15px', 
-              borderRadius: '6px',
-              backgroundColor: color, // Use exact same color as bars
-              border: `1px solid ${color}`,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
-              minWidth: '200px',
-              maxWidth: '210px', // Slightly reduced max-width
-              flex: '1',
-              textAlign: 'center',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {/* No need for color strip at top since the entire card has the color */}
-              
-              <div style={{ 
-                fontSize: 14, 
-                color: textColor, // Text color based on background brightness
-                fontWeight: 500,
-                marginTop: 4
-              }}>
-                {periodName}
-              </div>
-              
-              <div style={{ 
-                fontWeight: 'bold', 
-                fontSize: 22,
-                color: textColor, // Text color based on background brightness
-                marginTop: 8
-              }}>
-                {formattedMillions}M
-              </div>
-              
-              <div style={{ 
+            <React.Fragment key={period.year + period.month + period.type}>
+              {/* Card */}
+              <div style={{
+                padding: '12px 15px',
+                borderRadius: '6px',
+                backgroundColor: color,
+                border: `1px solid ${color}`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+                minWidth: '180px',
+                maxWidth: '180px',
+                width: '180px',
+                flex: '1',
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden',
                 display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 12,
-                fontWeight: 'bold', // Made bold as requested
-                color: textColor, // Text color based on background brightness
-                marginTop: 8
+                flexDirection: 'column',
+                alignItems: 'center',
               }}>
-                <div>{formattedPercent}% of Sales</div>
-                <div>{formattedPerKg} per kg</div>
+                <div style={{ fontSize: 14, color: textColor, fontWeight: 500, marginTop: 4 }}>{periodName}</div>
+                <div style={{ fontWeight: 'bold', fontSize: 22, color: textColor, marginTop: 8 }}>
+                  {formattedMillions}M
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  color: textColor,
+                  marginTop: 8,
+                  width: '100%'
+                }}>
+                  <div>{formattedPercent}% of Sales</div>
+                  <div>{formattedPerKg} per kg</div>
+                </div>
               </div>
-            </div>
+              {/* Variance badge between cards */}
+              {idx < periodsToUse.length - 1 && (() => {
+                // Calculate variance vs next card
+                const nextPeriod = periodsToUse[idx + 1];
+                const nextPeriodName = `${nextPeriod.year} ${nextPeriod.month || ''} ${nextPeriod.type}`;
+                const nextTotals = periodTotals[nextPeriodName] || { amount: 0 };
+                let variance = null;
+                if (totals.amount !== 0) {
+                  variance = ((nextTotals.amount - totals.amount) / Math.abs(totals.amount)) * 100;
+                }
+                let badgeColor = '#888', arrow = '–';
+                if (variance !== null && !isNaN(variance)) {
+                  if (variance > 0) { badgeColor = '#2E865F'; arrow = '▲'; }
+                  else if (variance < 0) { badgeColor = '#cf1322'; arrow = '▼'; }
+                }
+                return (
+                  <div style={{
+                    alignSelf: 'center',
+                    margin: '0 2px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minWidth: 40,
+                    width: 40,
+                    height: 60,
+                    justifyContent: 'center',
+                  }}>
+                    {variance === null || isNaN(variance) ? (
+                      <span style={{ color: '#888', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>N/A</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 22, fontWeight: 'bold', color: badgeColor, lineHeight: 1 }}>{arrow}</span>
+                        <span style={{ fontSize: 18, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>{Math.abs(variance).toFixed(1)}</span>
+                        <span style={{ fontSize: 16, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>%</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </React.Fragment>
           );
         })}
       </div>

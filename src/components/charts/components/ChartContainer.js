@@ -5,7 +5,10 @@ import { useExcelData } from '../../../contexts/ExcelDataContext';
 import BarChart from './BarChart';
 import ModernMarginGauge from './ModernMarginGauge';
 import ManufacturingCostChart from './ManufacturingCostChart';
-import { calculatePeriodDifferences } from '../utils/chartCalculations';
+import BelowGPExpensesChart from './BelowGPExpensesChart.tsx';
+import ExpencesChart from './ExpencesChart';
+import Profitchart from './Profitchart';
+import AIWriteupPanel from './AIWriteupPanel';
 import './ChartContainer.css';
 import { computeCellValue as sharedComputeCellValue } from '../../../utils/computeCellValue';
 
@@ -123,6 +126,36 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
         selectedPeriods={selectedPeriods}
         computeCellValue={computeCellValue}
         style={{ marginTop: 60 }}
+      />
+      {/* Below Gross Profit Expenses chart panel after Manufacturing Cost */}
+      <BelowGPExpensesChart
+        tableData={tableData}
+        selectedPeriods={selectedPeriods}
+        computeCellValue={computeCellValue}
+        style={{ marginTop: 60 }}
+      />
+      {/* Expenses Trend panel after Below GP Expenses */}
+      <ExpencesChart
+        tableData={tableData}
+        selectedPeriods={selectedPeriods}
+        computeCellValue={computeCellValue}
+        style={{ marginTop: 60 }}
+      />
+      {/* Profit Trend panel after Expenses Trend */}
+      <Profitchart
+        tableData={tableData}
+        selectedPeriods={selectedPeriods}
+        computeCellValue={computeCellValue}
+        style={{ marginTop: 60 }}
+      />
+      {/* AI Write-up panel at the end */}
+      <AIWriteupPanel
+        tableData={tableData}
+        selectedPeriods={selectedPeriods}
+        basePeriod={basePeriod}
+        division={selectedDivision}
+        chatContext={null} // TODO: pass chat context if available
+        computeCellValue={computeCellValue}
       />
     </div>
   );
