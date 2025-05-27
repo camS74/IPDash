@@ -299,6 +299,12 @@ const ColumnConfigGrid = () => {
           </div>
         )}
       </div>
+      {/* Add Generate Complete Report button at the bottom */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 8 }}>
+        <button className="generate-btn" style={{ minWidth: 220, fontSize: 16, padding: '10px 24px' }}>
+          Generate Complete Report
+        </button>
+      </div>
     </div>
   );
 };
