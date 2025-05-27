@@ -668,7 +668,7 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
   };
 
   return (
-    <div style={{
+    <div className="ai-writeup-content" style={{
       marginTop: 40,
       background: '#fff',
       borderRadius: 8,
@@ -717,7 +717,7 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+      <div className="ai-writeup-button-container" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
         <button
           onClick={generateAIWriteup}
           disabled={loading}

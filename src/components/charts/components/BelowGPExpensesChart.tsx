@@ -452,17 +452,17 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
             <React.Fragment key={period.year + period.month + period.type}>
               {/* Card */}
               <div style={{
-                padding: '12px 15px',
-                borderRadius: '6px',
+              padding: '12px 15px', 
+              borderRadius: '6px',
                 backgroundColor: color,
-                border: `1px solid ${color}`,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+              border: `1px solid ${color}`,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
                 minWidth: '180px',
                 maxWidth: '180px',
                 width: '180px',
-                flex: '1',
-                textAlign: 'center',
-                position: 'relative',
+              flex: '1',
+              textAlign: 'center',
+              position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
@@ -470,21 +470,21 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
               }}>
                 <div style={{ fontSize: 14, color: textColor, fontWeight: 500, marginTop: 4 }}>{periodName}</div>
                 <div style={{ fontWeight: 'bold', fontSize: 22, color: textColor, marginTop: 8 }}>
-                  {formattedMillions}M
-                </div>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: 12,
+                {formattedMillions}M
+              </div>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 12,
                   fontWeight: 'bold',
                   color: textColor,
                   marginTop: 8,
                   width: '100%'
-                }}>
-                  <div>{formattedPercent}% of Sales</div>
-                  <div>{formattedPerKg} per kg</div>
-                </div>
+              }}>
+                <div>{formattedPercent}% of Sales</div>
+                <div>{formattedPerKg} per kg</div>
               </div>
+            </div>
               {/* Variance badge between cards */}
               {idx < periodsToUse.length - 1 && (() => {
                 // Calculate variance vs next card
