@@ -105,344 +105,258 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
     values: Object.values(chartData).map(d => d.sales)
   });
 
-  // Improved captureChartForPDF for better sizing and padding
-  async function captureChartForPDF(ChartComponent, props, width, height) {
-    const hiddenDiv = document.createElement('div');
-    hiddenDiv.style.position = 'fixed';
-    hiddenDiv.style.left = '-9999px';
-    hiddenDiv.style.top = '0';
-    hiddenDiv.style.width = width + 'px';
-    hiddenDiv.style.height = height + 'px';
-    hiddenDiv.style.background = '#fff';
-    hiddenDiv.style.zIndex = '-1000';
-    hiddenDiv.style.overflow = 'hidden';
-    hiddenDiv.style.boxSizing = 'border-box';
-    document.body.appendChild(hiddenDiv);
+  // Helper function to export a single chart to PDF
+  const handleExportSingleChart = async (ref, name) => {
+    if (!ref.current) {
+      console.error(`Chart reference not found for ${name}`);
+      return;
+    }
 
-    const root = createRoot(hiddenDiv);
-    root.render(
-      <div style={{ 
-        width: width, 
-        height: height, 
-        background: '#fff',
-        padding: '20px',
-        boxSizing: 'border-box'
-      }}>
-        <ChartComponent {...props} />
-      </div>
-    );
+    // Special export logic for AI Writeup
+    if (name === 'AI Writeup') {
+      try {
+        // Find the contentEditable div inside .ai-writeup-content
+        let writeupNode = ref.current;
+        const aiWriteupContent = writeupNode.classList.contains('ai-writeup-content')
+          ? writeupNode
+          : writeupNode.querySelector('.ai-writeup-content');
+        if (!aiWriteupContent) throw new Error('Could not find .ai-writeup-content');
+        const editableDiv = aiWriteupContent.querySelector('div[contenteditable]');
+        if (!editableDiv) throw new Error('Could not find contentEditable writeup div');
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+        // Get only the plain text (no HTML, no formatting)
+        const plainText = editableDiv.innerText || editableDiv.textContent || '';
+        console.log('AI Writeup export - extracted plainText:', plainText);
 
-    const canvas = await html2canvas(hiddenDiv, {
-      scale: 2,
-      useCORS: true,
-      width,
-      height,
-      backgroundColor: '#fff',
-      logging: true
-    });
+        // Set up jsPDF for A4 portrait
+        const portraitWidth = 595; // A4 portrait width in pt
+        const portraitHeight = 842; // A4 portrait height in pt
+        const margin = 40; // 40pt margin
+        const contentWidth = portraitWidth - 2 * margin;
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: 'a4'
+        });
 
-    root.unmount();
-    document.body.removeChild(hiddenDiv);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(11);
 
-    return canvas;
-  }
+        // Improved formatting for AI Writeup export
+        const paragraphs = plainText.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+        let y = margin;
+        const lineHeight = 14;
+        const paraSpacing = 8;
+        const headingSpacing = 16;
+        const bulletIndent = 18;
+        const sectionSpacing = 18;
 
-  const handleExportToPDF = async () => {
+        // Helper to replace Unicode punctuation with ASCII equivalents
+        function toAscii(str) {
+          return str
+            .replace(/[‘’‛‹›]/g, "'")
+            .replace(/[“”«»„‟]/g, '"')
+            .replace(/[–—−]/g, '-')
+            .replace(/[•·]/g, '*')
+            .replace(/[…]/g, '...')
+            .replace(/[^\x00-\x7F]/g, '') // Remove any other non-ASCII
+            .replace(/\s+/g, ' ')
+            .replace(/\u00A0/g, ' ')
+            .trim();
+        }
+
+        for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+          let para = paragraphs[pIdx];
+          // Split into lines for finer control
+          const lines = para.split(/\n/).map(l => l.trim()).filter(Boolean);
+          for (let lIdx = 0; lIdx < lines.length; lIdx++) {
+            let line = lines[lIdx];
+            // Detect headings (all caps or lines ending with ':')
+            const isHeading = /^([A-Z\s\-:0-9]+)$/.test(line) || /:$/.test(line);
+            // Detect subheadings (first word or two in all caps, but not full line)
+            const isSubheading = /^[A-Z][A-Z\s]+:/.test(line) && !isHeading;
+            // Detect bullet points
+            const isBullet = line.startsWith('• ') || line.startsWith('- ');
+
+            if (isHeading) {
+              pdf.setFont(undefined, 'bold');
+              pdf.setFontSize(13);
+              if (y > margin) y += headingSpacing;
+            } else if (isSubheading) {
+              pdf.setFont(undefined, 'bold');
+              pdf.setFontSize(11);
+              if (y > margin) y += paraSpacing;
+            } else {
+              pdf.setFont(undefined, 'normal');
+              pdf.setFontSize(11);
+            }
+
+            if (isBullet) {
+              // Bullet point: indent and use bullet
+              const text = line.replace(/^[-•]\s*/, '');
+              const bulletLines = pdf.splitTextToSize(text, contentWidth - bulletIndent);
+              for (let bl = 0; bl < bulletLines.length; bl++) {
+                if (y + lineHeight > portraitHeight - margin) {
+                  pdf.addPage();
+                  y = margin;
+                }
+                // Sanitize line before rendering
+                const sanitized = toAscii(bulletLines[bl]);
+                pdf.text('*', margin + 2, y);
+                pdf.text(sanitized, margin + bulletIndent, y);
+                y += lineHeight;
+              }
+              y += 2;
+            } else {
+              // Normal or heading/subheading
+              const normalLines = pdf.splitTextToSize(line, contentWidth);
+              for (let nl = 0; nl < normalLines.length; nl++) {
+                if (y + lineHeight > portraitHeight - margin) {
+                  pdf.addPage();
+                  y = margin;
+                }
+                // Sanitize line before rendering
+                const sanitized = toAscii(normalLines[nl]);
+                pdf.text(sanitized, margin, y);
+                y += lineHeight;
+              }
+              if (isHeading) {
+                y += headingSpacing;
+              } else if (isSubheading) {
+                y += paraSpacing;
+              } else {
+                y += paraSpacing;
+              }
+            }
+          }
+          // Add extra space between sections
+          if (pIdx < paragraphs.length - 1) {
+            y += sectionSpacing;
+          }
+        }
+
+        pdf.save('AI_Writeup_export.pdf');
+        return;
+      } catch (error) {
+        console.error('Failed to export AI Writeup:', error);
+        alert('Failed to export AI Writeup. Please check the console for details.');
+      }
+      return;
+    }
+
     try {
-      const mainPdf = new jsPDF('l', 'pt', 'a3'); // A3 Landscape
-      const pagePadding = 40;
-    const pdfPageWidth = mainPdf.internal.pageSize.getWidth();
-    const pdfPageHeight = mainPdf.internal.pageSize.getHeight();
-    const availableWidth = pdfPageWidth - (2 * pagePadding);
-    const availableHeight = pdfPageHeight - (2 * pagePadding);
-
-      // --- Special handling for Bar Chart: render into hidden container sized to PDF page ---
-      const hiddenDiv = document.createElement('div');
-      hiddenDiv.style.position = 'fixed';
-      hiddenDiv.style.left = '-9999px';
-      hiddenDiv.style.top = '0';
-      // Give extra space for chart title, legend, and internal padding
-      hiddenDiv.style.width = (availableWidth + 100) + 'px';
-      hiddenDiv.style.height = (availableHeight + 100) + 'px';
-      hiddenDiv.style.background = '#fff';
-      hiddenDiv.style.zIndex = '-1000';
-      hiddenDiv.style.overflow = 'visible';
-      hiddenDiv.style.boxSizing = 'border-box';
-      document.body.appendChild(hiddenDiv);
-
-      const root = createRoot(hiddenDiv);
-      root.render(
-        <div style={{ 
-          width: availableWidth + 100, 
-          height: availableHeight + 100, 
-          background: '#fff',
-          padding: '30px',
-          boxSizing: 'border-box',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{ 
-            width: '100%', 
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <BarChart
-              data={chartData}
-              periods={filteredPeriods}
-              basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
-            />
-          </div>
-        </div>
-      );
-
-      // Wait for render
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const barChartCanvas = await html2canvas(hiddenDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: availableWidth + 100,
-        height: availableHeight + 100,
-        backgroundColor: '#fff',
-        removeContainer: true,
-        imageTimeout: 15000
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4'
       });
 
-      root.unmount();
-      document.body.removeChild(hiddenDiv);
+      // A4 landscape dimensions: 842pt × 595pt
+      const pageWidth = pdf.internal.pageSize.getWidth();  // 842pt
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 595pt
 
-      if (barChartCanvas.width === 0 || barChartCanvas.height === 0) {
-        console.error('Bar Chart canvas is empty');
-      } else {
-        const imgData = barChartCanvas.toDataURL('image/png', 1.0);
-        const imgProps = mainPdf.getImageProperties(imgData);
+      // Set margins (in points)
+      const margins = {
+        top: 40,
+        right: 40,
+        bottom: 40,
+        left: 40
+      };
+
+      // Calculate available space for content
+      const contentWidth = pageWidth - (margins.left + margins.right);
+      const contentHeight = pageHeight - (margins.top + margins.bottom);
+
+      let imgData = null;
+
+      // Try ECharts export first if available
+      if (ref.current && typeof ref.current.getEchartsInstance === 'function') {
+        console.log(`Attempting to get ECharts instance for ${name}...`);
+        const instance = ref.current.getEchartsInstance();
         
-        // Fill the entire available area
-        mainPdf.addImage(imgData, 'PNG', pagePadding, pagePadding, availableWidth, availableHeight);
-      }
-
-      // --- Export the rest of the charts with maximum size ---
-      const chartElements = [
-        { 
-          ref: modernMarginGaugeRef, 
-          name: 'Modern Margin Gauge',
-          component: ModernMarginGauge,
-          props: {
-        data: chartData,
-        periods: filteredPeriods,
-        basePeriod: basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''
-          }
-        },
-        { 
-          ref: manufacturingCostChartRef, 
-          name: 'Manufacturing Cost Chart',
-          component: ManufacturingCostChart,
-          props: {
-            tableData: tableData,
-            selectedPeriods: selectedPeriods,
-            computeCellValue: computeCellValue
-          }
-        },
-        { 
-          ref: belowGPExpensesChartRef, 
-          name: 'Below GP Expenses Chart',
-          component: BelowGPExpensesChart,
-          props: {
-            tableData: tableData,
-            selectedPeriods: selectedPeriods,
-            computeCellValue: computeCellValue
-          }
-        },
-        { 
-          ref: combinedTrendsRef, 
-          name: 'Key Trends (Expenses, Net Profit, EBITDA)',
-          component: ({ tableData, selectedPeriods, computeCellValue }) => (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', height: '100%' }}>
-              <div style={{ flex: 1 }}>
-                <ExpencesChart
-                  tableData={tableData}
-                  selectedPeriods={selectedPeriods}
-                  computeCellValue={computeCellValue}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <Profitchart
-                  tableData={tableData}
-                  selectedPeriods={selectedPeriods}
-                  computeCellValue={computeCellValue}
-                />
-              </div>
-            </div>
-          ),
-          props: {
-            tableData: tableData,
-            selectedPeriods: selectedPeriods,
-            computeCellValue: computeCellValue
-          }
-        }
-      ];
-
-      for (let i = 0; i < chartElements.length; i++) {
-      const chartItem = chartElements[i];
-      if (chartItem.ref.current) {
-        mainPdf.addPage('a3', 'l');
-          await new Promise(resolve => setTimeout(resolve, 500));
-          try {
-            // First try to capture the existing chart with better sizing
-        const targetElement = chartItem.ref.current;
-            
-            // Temporarily modify the target element for better PDF capture
-            const originalStyle = {
-              width: targetElement.style.width,
-              height: targetElement.style.height,
-              transform: targetElement.style.transform,
-              padding: targetElement.style.padding
-            };
-            
-            targetElement.style.width = availableWidth + 'px';
-            targetElement.style.height = availableHeight + 'px';
-            targetElement.style.transform = 'scale(1)';
-            targetElement.style.padding = '20px';
-            targetElement.style.boxSizing = 'border-box';
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const canvas = await html2canvas(targetElement, { 
-          scale: 1.5, 
-          useCORS: true, 
-              allowTaint: true,
-              logging: false,
-              width: availableWidth,
-              height: availableHeight,
-              backgroundColor: '#ffffff',
-              removeContainer: true,
-              imageTimeout: 20000
-            });
-
-            // Restore original styles
-            targetElement.style.width = originalStyle.width;
-            targetElement.style.height = originalStyle.height;
-            targetElement.style.transform = originalStyle.transform;
-            targetElement.style.padding = originalStyle.padding;
-
-            if (canvas.width === 0 || canvas.height === 0) {
-              console.error(`Canvas is empty for ${chartItem.name}`);
-              continue;
-            }
-            const imgData = canvas.toDataURL('image/png', 0.9);
-            if (imgData === 'data:,') {
-              console.error(`No image data for ${chartItem.name}`);
-              continue;
-            }
-            
-            // Fill the entire available area
-            mainPdf.addImage(imgData, 'PNG', pagePadding, pagePadding, availableWidth, availableHeight);
-          } catch (error) {
-            console.error(`Error capturing ${chartItem.name}:`, error);
-            mainPdf.setFontSize(16);
-            mainPdf.text(`Error capturing ${chartItem.name}`, pagePadding, pagePadding + 50);
-            mainPdf.setFontSize(12);
-            mainPdf.text(error.message, pagePadding, pagePadding + 80);
-          }
-        } else {
-          console.warn(`Reference not found for ${chartItem.name}`);
-        }
-      }
-
-      // --- AI Write-up Panel with full panel styling ---
-      if (aiWriteupPanelRef.current) {
-        mainPdf.addPage('a3', 'p');
-        const portraitPageWidth = mainPdf.internal.pageSize.getWidth();
-        const portraitPageHeight = mainPdf.internal.pageSize.getHeight();
-        const portraitPadding = 20; // Reduced padding for more content space
-        const fullContentWidth = portraitPageWidth - (2 * portraitPadding);
-        const maxContentHeight = portraitPageHeight - (2 * portraitPadding);
-        
-        try {
-          // Create a hidden container for the full AI writeup panel
-          const writeupHiddenDiv = document.createElement('div');
-          writeupHiddenDiv.style.position = 'fixed';
-          writeupHiddenDiv.style.left = '-9999px';
-          writeupHiddenDiv.style.top = '0';
-          writeupHiddenDiv.style.width = fullContentWidth + 'px';
-          writeupHiddenDiv.style.height = maxContentHeight + 'px';
-          writeupHiddenDiv.style.background = '#ffffff';
-          writeupHiddenDiv.style.zIndex = '-1000';
-          writeupHiddenDiv.style.overflow = 'visible';
-          writeupHiddenDiv.style.boxSizing = 'border-box';
-          writeupHiddenDiv.style.padding = '30px';
-          document.body.appendChild(writeupHiddenDiv);
-
-          const writeupRoot = createRoot(writeupHiddenDiv);
-          
-          writeupRoot.render(
-            <div style={{ 
-              width: '100%', 
-              minHeight: '100%',
-              background: '#ffffff',
-              borderRadius: '12px',
-              border: '1px solid #e0e0e0',
-              padding: '30px',
-              boxSizing: 'border-box',
-              fontFamily: 'Arial, sans-serif'
-            }}>
-              <AIWriteupPanel
-                tableData={tableData}
-                selectedPeriods={selectedPeriods}
-                basePeriod={basePeriod}
-                division={selectedDivision}
-                chatContext={null}
-                computeCellValue={computeCellValue}
-              />
-            </div>
-          );
-
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          const canvas = await html2canvas(writeupHiddenDiv, { 
-            scale: 1.5,
-        useCORS: true, 
-            allowTaint: true,
-            logging: false,
-            width: fullContentWidth,
-            height: maxContentHeight,
-            backgroundColor: '#ffffff',
-            removeContainer: true,
-            imageTimeout: 20000
+        if (instance) {
+          console.log(`ECharts instance found for ${name}, preparing export...`);
+          // Resize chart to fit content area
+          instance.resize({
+            width: contentWidth,
+            height: contentHeight
           });
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          writeupRoot.unmount();
-          document.body.removeChild(writeupHiddenDiv);
-
-          if (canvas.width === 0 || canvas.height === 0) {
-            console.error('AI Writeup canvas is empty');
-            mainPdf.setFontSize(16);
-            mainPdf.text('AI Writeup content could not be captured', portraitPadding, portraitPadding + 50);
-          } else {
-            const imgData = canvas.toDataURL('image/png', 0.9);
-            // Use the full available area for the writeup
-            mainPdf.addImage(imgData, 'PNG', portraitPadding, portraitPadding, fullContentWidth, maxContentHeight);
+          try {
+            imgData = instance.getDataURL({
+              type: 'png',
+              pixelRatio: 2,
+              backgroundColor: '#fff',
+              width: contentWidth,
+              height: contentHeight
+            });
+            console.log(`Successfully got chart data URL for ${name}`);
+          } catch (echartsError) {
+            console.error(`Error getting chart data URL for ${name}:`, echartsError);
           }
-          
-        } catch (error) {
-          console.error('Error capturing AI Writeup:', error);
-          mainPdf.setFontSize(16);
-          mainPdf.text('Error capturing AI Writeup', portraitPadding, portraitPadding + 50);
-          mainPdf.setFontSize(12);
-          mainPdf.text(error.message, portraitPadding, portraitPadding + 80);
         }
       }
-      mainPdf.save('dashboard_export.pdf');
-      console.log('PDF export completed successfully');
+
+      // If ECharts export failed or isn't available, use html2canvas
+      if (!imgData) {
+        console.log(`Using html2canvas for ${name} export...`);
+        let chartNode = ref.current;
+        
+        // Capture the entire content
+        const canvas = await html2canvas(chartNode, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#fff',
+          logging: true,
+          width: chartNode.scrollWidth,
+          height: chartNode.scrollHeight
+        });
+
+        imgData = canvas.toDataURL('image/png', 0.95);
+        console.log(`Successfully captured ${name} using html2canvas`);
+      }
+
+      // Add image to PDF with proper scaling
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            // Always scale to fill the content width, even if it means stretching
+            const finalWidth = contentWidth;
+            const finalHeight = img.height * (contentWidth / img.width);
+            let y = (pageHeight - finalHeight) / 2;
+            if (finalHeight > contentHeight) {
+              // If the scaled height is too tall, crop from the top
+              y = margins.top;
+            }
+            const x = margins.left;
+
+            // Add the image to the PDF
+            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+            
+            // Add a title
+            pdf.setFontSize(16);
+            pdf.text(name, pageWidth / 2, margins.top / 2, { align: 'center' });
+            
+            pdf.save(`${name.replace(/\s+/g, '_')}_export.pdf`);
+            resolve();
+          } catch (error) {
+            console.error(`Error adding image to PDF for ${name}:`, error);
+            reject(error);
+          }
+        };
+        img.onerror = (error) => {
+          console.error(`Error loading image for ${name}:`, error);
+          reject(error);
+        };
+        img.src = imgData;
+      });
+
     } catch (error) {
-      console.error('PDF export failed:', error);
-      alert('PDF export failed. Please check the console for details.');
+      console.error(`PDF export failed for ${name}:`, error);
+      alert(`Failed to export ${name}. Please check the console for details.`);
     }
   };
 
@@ -457,79 +371,110 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
       backgroundColor: '#f5f5f5',
       borderRadius: '12px'
     }}>
-      <Button 
-        type="primary" 
-        onClick={handleExportToPDF} 
-        style={{ marginBottom: 20, alignSelf: 'flex-end' }}
-      >
-        Export to PDF
-      </Button>
-      {/* Bar chart container - match gauge panel style */}
-      <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 60 }}>
+      {/* Bar chart container */}
+      <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 20 }}>
         <BarChart
           data={chartData}
           periods={filteredPeriods}
           basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
         />
+        <Button 
+          type="primary" 
+          style={{ marginTop: 16 }}
+          onClick={() => handleExportSingleChart(barChartRef, 'Bar Chart')}
+        >
+          Export Bar Chart
+        </Button>
       </div>
-      {/* New Modern Gauge chart */}
-      <div ref={modernMarginGaugeRef}>
+
+      {/* Modern Gauge chart */}
+      <div ref={modernMarginGaugeRef} style={{ marginTop: 40 }}>
         <ModernMarginGauge
           data={chartData}
           periods={filteredPeriods}
           basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
-          style={{ marginTop: 60 }}
         />
+        <Button 
+          type="primary" 
+          style={{ marginTop: 16 }}
+          onClick={() => handleExportSingleChart(modernMarginGaugeRef, 'Modern Margin Gauge')}
+        >
+          Export Gauge
+        </Button>
       </div>
-      {/* Manufacturing Cost chart panel after gauges */}
-      <div ref={manufacturingCostChartRef}>
+
+      {/* Manufacturing Cost chart */}
+      <div ref={manufacturingCostChartRef} style={{ marginTop: 40 }}>
         <ManufacturingCostChart
           tableData={tableData}
           selectedPeriods={selectedPeriods}
           computeCellValue={computeCellValue}
-          style={{ marginTop: 60 }}
         />
+        <Button 
+          type="primary" 
+          style={{ marginTop: 16 }}
+          onClick={() => handleExportSingleChart(manufacturingCostChartRef, 'Manufacturing Cost Chart')}
+        >
+          Export Cost Chart
+        </Button>
       </div>
-      {/* Below Gross Profit Expenses chart panel after Manufacturing Cost */}
-      <div ref={belowGPExpensesChartRef}>
+
+      {/* Below GP Expenses chart */}
+      <div ref={belowGPExpensesChartRef} style={{ marginTop: 40 }}>
         <BelowGPExpensesChart
           tableData={tableData}
           selectedPeriods={selectedPeriods}
           computeCellValue={computeCellValue}
-          style={{ marginTop: 60 }}
         />
+        <Button 
+          type="primary" 
+          style={{ marginTop: 16 }}
+          onClick={() => handleExportSingleChart(belowGPExpensesChartRef, 'Below GP Expenses Chart')}
+        >
+          Export Expenses Chart
+        </Button>
       </div>
-      {/* Combined Expenses and Profit/EBITDA Trends */}
-      <div ref={combinedTrendsRef} style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
-        {/* Expenses Trend panel */}
-        <div> {/* Removed specific ref if it was only for individual export */}
+
+      {/* Combined Trends */}
+      <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
           <ExpencesChart
             tableData={tableData}
             selectedPeriods={selectedPeriods}
             computeCellValue={computeCellValue}
-            style={{ marginTop: 0 }} /* Adjusted marginTop as it's inside a flex container */
           />
-        </div>
-        {/* Profit Trend panel */}
-        <div> {/* Removed specific ref if it was only for individual export */}
           <Profitchart
             tableData={tableData}
             selectedPeriods={selectedPeriods}
             computeCellValue={computeCellValue}
-            style={{ marginTop: 0 }} /* Adjusted marginTop */
           />
         </div>
+        <Button 
+          type="primary" 
+          style={{ marginTop: 16 }}
+          onClick={() => handleExportSingleChart(combinedTrendsRef, 'Combined Trends')}
+        >
+          Export Trends
+        </Button>
       </div>
-      {/* AI Write-up panel at the end */}
-      <div ref={aiWriteupPanelRef} style={{ marginTop: 60 }}> {/* Added marginTop for spacing after combined charts*/}
+
+      {/* AI Write-up panel */}
+      <div ref={aiWriteupPanelRef} style={{ marginTop: 40 }}>
         <AIWriteupPanel
           tableData={tableData}
           selectedPeriods={selectedPeriods}
           basePeriod={basePeriod}
           division={selectedDivision}
-          chatContext={null} // TODO: pass chat context if available
+          chatContext={null}
           computeCellValue={computeCellValue}
         />
+        <Button 
+          type="primary" 
+          style={{ marginTop: 16 }}
+          onClick={() => handleExportSingleChart(aiWriteupPanelRef, 'AI Writeup')}
+        >
+          Export AI Writeup
+        </Button>
       </div>
     </div>
   );
