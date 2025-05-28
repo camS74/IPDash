@@ -13,6 +13,7 @@ const Dashboard = () => {
   const { loadExcelData, loading, error, selectedDivision, excelData } = useExcelData();
   const { columnOrder, dataGenerated } = useFilter();
   const [selectedPeriods, setSelectedPeriods] = useState([]);
+  const [exportFunction, setExportFunction] = useState(null);
   
   // Use useCallback to memoize the function to prevent it from changing on every render
   const loadData = useCallback(() => {
@@ -46,6 +47,11 @@ const Dashboard = () => {
     }
   }, [columnOrder]);
   
+  // Handle export refs from ChartContainer
+  const handleExportRefsReady = useCallback((exportData) => {
+    setExportFunction(() => exportData.exportFunction);
+  }, []);
+  
   console.log('Dashboard render state:', { loading, error, selectedDivision });
   
   if (loading) {
@@ -67,7 +73,7 @@ const Dashboard = () => {
           <FilterPanel />
           
           {/* Add the column configuration grid here */}
-          <ColumnConfigGrid />
+          <ColumnConfigGrid exportPdfFunction={exportFunction} />
           
           <TabsComponent>
             <Tab label="Data Table">
@@ -78,6 +84,7 @@ const Dashboard = () => {
                 <ChartView 
                   tableData={excelData}
                   selectedPeriods={selectedPeriods}
+                  onExportRefsReady={handleExportRefsReady}
                 />
               ) : (
                 <div className="empty-charts-container">

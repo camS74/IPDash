@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useFilter } from '../../contexts/FilterContext';
 import './ColumnConfigGrid.css';
 
-const ColumnConfigGrid = ({ exportPdfFunction }) => {
+const ColumnConfigGrid = () => {
   const { 
     columnOrder, 
     updateColumnOrder, 
@@ -301,14 +301,8 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
       </div>
       {/* Add Generate Complete Report button at the bottom */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 8 }}>
-        <button 
-          className="generate-btn" 
-          style={{ minWidth: 220, fontSize: 16, padding: '10px 24px' }} 
-          onClick={exportPdfFunction}
-          disabled={!exportPdfFunction || !dataGenerated}
-          title={!dataGenerated ? "Please generate data first" : !exportPdfFunction ? "Charts are loading..." : "Export all charts to PDF"}
-        >
-          Export All Charts to PDF
+        <button className="generate-btn" style={{ minWidth: 220, fontSize: 16, padding: '10px 24px' }}>
+          Generate Complete Report
         </button>
       </div>
     </div>

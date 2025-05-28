@@ -689,6 +689,7 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
         suppressContentEditableWarning
         onInput={handleDivEdit}
         onBlur={handleDivBlur}
+        className="ai-writeup-contenteditable"
         style={{
           width: '100%',
           fontSize: 18,

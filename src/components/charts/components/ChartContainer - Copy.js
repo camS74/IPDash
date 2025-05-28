@@ -105,260 +105,288 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
     values: Object.values(chartData).map(d => d.sales)
   });
 
-  const handleExportToPDF = async () => {
+  // New function to handle combined PDF export
+  const handleExportAllCharts = async () => {
     try {
-      // Initialize PDF with landscape A4
-      const pdf = new jsPDF({
+      // Create a new PDF document in landscape mode for better chart visibility
+        const pdf = new jsPDF({
         orientation: 'landscape',
-        unit: 'pt',
-        format: 'a4'
-      });
-
-      const padding = 40;
-
-      // Helper function to get current page dimensions
-      const getPageDimensions = () => {
-        // Force a small delay to ensure page dimensions are updated
-        return new Promise(resolve => {
-          setTimeout(() => {
-            resolve({
-              width: pdf.internal.pageSize.getWidth(),
-              height: pdf.internal.pageSize.getHeight()
-            });
-          }, 100);
+          unit: 'pt',
+          format: 'a4'
         });
+
+      // A4 landscape dimensions
+      const pageWidth = pdf.internal.pageSize.getWidth();  // 842pt
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 595pt
+
+      // Set minimal margins - prioritize left/right space for charts
+      const margins = {
+        top: 20,    // Reduced since no title
+        right: 20,  // Minimal right margin
+        bottom: 20, // Reduced since no title
+        left: 20    // Minimal left margin
       };
 
-      // Helper function to add a new landscape page and return its dimensions
-      const addLandscapePage = async () => {
-        pdf.addPage('a4', 'landscape');
-        return await getPageDimensions();
-      };
+      // Calculate available space for content - maximize width usage
+      const contentWidth = pageWidth - (margins.left + margins.right);
+      const contentHeight = pageHeight - (margins.top + margins.bottom);
 
-      // Helper function to get chart image data
-      const getChartImageData = async (ref, name) => {
-        if (!ref.current) {
-          console.warn(`Chart reference not found for ${name}`);
-          return null;
-        }
-
-        // Try ECharts export first
-        if (typeof ref.current.getEchartsInstance === 'function') {
-          try {
-            const instance = ref.current.getEchartsInstance();
-            if (instance) {
-              // Wait for chart to be ready
-              await new Promise(resolve => setTimeout(resolve, 500));
-              return instance.getDataURL({
-                type: 'png',
-                pixelRatio: 2,
-                backgroundColor: '#fff'
-              });
-            }
-          } catch (error) {
-            console.error(`Error getting ECharts instance for ${name}:`, error);
-          }
-        }
-
-        // For non-ECharts components, use html2canvas
-        try {
-          // Ensure the element is visible and fully rendered
-          const element = ref.current;
-          const originalStyle = {
-            visibility: element.style.visibility,
-            position: element.style.position,
-            zIndex: element.style.zIndex
-          };
-
-          // Make element temporarily visible for capture
-          element.style.visibility = 'visible';
-          element.style.position = 'relative';
-          element.style.zIndex = '1';
-
-          // Wait for any animations or renders to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#fff',
-            logging: false,
-            onclone: (clonedDoc) => {
-              // Ensure the cloned element is properly styled
-              const clonedElement = clonedDoc.querySelector(`[data-chart-name="${name}"]`);
-              if (clonedElement) {
-                clonedElement.style.visibility = 'visible';
-                clonedElement.style.position = 'relative';
-                clonedElement.style.zIndex = '1';
-              }
-            }
-          });
-
-          // Restore original styles
-          element.style.visibility = originalStyle.visibility;
-          element.style.position = originalStyle.position;
-          element.style.zIndex = originalStyle.zIndex;
-
-          return canvas.toDataURL('image/png', 1.0);
-        } catch (error) {
-          console.error(`Error capturing ${name} with html2canvas:`, error);
-          return null;
-        }
-      };
-
-      // Helper function to add image to PDF with proper sizing using current page dimensions
-      const addImageToPDF = async (imgData, name, pageNumber, dimensions) => {
-        if (!imgData) {
-          pdf.setFontSize(16);
-          pdf.text(`Error: Failed to capture ${name}`, padding, dimensions.height / 2);
-          pdf.setFontSize(12);
-          pdf.text(`Page ${pageNumber}`, padding, dimensions.height / 2 + 30);
-          return;
-        }
-
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            // Calculate dimensions to maintain aspect ratio using current page size
-            const maxWidth = dimensions.width - (2 * padding);
-            const maxHeight = dimensions.height - (2 * padding);
-            const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
-            
-            const finalWidth = img.width * ratio;
-            const finalHeight = img.height * ratio;
-            
-            // Center the image on the current page
-            const x = (dimensions.width - finalWidth) / 2;
-            const y = (dimensions.height - finalHeight) / 2;
-
-            // Log dimensions for debugging
-            console.log(`Adding ${name} to page ${pageNumber}:`, {
-              pageWidth: dimensions.width,
-              pageHeight: dimensions.height,
-              imageWidth: img.width,
-              imageHeight: img.height,
-              finalWidth,
-              finalHeight,
-              x,
-              y
-            });
-
-            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-            resolve();
-          };
-          img.onerror = () => {
-            console.error(`Error loading image for ${name}`);
-            pdf.setFontSize(16);
-            pdf.text(`Error: Failed to load image for ${name}`, padding, dimensions.height / 2);
-            pdf.setFontSize(12);
-            pdf.text(`Page ${pageNumber}`, padding, dimensions.height / 2 + 30);
-            resolve();
-          };
-          img.src = imgData;
-        });
-      };
-
-      // Define all charts to export with their refs and names
+      // Array of charts to export with their refs and names
       const chartsToExport = [
         { ref: barChartRef, name: 'Bar Chart' },
         { ref: modernMarginGaugeRef, name: 'Modern Margin Gauge' },
         { ref: manufacturingCostChartRef, name: 'Manufacturing Cost Chart' },
         { ref: belowGPExpensesChartRef, name: 'Below GP Expenses Chart' },
-        { ref: combinedTrendsRef, name: 'Combined Trends' }
+        { ref: combinedTrendsRef, name: 'Combined Trends' },
+        { ref: aiWriteupPanelRef, name: 'AI Writeup' }
       ];
 
-      // Export each chart
-      for (let i = 0; i < chartsToExport.length; i++) {
-        const { ref, name } = chartsToExport[i];
-        
-        // Get fresh page dimensions for each chart
-        const pageDimensions = i === 0 
-          ? await getPageDimensions() 
-          : await addLandscapePage();
+      let currentPage = 1;
 
-        console.log(`Page ${i + 1} dimensions:`, pageDimensions);
+      // Helper function to add a new page without title
+      const addNewPage = () => {
+        if (currentPage > 1) {
+          pdf.addPage();
+        }
+        currentPage++;
+      };
 
-        const imgData = await getChartImageData(ref, name);
-        await addImageToPDF(imgData, name, i + 1, pageDimensions);
-      }
+      // Process each chart
+      for (const chart of chartsToExport) {
+        if (!chart.ref.current) {
+          console.warn(`Chart reference not found for ${chart.name}`);
+          continue;
+        }
 
-      // Handle AI Writeup Panel separately (portrait mode)
-      if (aiWriteupPanelRef.current) {
-        // Add a new portrait page and get its dimensions
-        pdf.addPage('a4', 'portrait');
-        const portraitDimensions = await getPageDimensions();
-        const portraitPadding = 30;
-
-        console.log('AI Writeup page dimensions:', portraitDimensions);
-
-        try {
-          // Make the panel temporarily visible for capture
-          const originalStyle = {
-            visibility: aiWriteupPanelRef.current.style.visibility,
-            position: aiWriteupPanelRef.current.style.position,
-            zIndex: aiWriteupPanelRef.current.style.zIndex
+        // Special handling for AI Writeup - use portrait orientation
+        if (chart.name === 'AI Writeup') {
+          // For AI Writeup, capture as image in portrait mode to preserve formatting
+          pdf.addPage('portrait');
+          currentPage++;
+          
+          // Portrait dimensions
+          const portraitWidth = 595;
+          const portraitHeight = 842;
+          const portraitMargins = {
+            top: 40,
+            right: 40,
+            bottom: 40,
+            left: 40
           };
+          const portraitContentWidth = portraitWidth - (portraitMargins.left + portraitMargins.right);
+          const portraitContentHeight = portraitHeight - (portraitMargins.top + portraitMargins.bottom);
+          
+          // Capture AI Writeup as image to preserve formatting
+          let chartNode = chart.ref.current;
+          
+          // Find the contenteditable div that contains the actual AI-generated text
+          let contentDiv = chartNode.querySelector('div[contenteditable]');
+          if (!contentDiv) {
+            console.warn('Could not find contenteditable div in AI Writeup panel');
+            contentDiv = chartNode; // Fallback to entire panel
+          }
+          
+          // Set up the content area for better capture - targeting only the text content
+          const originalStyle = contentDiv.style.cssText;
+          contentDiv.style.width = `${portraitContentWidth}px`; // Match PDF content width exactly
+          contentDiv.style.padding = '20px';
+          contentDiv.style.backgroundColor = '#ffffff';
+          contentDiv.style.fontFamily = 'Segoe UI, Roboto, Arial, sans-serif';
+          contentDiv.style.lineHeight = '1.6';
+          contentDiv.style.fontSize = '11px'; // Smaller font for better fitting
+          contentDiv.style.color = '#000000';
+          contentDiv.style.border = 'none';
+          contentDiv.style.outline = 'none';
+          contentDiv.style.boxSizing = 'border-box';
+          
+          // Wait for style application
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Check the actual height after styling
+          const totalHeight = contentDiv.scrollHeight;
+          const maxPageHeight = portraitHeight - portraitMargins.top - portraitMargins.bottom;
+          
+          // If content fits on one page, capture it all
+          if (totalHeight <= maxPageHeight) {
+            const captureOptions = {
+              scale: 1,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
+              logging: false,
+              width: portraitContentWidth,
+              height: totalHeight
+            };
 
-          aiWriteupPanelRef.current.style.visibility = 'visible';
-          aiWriteupPanelRef.current.style.position = 'relative';
-          aiWriteupPanelRef.current.style.zIndex = '1';
+            const canvas = await html2canvas(contentDiv, captureOptions);
+            const imgData = canvas.toDataURL('image/png', 0.95);
+            
+            // Add the single image to PDF
+            pdf.addImage(
+              imgData, 
+              'PNG', 
+              portraitMargins.left, 
+              portraitMargins.top, 
+              portraitContentWidth, 
+              totalHeight
+            );
+          } else {
+            // For longer content, let it flow naturally and use multiple pages
+            // Set a reasonable height limit per page
+            const pageContentHeight = maxPageHeight - 40; // Leave some margin for safety
+            
+            contentDiv.style.height = `${pageContentHeight}px`;
+            contentDiv.style.overflow = 'hidden';
+            
+            let currentOffset = 0;
+            let pageNumber = 0;
+            
+            while (currentOffset < totalHeight) {
+              if (pageNumber > 0) {
+                pdf.addPage('portrait');
+              }
+              
+              // Set the scroll position for this page
+              contentDiv.scrollTop = currentOffset;
+              
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              const captureOptions = {
+                scale: 1,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: portraitContentWidth,
+                height: Math.min(pageContentHeight, totalHeight - currentOffset)
+              };
 
-          await new Promise(resolve => setTimeout(resolve, 1000));
+              const canvas = await html2canvas(contentDiv, captureOptions);
+              const imgData = canvas.toDataURL('image/png', 0.95);
+              
+              // Add this page to PDF
+              pdf.addImage(
+                imgData, 
+                'PNG', 
+                portraitMargins.left, 
+                portraitMargins.top, 
+                portraitContentWidth, 
+                Math.min(pageContentHeight, totalHeight - currentOffset)
+              );
+              
+              currentOffset += pageContentHeight;
+              pageNumber++;
+              
+              // Safety break to avoid infinite loops
+              if (pageNumber > 10) {
+                console.warn('Too many pages, breaking to avoid infinite loop');
+                break;
+              }
+            }
+          }
+          
+          // Restore original style
+          contentDiv.style.cssText = originalStyle;
+          
+          continue;
+        }
 
-          const canvas = await html2canvas(aiWriteupPanelRef.current, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#fff',
-            logging: false
+        // For all other charts - maximize size and center without titles
+        addNewPage();
+
+      let imgData = null;
+
+        // Try ECharts export first with optimized dimensions for smaller file size
+        if (chart.ref.current && typeof chart.ref.current.getEchartsInstance === 'function') {
+          const instance = chart.ref.current.getEchartsInstance();
+        if (instance) {
+            // Use full content dimensions to avoid cutting charts
+          instance.resize({
+              width: contentWidth,  // Use full 802pt width
+              height: contentHeight // Use full 555pt height
           });
-
-          // Restore original styles
-          aiWriteupPanelRef.current.style.visibility = originalStyle.visibility;
-          aiWriteupPanelRef.current.style.position = originalStyle.position;
-          aiWriteupPanelRef.current.style.zIndex = originalStyle.zIndex;
-
-          const imgData = canvas.toDataURL('image/png', 1.0);
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Calculate dimensions using current portrait page size
-          const maxWidth = portraitDimensions.width - (2 * portraitPadding);
-          const maxHeight = portraitDimensions.height - (2 * portraitPadding);
-          const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
-          
-          const finalWidth = canvas.width * ratio;
-          const finalHeight = canvas.height * ratio;
-          
-          // Center the image on the current portrait page
-          const x = (portraitDimensions.width - finalWidth) / 2;
-          const y = (portraitDimensions.height - finalHeight) / 2;
-
-          console.log('AI Writeup image placement:', {
-            pageWidth: portraitDimensions.width,
-            pageHeight: portraitDimensions.height,
-            canvasWidth: canvas.width,
-            canvasHeight: canvas.height,
-            finalWidth,
-            finalHeight,
-            x,
-            y
-          });
-
-          pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-        } catch (error) {
-          console.error('Error capturing AI Writeup:', error);
-          pdf.setFontSize(16);
-          pdf.text('Error: Failed to capture AI Writeup', portraitPadding, portraitDimensions.height / 2);
-          pdf.setFontSize(12);
-          pdf.text(`Page ${chartsToExport.length + 1}`, portraitPadding, portraitDimensions.height / 2 + 30);
+          try {
+            imgData = instance.getDataURL({
+                type: 'png', // Use PNG for charts - better quality for graphics
+                pixelRatio: 2, // Good quality without being excessive
+              backgroundColor: '#fff',
+              width: contentWidth,
+              height: contentHeight
+            });
+          } catch (echartsError) {
+              console.error(`Error getting chart data URL for ${chart.name}:`, echartsError);
+          }
         }
       }
 
-      pdf.save('dashboard_export.pdf');
-      console.log('PDF export completed successfully');
+        // Fallback to html2canvas with balanced settings
+      if (!imgData) {
+          let chartNode = chart.ref.current;
+          
+          // Balanced capture options - quality vs file size
+          const captureOptions = {
+            scale: 2, // Good quality scale
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#fff',
+            logging: false,
+            // Use actual chart dimensions, don't cap artificially
+            width: Math.max(chartNode.scrollWidth, contentWidth),
+            height: Math.max(chartNode.scrollHeight, contentHeight)
+          };
+
+          const canvas = await html2canvas(chartNode, captureOptions);
+          imgData = canvas.toDataURL('image/png', 0.92); // High quality PNG with slight compression
+        }
+
+        // Add image to PDF - centered and maximized without title space
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+              // Calculate dimensions to maximize chart size while maintaining aspect ratio
+              const imgAspectRatio = img.width / img.height;
+              const contentAspectRatio = contentWidth / contentHeight;
+              
+              let finalWidth, finalHeight;
+              
+              if (imgAspectRatio > contentAspectRatio) {
+                // Image is wider - constrain by width
+                finalWidth = contentWidth;
+                finalHeight = contentWidth / imgAspectRatio;
+              } else {
+                // Image is taller - constrain by height
+                finalHeight = contentHeight;
+                finalWidth = contentHeight * imgAspectRatio;
+              }
+              
+              // Center the image both horizontally and vertically (no title space needed)
+              const x = margins.left + (contentWidth - finalWidth) / 2;
+              const y = margins.top + (contentHeight - finalHeight) / 2;
+
+              // Add image as PNG with moderate compression
+              pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight, undefined, 'SLOW');
+            resolve();
+          } catch (error) {
+              console.error(`Error adding image to PDF for ${chart.name}:`, error);
+            reject(error);
+          }
+        };
+        img.onerror = (error) => {
+            console.error(`Error loading image for ${chart.name}:`, error);
+          reject(error);
+        };
+        img.src = imgData;
+      });
+      }
+
+      // Save the combined PDF with compression
+      pdf.save('Combined_Charts_Export.pdf', { compress: true });
     } catch (error) {
-      console.error('PDF export failed:', error);
-      alert('PDF export failed. Please check the console for details.');
+      console.error('Failed to export combined charts:', error);
+      alert('Failed to export combined charts. Please check the console for details.');
     }
   };
 
@@ -373,77 +401,84 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
       backgroundColor: '#f5f5f5',
       borderRadius: '12px'
     }}>
-      <Button 
-        type="primary" 
-        onClick={handleExportToPDF} 
-        style={{ marginBottom: 20, alignSelf: 'flex-end' }}
-      >
-        Export to PDF
-      </Button>
-      {/* Bar chart container - match gauge panel style */}
-      <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 60 }}>
+      {/* Add Export All button at the top */}
+      <div style={{ marginBottom: 20, textAlign: 'center' }}>
+        <Button 
+          type="primary" 
+          size="large"
+          onClick={handleExportAllCharts}
+          style={{ 
+            backgroundColor: '#1890ff',
+            borderColor: '#1890ff',
+            padding: '0 24px',
+            height: '40px',
+            fontSize: '16px'
+          }}
+        >
+          Export All Charts to PDF
+        </Button>
+      </div>
+
+      {/* Bar chart container */}
+      <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 20 }}>
         <BarChart
           data={chartData}
           periods={filteredPeriods}
           basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
         />
       </div>
-      {/* New Modern Gauge chart */}
-      <div ref={modernMarginGaugeRef}>
+
+      {/* Modern Gauge chart */}
+      <div ref={modernMarginGaugeRef} style={{ marginTop: 40 }}>
         <ModernMarginGauge
           data={chartData}
           periods={filteredPeriods}
           basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
-          style={{ marginTop: 60 }}
         />
       </div>
-      {/* Manufacturing Cost chart panel after gauges */}
-      <div ref={manufacturingCostChartRef}>
+
+      {/* Manufacturing Cost chart */}
+      <div ref={manufacturingCostChartRef} style={{ marginTop: 40 }}>
         <ManufacturingCostChart
           tableData={tableData}
           selectedPeriods={selectedPeriods}
           computeCellValue={computeCellValue}
-          style={{ marginTop: 60 }}
         />
       </div>
-      {/* Below Gross Profit Expenses chart panel after Manufacturing Cost */}
-      <div ref={belowGPExpensesChartRef}>
+
+      {/* Below GP Expenses chart */}
+      <div ref={belowGPExpensesChartRef} style={{ marginTop: 40 }}>
         <BelowGPExpensesChart
           tableData={tableData}
           selectedPeriods={selectedPeriods}
           computeCellValue={computeCellValue}
-          style={{ marginTop: 60 }}
         />
       </div>
-      {/* Combined Expenses and Profit/EBITDA Trends */}
-      <div ref={combinedTrendsRef} style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
-        {/* Expenses Trend panel */}
-        <div> {/* Removed specific ref if it was only for individual export */}
+
+      {/* Combined Trends */}
+      <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
           <ExpencesChart
             tableData={tableData}
             selectedPeriods={selectedPeriods}
             computeCellValue={computeCellValue}
-            style={{ marginTop: 0 }} /* Adjusted marginTop as it's inside a flex container */
           />
-        </div>
-        {/* Profit Trend panel */}
-        <div> {/* Removed specific ref if it was only for individual export */}
           <Profitchart
             tableData={tableData}
             selectedPeriods={selectedPeriods}
             computeCellValue={computeCellValue}
-            style={{ marginTop: 0 }} /* Adjusted marginTop */
           />
         </div>
       </div>
-      {/* AI Write-up panel at the end */}
-      <div ref={aiWriteupPanelRef} style={{ marginTop: 60 }}> {/* Added marginTop for spacing after combined charts*/}
+
+      {/* AI Write-up panel */}
+      <div ref={aiWriteupPanelRef} style={{ marginTop: 40 }}>
         <AIWriteupPanel
           tableData={tableData}
           selectedPeriods={selectedPeriods}
           basePeriod={basePeriod}
           division={selectedDivision}
-          chatContext={null} // TODO: pass chat context if available
+          chatContext={null}
           computeCellValue={computeCellValue}
         />
       </div>

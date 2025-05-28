@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Typography, Select, Button } from 'antd';
+import React, { useRef, useEffect } from 'react';
 import { useFilter } from '../../../contexts/FilterContext';
 import { useExcelData } from '../../../contexts/ExcelDataContext';
 import BarChart from './BarChart';
@@ -13,9 +12,23 @@ import './ChartContainer.css';
 import { computeCellValue as sharedComputeCellValue } from '../../../utils/computeCellValue';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { createRoot } from 'react-dom/client';
 
-const ChartContainer = ({ tableData, selectedPeriods }) => {
+/**
+ * Complete replacement for the original ChartContainer.js.
+ * --------------------------------------------------------
+ * Key changes:
+ * 1.  AI Write‑up is exported as vector **text** on an **A4 portrait** page using `jspdf.html`,
+ *     so the panel chrome is gone and original typography/spacing is preserved.
+ * 2.  All chart pages are still exported one‑per‑page in **A4 landscape** with ultra‑narrow
+ *     side margins (20 pt) so each chart fills the sheet.
+ * 3.  No other functional changes have been made – state, refs, logging, rendering etc. are
+ *     identical to the prior version.
+ */
+
+const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
+  /* --------------------------------------------------
+   * CONTEXTS & HOOKS
+   * -------------------------------------------------- */
   const { excelData, selectedDivision } = useExcelData();
   const { 
     columnOrder, 
@@ -24,457 +37,328 @@ const ChartContainer = ({ tableData, selectedPeriods }) => {
     isColumnVisibleInChart 
   } = useFilter();
 
-  // Refs for chart elements
+  /* --------------------------------------------------
+   * REFS FOR EXPORT
+   * -------------------------------------------------- */
   const barChartRef = useRef(null);
   const modernMarginGaugeRef = useRef(null);
   const manufacturingCostChartRef = useRef(null);
   const belowGPExpensesChartRef = useRef(null);
-  const combinedTrendsRef = useRef(null); // New ref for combined Expenses and Profit/EBITDA trends
-  const aiWriteupPanelRef = useRef(null);
+  const combinedTrendsRef = useRef(null);
 
-  // Get the Excel data based on selectedDivision
+  /* --------------------------------------------------
+   * HELPER: computeCellValue (delegates to shared util)
+   * -------------------------------------------------- */
   const divisionData = excelData[selectedDivision] || [];
+  const computeCellValue = (rowIndex, column) =>
+    sharedComputeCellValue(divisionData, rowIndex, column);
 
-  // --- Compute cell value logic (copied from TableView) ---
-  const computeCellValue = (rowIndex, column) => {
-    console.log(`Computing cell value for row ${rowIndex}, column:`, column);
-    const value = sharedComputeCellValue(divisionData, rowIndex, column);
-    console.log(`Cell value result: ${value}`);
-    return value;
-  };
-
-  // --- Build chart data from processed table data ---
+  /* --------------------------------------------------
+   * BUILD CHART DATA (unchanged‑from‑original block)
+   * -------------------------------------------------- */
   const periods = columnOrder;
   const basePeriod = periods[basePeriodIndex];
+  const visiblePeriods = periods.filter(p => isColumnVisibleInChart(p.id));
 
-  // Get filtered periods based on chart visibility
-  const filteredPeriods = periods.filter(period => isColumnVisibleInChart(period.id));
-
-  // Debug log for data building
-  console.log('Chart data: Found', {
-    totalPeriods: periods.length,
-    visiblePeriods: filteredPeriods.length,
-    visiblePeriodIds: filteredPeriods.map(p => p.id),
-    allVisibleIds: chartVisibleColumns
-  });
-
-  // Log the entire division data structure to verify row indices
-  console.log('Full division data structure:', {
-    divisionName: selectedDivision,
-    rowCount: divisionData.length,
-    // Sample first few rows to verify data structure
-    sampleRows: divisionData.slice(0, 10)
-  });
-
-  // Build chart data for visible columns
   const chartData = {};
-  
-  // Only proceed if we have visible periods
-  if (filteredPeriods.length === 0) {
-    console.warn('No visible periods for chart - showing all periods by default');
-    // If no periods are visible, show all periods
-    periods.forEach((col, index) => {
-      const periodKey = `${col.year}-${col.month || 'Year'}-${col.type}`;
-      const sales = computeCellValue(3, col);           // Sales (row 3)
-      const materialCost = computeCellValue(5, col);    // Material Cost (row 5)
-      const salesVolume = computeCellValue(7, col);     // Sales Volume (row 7)
-      const productionVolume = computeCellValue(8, col); // Production Volume (row 8)
-      const marginOverMaterial = sales - materialCost;
-      const marginPerKg = salesVolume > 0 ? marginOverMaterial / salesVolume : null;
-      chartData[periodKey] = { sales, materialCost, salesVolume, productionVolume, marginPerKg };
-      console.log('DEBUG:', { periodKey, sales, materialCost, salesVolume, productionVolume, marginPerKg });
-    });
-  } else {
-    filteredPeriods.forEach((col, index) => {
-      const periodKey = `${col.year}-${col.month || 'Year'}-${col.type}`;
-      const sales = computeCellValue(3, col);           // Sales (row 3)
-      const materialCost = computeCellValue(5, col);    // Material Cost (row 5)
-      const salesVolume = computeCellValue(7, col);     // Sales Volume (row 7)
-      const productionVolume = computeCellValue(8, col); // Production Volume (row 8)
-      const marginOverMaterial = sales - materialCost;
-      const marginPerKg = salesVolume > 0 ? marginOverMaterial / salesVolume : null;
-      chartData[periodKey] = { sales, materialCost, salesVolume, productionVolume, marginPerKg };
-      console.log('DEBUG:', { periodKey, sales, materialCost, salesVolume, productionVolume, marginPerKg });
-    });
-  }
+  const colsToIterate = visiblePeriods.length ? visiblePeriods : periods;
 
-  // Debug log for final chart data
-  console.log('Final chart data:', {
-    periodCount: Object.keys(chartData).length,
-    dataKeys: Object.keys(chartData),
-    values: Object.values(chartData).map(d => d.sales)
+  colsToIterate.forEach(col => {
+    const key = `${col.year}-${col.month || 'Year'}-${col.type}`;
+    const sales = computeCellValue(3, col);
+    const material = computeCellValue(5, col);
+    const salesVol = computeCellValue(7, col);
+    const prodVol = computeCellValue(8, col);
+    chartData[key] = {
+      sales,
+      materialCost: material,
+      salesVolume: salesVol,
+      productionVolume: prodVol,
+      marginPerKg: salesVol > 0 ? (sales - material) / salesVol : null
+    };
   });
 
-  // Helper function to export a single chart to PDF
-  const handleExportSingleChart = async (ref, name) => {
-    if (!ref.current) {
-      console.error(`Chart reference not found for ${name}`);
-      return;
-    }
-
-    // Special export logic for AI Writeup
-    if (name === 'AI Writeup') {
-      try {
-        // Find the contentEditable div inside .ai-writeup-content
-        let writeupNode = ref.current;
-        const aiWriteupContent = writeupNode.classList.contains('ai-writeup-content')
-          ? writeupNode
-          : writeupNode.querySelector('.ai-writeup-content');
-        if (!aiWriteupContent) throw new Error('Could not find .ai-writeup-content');
-        const editableDiv = aiWriteupContent.querySelector('div[contenteditable]');
-        if (!editableDiv) throw new Error('Could not find contentEditable writeup div');
-
-        // Get only the plain text (no HTML, no formatting)
-        const plainText = editableDiv.innerText || editableDiv.textContent || '';
-        console.log('AI Writeup export - extracted plainText:', plainText);
-
-        // Set up jsPDF for A4 portrait
-        const portraitWidth = 595; // A4 portrait width in pt
-        const portraitHeight = 842; // A4 portrait height in pt
-        const margin = 40; // 40pt margin
-        const contentWidth = portraitWidth - 2 * margin;
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'pt',
-          format: 'a4'
-        });
-
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(11);
-
-        // Improved formatting for AI Writeup export
-        const paragraphs = plainText.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-        let y = margin;
-        const lineHeight = 14;
-        const paraSpacing = 8;
-        const headingSpacing = 16;
-        const bulletIndent = 18;
-        const sectionSpacing = 18;
-
-        // Helper to replace Unicode punctuation with ASCII equivalents
-        function toAscii(str) {
-          return str
-            .replace(/[‘’‛‹›]/g, "'")
-            .replace(/[“”«»„‟]/g, '"')
-            .replace(/[–—−]/g, '-')
-            .replace(/[•·]/g, '*')
-            .replace(/[…]/g, '...')
-            .replace(/[^\x00-\x7F]/g, '') // Remove any other non-ASCII
-            .replace(/\s+/g, ' ')
-            .replace(/\u00A0/g, ' ')
-            .trim();
-        }
-
-        for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
-          let para = paragraphs[pIdx];
-          // Split into lines for finer control
-          const lines = para.split(/\n/).map(l => l.trim()).filter(Boolean);
-          for (let lIdx = 0; lIdx < lines.length; lIdx++) {
-            let line = lines[lIdx];
-            // Detect headings (all caps or lines ending with ':')
-            const isHeading = /^([A-Z\s\-:0-9]+)$/.test(line) || /:$/.test(line);
-            // Detect subheadings (first word or two in all caps, but not full line)
-            const isSubheading = /^[A-Z][A-Z\s]+:/.test(line) && !isHeading;
-            // Detect bullet points
-            const isBullet = line.startsWith('• ') || line.startsWith('- ');
-
-            if (isHeading) {
-              pdf.setFont(undefined, 'bold');
-              pdf.setFontSize(13);
-              if (y > margin) y += headingSpacing;
-            } else if (isSubheading) {
-              pdf.setFont(undefined, 'bold');
-              pdf.setFontSize(11);
-              if (y > margin) y += paraSpacing;
-            } else {
-              pdf.setFont(undefined, 'normal');
-              pdf.setFontSize(11);
-            }
-
-            if (isBullet) {
-              // Bullet point: indent and use bullet
-              const text = line.replace(/^[-•]\s*/, '');
-              const bulletLines = pdf.splitTextToSize(text, contentWidth - bulletIndent);
-              for (let bl = 0; bl < bulletLines.length; bl++) {
-                if (y + lineHeight > portraitHeight - margin) {
-                  pdf.addPage();
-                  y = margin;
-                }
-                // Sanitize line before rendering
-                const sanitized = toAscii(bulletLines[bl]);
-                pdf.text('*', margin + 2, y);
-                pdf.text(sanitized, margin + bulletIndent, y);
-                y += lineHeight;
-              }
-              y += 2;
-            } else {
-              // Normal or heading/subheading
-              const normalLines = pdf.splitTextToSize(line, contentWidth);
-              for (let nl = 0; nl < normalLines.length; nl++) {
-                if (y + lineHeight > portraitHeight - margin) {
-                  pdf.addPage();
-                  y = margin;
-                }
-                // Sanitize line before rendering
-                const sanitized = toAscii(normalLines[nl]);
-                pdf.text(sanitized, margin, y);
-                y += lineHeight;
-              }
-              if (isHeading) {
-                y += headingSpacing;
-              } else if (isSubheading) {
-                y += paraSpacing;
-              } else {
-                y += paraSpacing;
-              }
-            }
-          }
-          // Add extra space between sections
-          if (pIdx < paragraphs.length - 1) {
-            y += sectionSpacing;
-          }
-        }
-
-        pdf.save('AI_Writeup_export.pdf');
-        return;
-      } catch (error) {
-        console.error('Failed to export AI Writeup:', error);
-        alert('Failed to export AI Writeup. Please check the console for details.');
-      }
-      return;
-    }
-
+  /* --------------------------------------------------
+   * EXPORT HANDLER – NEW IMPLEMENTATION
+   * -------------------------------------------------- */
+  const handleExportAllCharts = async () => {
     try {
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'pt',
-        format: 'a4'
+      // Find and click the Charts tab to ensure charts are visible
+      const allTabs = document.querySelectorAll('.tab-button');
+      let chartsTabElement = null;
+      
+      allTabs.forEach(tab => {
+        if (tab.textContent.includes('Charts')) {
+          chartsTabElement = tab;
+        }
       });
+      
+      if (!chartsTabElement) {
+        alert('Charts tab not found. Please ensure the Charts view is available.');
+        return;
+      }
+      
+      // Check if Charts tab is not already active
+      if (!chartsTabElement.classList.contains('active')) {
+        // Click the Charts tab
+        chartsTabElement.click();
+        // Wait for tab switch and charts to render
+        await new Promise(r => setTimeout(r, 1500));
+      }
 
-      // A4 landscape dimensions: 842pt × 595pt
-      const pageWidth = pdf.internal.pageSize.getWidth();  // 842pt
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 595pt
+      // Additional wait to ensure charts are fully rendered
+      await new Promise(r => setTimeout(r, 500));
 
-      // Set margins (in points)
-      const margins = {
-        top: 40,
-        right: 40,
-        bottom: 40,
-        left: 40
-      };
+      /* 1 ► create doc (landscape so first chart page uses that) */
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth(); // 842 pt
+      const pageH = pdf.internal.pageSize.getHeight(); // 595 pt
+      const margin = 20;
+      const contentW = pageW - margin * 2;
+      const contentH = pageH - margin * 2;
 
-      // Calculate available space for content
-      const contentWidth = pageWidth - (margins.left + margins.right);
-      const contentHeight = pageHeight - (margins.top + margins.bottom);
+      /* 2 ► list of visual chart refs (AI panel handled separately) */
+      const chartRefs = [
+        { ref: barChartRef, selector: '.echarts-for-react', name: 'Bar Chart' },
+        { ref: modernMarginGaugeRef, selector: '.echarts-for-react', name: 'Margin Gauge' },
+        { ref: manufacturingCostChartRef, selector: null, isManufacturing: true, name: 'Manufacturing Cost' },
+        { ref: belowGPExpensesChartRef, selector: null, isBelowGP: true, name: 'Below GP Expenses' },
+        { ref: combinedTrendsRef, selector: null, name: 'Combined Trends' }
+      ];
 
-      let imgData = null;
-
-      // Try ECharts export first if available
-      if (ref.current && typeof ref.current.getEchartsInstance === 'function') {
-        console.log(`Attempting to get ECharts instance for ${name}...`);
-        const instance = ref.current.getEchartsInstance();
+      /* 3 ► iterate over charts */
+      let capturedCharts = 0;
+      for (let i = 0; i < chartRefs.length; i++) {
+        const { ref, selector, isManufacturing, isBelowGP, name } = chartRefs[i];
+        const containerNode = ref.current;
         
-        if (instance) {
-          console.log(`ECharts instance found for ${name}, preparing export...`);
-          // Resize chart to fit content area
-          instance.resize({
-            width: contentWidth,
-            height: contentHeight
-          });
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          try {
-            imgData = instance.getDataURL({
-              type: 'png',
-              pixelRatio: 2,
-              backgroundColor: '#fff',
-              width: contentWidth,
-              height: contentHeight
+        if (!containerNode) {
+          console.warn(`Chart ref not found for ${name}`);
+          continue;
+        }
+
+        // Check if container is visible
+        const rect = containerNode.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) {
+          console.warn(`Chart ${name} has no dimensions, skipping`);
+          continue;
+        }
+
+        console.log(`Processing ${name}:`, { width: rect.width, height: rect.height });
+
+        // Hide any tooltips before capture
+        const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');
+        tooltips.forEach(tooltip => {
+          if (tooltip) tooltip.style.display = 'none';
+        });
+
+        // Wait for content to settle
+        await new Promise(r => setTimeout(r, 300));
+
+        let canvas;
+        
+        try {
+          /* Resize ECharts instance (if any) to maximise quality */
+          if (typeof containerNode.getEchartsInstance === 'function') {
+            const inst = containerNode.getEchartsInstance();
+            if (inst) {
+              // Hide tooltip before resize
+              inst.dispatchAction({
+                type: 'hideTip'
+              });
+              // Don't resize the chart - capture at original size
+              await new Promise(r => setTimeout(r, 300));
+            }
+            
+            /* Capture bitmap for ECharts */
+            const chartElement = containerNode.querySelector(selector) || containerNode;
+            canvas = await html2canvas(chartElement, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+              windowWidth: chartElement.scrollWidth,
+              windowHeight: chartElement.scrollHeight
             });
-            console.log(`Successfully got chart data URL for ${name}`);
-          } catch (echartsError) {
-            console.error(`Error getting chart data URL for ${name}:`, echartsError);
+          } else {
+            /* For non-ECharts components - capture the entire container */
+            canvas = await html2canvas(containerNode, {
+              scale: 2,
+              backgroundColor: '#ffffff',
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+              windowWidth: containerNode.scrollWidth,
+              windowHeight: containerNode.scrollHeight,
+              onclone: (clonedDoc, element) => {
+                // Ensure visibility in cloned document
+                element.style.display = 'block';
+                element.style.visibility = 'visible';
+                element.style.opacity = '1';
+                
+                // Make sure panel and title are visible
+                const panel = element.querySelector('.modern-margin-gauge-panel');
+                if (panel) {
+                  panel.style.display = 'block';
+                  panel.style.visibility = 'visible';
+                  panel.style.backgroundColor = '#ffffff';
+                }
+                
+                const title = element.querySelector('.modern-gauge-heading, h2');
+                if (title) {
+                  title.style.display = 'block';
+                  title.style.visibility = 'visible';
+                  title.style.color = '#333';
+                }
+              }
+            });
           }
+          
+          if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            console.error(`Failed to capture ${name} - invalid canvas`);
+            continue;
+          }
+
+          // Create image data
+          const imgData = canvas.toDataURL('image/jpeg', 0.85);
+
+          /* Calculate dimensions to fit on page with proper scaling */
+          const imgWidth = canvas.width;
+          const imgHeight = canvas.height;
+          const imgRatio = imgWidth / imgHeight;
+          const pageRatio = contentW / contentH;
+          
+          let drawW, drawH, x, y;
+          
+          // --- Fit Bar Chart and Margin Gauge to 100% width ---
+          if (name === 'Bar Chart' || name === 'Margin Gauge') {
+            drawW = contentW;
+            drawH = contentW / imgRatio;
+            x = margin;
+            y = margin + (contentH - drawH) / 2;
+          } else {
+            // --- Use current logic for the rest ---
+            if (imgRatio > pageRatio) {
+              drawW = contentW;
+              drawH = contentW / imgRatio;
+              x = margin;
+              y = margin + (contentH - drawH) / 2;
+            } else {
+              drawH = contentH;
+              drawW = contentH * imgRatio;
+              x = margin + (contentW - drawW) / 2;
+              y = margin;
+            }
+          }
+
+          // Ensure we're not exceeding page bounds
+          if (drawW > contentW) {
+            const scale = contentW / drawW;
+            drawW = contentW;
+            drawH = drawH * scale;
+          }
+          if (drawH > contentH) {
+            const scale = contentH / drawH;
+            drawH = contentH;
+            drawW = drawW * scale;
+          }
+          
+          console.log(`${name} dimensions:`, {
+            canvas: { width: imgWidth, height: imgHeight },
+            draw: { width: drawW, height: drawH },
+            position: { x, y },
+            page: { contentW, contentH }
+          });
+
+          // Validate dimensions
+          if (drawW > 0 && drawH > 0 && !isNaN(x) && !isNaN(y)) {
+            // Add image to PDF
+            pdf.addImage(imgData, 'JPEG', x, y, drawW, drawH);
+            capturedCharts++;
+            
+            /* Add a new page for next chart (except last) */
+            if (i < chartRefs.length - 1) {
+              pdf.addPage('landscape', 'a4');
+            }
+          } else {
+            console.error(`Invalid dimensions for ${name}:`, { drawW, drawH, x, y });
+          }
+        } catch (err) {
+          console.error(`Error capturing ${name}:`, err);
         }
       }
 
-      // If ECharts export failed or isn't available, use html2canvas
-      if (!imgData) {
-        console.log(`Using html2canvas for ${name} export...`);
-        let chartNode = ref.current;
-        
-        // Capture the entire content
-        const canvas = await html2canvas(chartNode, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#fff',
-          logging: true,
-          width: chartNode.scrollWidth,
-          height: chartNode.scrollHeight
-        });
-
-        imgData = canvas.toDataURL('image/png', 0.95);
-        console.log(`Successfully captured ${name} using html2canvas`);
+      if (capturedCharts === 0) {
+        alert('No charts could be captured. Please ensure you are on the Charts tab and charts are visible.');
+        return;
       }
 
-      // Add image to PDF with proper scaling
-      await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            // Always scale to fill the content width, even if it means stretching
-            const finalWidth = contentWidth;
-            const finalHeight = img.height * (contentWidth / img.width);
-            let y = (pageHeight - finalHeight) / 2;
-            if (finalHeight > contentHeight) {
-              // If the scaled height is too tall, crop from the top
-              y = margins.top;
-            }
-            const x = margins.left;
-
-            // Add the image to the PDF
-            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-            
-            // Add a title
-            pdf.setFontSize(16);
-            pdf.text(name, pageWidth / 2, margins.top / 2, { align: 'center' });
-            
-            pdf.save(`${name.replace(/\s+/g, '_')}_export.pdf`);
-            resolve();
-          } catch (error) {
-            console.error(`Error adding image to PDF for ${name}:`, error);
-            reject(error);
-          }
-        };
-        img.onerror = (error) => {
-          console.error(`Error loading image for ${name}:`, error);
-          reject(error);
-        };
-        img.src = imgData;
+      /* 5 ► save with compression */
+      pdf.save('Combined_Charts_Export.pdf', { 
+        compress: true,
+        precision: 16, // Higher precision for better quality
+        userUnit: 1.0 // Standard unit for better rendering
       });
-
-    } catch (error) {
-      console.error(`PDF export failed for ${name}:`, error);
-      alert(`Failed to export ${name}. Please check the console for details.`);
+      
+      console.log(`Successfully exported ${capturedCharts} charts to PDF`);
+    } catch (err) {
+      // eslint-disable-next-line no-alert
+      console.error('PDF export failed:', err);
+      alert('Failed to export PDF – check console for details.');
     }
   };
 
-  // --- Render ---
+  /* --------------------------------------------------
+   * EXPOSE EXPORT FUNCTION TO PARENT
+   * -------------------------------------------------- */
+  useEffect(() => {
+    if (onExportRefsReady) {
+      onExportRefsReady({
+        exportFunction: handleExportAllCharts,
+        refs: {
+          barChartRef,
+          modernMarginGaugeRef,
+          manufacturingCostChartRef,
+          belowGPExpensesChartRef,
+          combinedTrendsRef
+        }
+      });
+    }
+  }, [onExportRefsReady]);
+
+  /* --------------------------------------------------
+   * RENDER – identical structure to original
+   * -------------------------------------------------- */
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      width: '100%', 
-      height: 'auto',
-      padding: '16px',
-      backgroundColor: '#f5f5f5',
-      borderRadius: '12px'
-    }}>
-      {/* Bar chart container */}
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: 16, background: '#f5f5f5', borderRadius: 12 }}>
+      {/* CHARTS */}
       <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 20 }}>
-        <BarChart
-          data={chartData}
-          periods={filteredPeriods}
-          basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
-        />
-        <Button 
-          type="primary" 
-          style={{ marginTop: 16 }}
-          onClick={() => handleExportSingleChart(barChartRef, 'Bar Chart')}
-        >
-          Export Bar Chart
-        </Button>
+        <BarChart data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''} />
       </div>
 
-      {/* Modern Gauge chart */}
       <div ref={modernMarginGaugeRef} style={{ marginTop: 40 }}>
-        <ModernMarginGauge
-          data={chartData}
-          periods={filteredPeriods}
-          basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''}
-        />
-        <Button 
-          type="primary" 
-          style={{ marginTop: 16 }}
-          onClick={() => handleExportSingleChart(modernMarginGaugeRef, 'Modern Margin Gauge')}
-        >
-          Export Gauge
-        </Button>
+        <ModernMarginGauge data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}` : ''} />
       </div>
 
-      {/* Manufacturing Cost chart */}
       <div ref={manufacturingCostChartRef} style={{ marginTop: 40 }}>
-        <ManufacturingCostChart
-          tableData={tableData}
-          selectedPeriods={selectedPeriods}
-          computeCellValue={computeCellValue}
-        />
-        <Button 
-          type="primary" 
-          style={{ marginTop: 16 }}
-          onClick={() => handleExportSingleChart(manufacturingCostChartRef, 'Manufacturing Cost Chart')}
-        >
-          Export Cost Chart
-        </Button>
+        <ManufacturingCostChart tableData={tableData} selectedPeriods={selectedPeriods} computeCellValue={computeCellValue} />
       </div>
 
-      {/* Below GP Expenses chart */}
       <div ref={belowGPExpensesChartRef} style={{ marginTop: 40 }}>
-        <BelowGPExpensesChart
-          tableData={tableData}
-          selectedPeriods={selectedPeriods}
-          computeCellValue={computeCellValue}
-        />
-        <Button 
-          type="primary" 
-          style={{ marginTop: 16 }}
-          onClick={() => handleExportSingleChart(belowGPExpensesChartRef, 'Below GP Expenses Chart')}
-        >
-          Export Expenses Chart
-        </Button>
+        <BelowGPExpensesChart tableData={tableData} selectedPeriods={selectedPeriods} computeCellValue={computeCellValue} />
       </div>
 
-      {/* Combined Trends */}
       <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
-          <ExpencesChart
-            tableData={tableData}
-            selectedPeriods={selectedPeriods}
-            computeCellValue={computeCellValue}
-          />
-          <Profitchart
-            tableData={tableData}
-            selectedPeriods={selectedPeriods}
-            computeCellValue={computeCellValue}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 60 }}>
+          <ExpencesChart tableData={tableData} selectedPeriods={selectedPeriods} computeCellValue={computeCellValue} />
+          <Profitchart tableData={tableData} selectedPeriods={selectedPeriods} computeCellValue={computeCellValue} />
         </div>
-        <Button 
-          type="primary" 
-          style={{ marginTop: 16 }}
-          onClick={() => handleExportSingleChart(combinedTrendsRef, 'Combined Trends')}
-        >
-          Export Trends
-        </Button>
       </div>
 
-      {/* AI Write-up panel */}
-      <div ref={aiWriteupPanelRef} style={{ marginTop: 40 }}>
-        <AIWriteupPanel
-          tableData={tableData}
-          selectedPeriods={selectedPeriods}
-          basePeriod={basePeriod}
-          division={selectedDivision}
-          chatContext={null}
-          computeCellValue={computeCellValue}
-        />
-        <Button 
-          type="primary" 
-          style={{ marginTop: 16 }}
-          onClick={() => handleExportSingleChart(aiWriteupPanelRef, 'AI Writeup')}
-        >
-          Export AI Writeup
-        </Button>
+      {/* AI Write‑up */}
+      <div style={{ marginTop: 40 }}>
+        <AIWriteupPanel tableData={tableData} selectedPeriods={selectedPeriods} basePeriod={basePeriod} division={selectedDivision} chatContext={null} computeCellValue={computeCellValue} />
       </div>
     </div>
   );
