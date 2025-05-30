@@ -24,6 +24,26 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
 
   const periodsToUse = selectedPeriods.slice(0, 5);
 
+  const processedData = selectedPeriods.map(period => {
+    // Sales row calculation
+    const sales = computeCellValue(3, period);
+
+    const profitAfterSG = computeCellValue(18, period);
+    const financeCost = computeCellValue(20, period);
+    const otherIncome = computeCellValue(19, period);
+    const netProfit = profitAfterSG - financeCost + otherIncome;
+
+    return {
+      sales,
+      profitAfterSG,
+      financeCost,
+      otherIncome,
+      netProfit,
+      periodName: `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`.trim(),
+      period
+    };
+  });
+
   return (
     <div className="modern-margin-gauge-panel" style={{
       marginTop: 60,
@@ -42,7 +62,7 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
           const percentOfSales = (typeof sales === 'number' && sales !== 0) ? (value / sales) * 100 : 0;
           const perKg = (typeof salesVolume === 'number' && salesVolume !== 0) ? value / salesVolume : 0;
           return {
-            periodName: `${period.year} ${period.month || ''} ${period.type}`.trim(),
+            periodName: `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`.trim(),
             value: typeof value === 'number' && !isNaN(value) ? value : 0,
             percentOfSales: percentOfSales,
             perKg: perKg,

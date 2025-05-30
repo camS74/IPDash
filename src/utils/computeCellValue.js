@@ -8,21 +8,28 @@ export function computeCellValue(divisionData, rowIndex, column) {
 
     // Determine which months to include based on selected period
     let monthsToInclude = [];
-    if (column.month === 'Q1') {
-      monthsToInclude = ['January', 'February', 'March'];
-    } else if (column.month === 'Q2') {
-      monthsToInclude = ['April', 'May', 'June'];
-    } else if (column.month === 'Q3') {
-      monthsToInclude = ['July', 'August', 'September'];
-    } else if (column.month === 'Q4') {
-      monthsToInclude = ['October', 'November', 'December'];
-    } else if (column.month === 'Year') {
-      monthsToInclude = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
+    
+    // NEW LOGIC: Use column.months array if it exists (for custom ranges and all periods)
+    if (column.months && Array.isArray(column.months)) {
+      monthsToInclude = column.months;
     } else {
-      monthsToInclude = [column.month];
+      // FALLBACK LOGIC: Handle legacy cases if months array is not available
+      if (column.month === 'Q1') {
+        monthsToInclude = ['January', 'February', 'March'];
+      } else if (column.month === 'Q2') {
+        monthsToInclude = ['April', 'May', 'June'];
+      } else if (column.month === 'Q3') {
+        monthsToInclude = ['July', 'August', 'September'];
+      } else if (column.month === 'Q4') {
+        monthsToInclude = ['October', 'November', 'December'];
+      } else if (column.month === 'Year') {
+        monthsToInclude = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+      } else {
+        monthsToInclude = [column.month];
+      }
     }
 
     let sum = 0;
@@ -43,8 +50,10 @@ export function computeCellValue(divisionData, rowIndex, column) {
         }
       }
     }
+    
     return foundValues ? sum : 0;
   } catch (error) {
+    console.error('computeCellValue ERROR:', error);
     return 0;
   }
 } 

@@ -94,7 +94,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
   periodsToUse.forEach((period, periodIndex) => {
     try {
       // Create a readable period name 
-      const periodName = `${period.year} ${period.month || ''} ${period.type}`;
+      const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
       let periodTotal = 0;
 
       // Process each ledger for this period
@@ -215,11 +215,13 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
 
   // Get sorted labels and period names
   const ledgerLabels = ledgersList.map(ledger => ledger.label);
-  const periodNames = periodsToUse.map(period => `${period.year} ${period.month || ''} ${period.type}`);
+  const periodNames = periodsToUse.map(period => 
+    `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`
+  );
 
   // Prepare series for each period
   const series = periodsToUse.map((period, index) => {
-    const periodName = `${period.year} ${period.month || ''} ${period.type}`;
+    const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
     
     // Get color based on period's customColor or fallback to default
     let color;
@@ -335,7 +337,8 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       itemWidth: 14,
       itemHeight: 8,
       textStyle: {
-        fontSize: 12,
+        fontSize: 16,
+        fontWeight: 'bold',
         color: '#666'
       },
       pageIconColor: '#888',
@@ -430,7 +433,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       }}>
         {periodsToUse.map((period, idx) => {
           // Move all variable declarations here for each card
-          const periodName = `${period.year} ${period.month || ''} ${period.type}`;
+          const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
           const totals = periodTotals[periodName] || { amount: 0, percentOfSales: 0, perKg: 0 };
           const formattedMillions = (totals.amount / 1000000).toFixed(2);
           const formattedPercent = totals.percentOfSales.toFixed(1);
@@ -489,7 +492,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
               {idx < periodsToUse.length - 1 && (() => {
                 // Calculate variance vs next card
                 const nextPeriod = periodsToUse[idx + 1];
-                const nextPeriodName = `${nextPeriod.year} ${nextPeriod.month || ''} ${nextPeriod.type}`;
+                const nextPeriodName = `${nextPeriod.year} ${nextPeriod.isCustomRange ? nextPeriod.displayName : (nextPeriod.month || '')} ${nextPeriod.type}`;
                 const nextTotals = periodTotals[nextPeriodName] || { amount: 0 };
                 let variance = null;
                 if (totals.amount !== 0) {

@@ -31,7 +31,7 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
     const percentOfSales = (typeof sales === 'number' && sales !== 0) ? (value / sales) * 100 : 0;
     const perKg = (typeof salesVolume === 'number' && salesVolume !== 0) ? value / salesVolume : 0;
     return {
-      periodName: `${period.year} ${period.month || ''} ${period.type}`.trim(),
+      periodName: `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`.trim(),
       value: typeof value === 'number' && !isNaN(value) ? value : 0,
       percentOfSales: percentOfSales,
       perKg: perKg,

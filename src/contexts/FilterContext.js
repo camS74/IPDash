@@ -73,6 +73,61 @@ export const FilterProvider = ({ children }) => {
     'Q4': ['October', 'November', 'December']
   };
   
+  // Helper function to check if months are sequential
+  const areMonthsSequential = (months) => {
+    if (months.length <= 1) return true;
+    
+    const monthIndices = months.map(month => fullYear.indexOf(month)).sort((a, b) => a - b);
+    
+    for (let i = 1; i < monthIndices.length; i++) {
+      if (monthIndices[i] !== monthIndices[i - 1] + 1) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Helper function to format month range display
+  const formatMonthRange = (months) => {
+    if (months.length === 1) {
+      return months[0];
+    } else if (months.length > 1) {
+      const firstMonth = months[0].substring(0, 3); // Jan, Feb, etc.
+      const lastMonth = months[months.length - 1].substring(0, 3);
+      return `${firstMonth}-${lastMonth}`;
+    }
+    return '';
+  };
+
+  // Function to create custom month range
+  const createCustomRange = (year, selectedMonths, type) => {
+    // Sort months by their order in the year
+    const sortedMonths = selectedMonths.sort((a, b) => 
+      fullYear.indexOf(a) - fullYear.indexOf(b)
+    );
+
+    // Validate sequential requirement
+    if (!areMonthsSequential(sortedMonths)) {
+      return { success: false, error: 'Selected months must be sequential (consecutive).' };
+    }
+
+    // Create display name and ID
+    const displayName = formatMonthRange(sortedMonths);
+    const rangeId = `CUSTOM_${sortedMonths.join('_')}`;
+    
+    const newColumn = {
+      year,
+      month: rangeId, // Use unique ID for custom ranges
+      type,
+      months: sortedMonths,
+      displayName, // Add display name for UI
+      isCustomRange: true,
+      id: `${year}-${rangeId}-${type}`
+    };
+
+    return { success: true, column: newColumn };
+  };
+  
   // Extract filter options from the Excel data
   useEffect(() => {
     if (excelData && selectedDivision && excelData[selectedDivision]) {
@@ -99,36 +154,47 @@ export const FilterProvider = ({ children }) => {
   const MAX_COLUMNS = 5;
   
   // Function to add a column
-  const addColumn = (year, month, type) => {
+  const addColumn = (year, month, type, customMonths = null) => {
     // Check if we've already reached the maximum number of columns
     if (columnOrder.length >= MAX_COLUMNS) {
       console.warn(`Maximum number of columns (${MAX_COLUMNS}) reached`);
-      return false; // Return false to indicate failure
+      return { success: false, error: `Maximum limit of ${MAX_COLUMNS} columns reached.` };
     }
-    
-    // Determine actual months based on period selection
-    let actualMonths = [];
-    if (month === 'Year') actualMonths = fullYear;
-    else if (quarters[month]) actualMonths = quarters[month];
-    else actualMonths = [month];
-    
-    const newColumn = { 
-      year, 
-      month, 
-      type, 
-      months: actualMonths,
-      id: `${year}-${month}-${type}`
-    };
-    
+
+    let newColumn;
+
+    // Handle custom month ranges
+    if (customMonths && Array.isArray(customMonths) && customMonths.length > 0) {
+      const customResult = createCustomRange(year, customMonths, type);
+      if (!customResult.success) {
+        return customResult; // Return error from createCustomRange
+      }
+      newColumn = customResult.column;
+    } else {
+      // Handle regular periods (existing logic)
+      let actualMonths = [];
+      if (month === 'Year') actualMonths = fullYear;
+      else if (quarters[month]) actualMonths = quarters[month];
+      else actualMonths = [month];
+      
+      newColumn = { 
+        year, 
+        month, 
+        type, 
+        months: actualMonths,
+        id: `${year}-${month}-${type}`
+      };
+    }
+
     // Check if this column already exists to avoid duplicates
     const exists = columnOrder.some(col => col.id === newColumn.id);
     
     if (!exists) {
       setColumnOrder(prev => [...prev, newColumn]);
-      return true; // Return true to indicate success
+      return { success: true };
     }
     
-    return false; // Return false if column already exists
+    return { success: false, error: 'This column combination already exists.' };
   };
   
   // Function to update column order
@@ -220,7 +286,11 @@ export const FilterProvider = ({ children }) => {
     clearBasePeriod,
     chartVisibleColumns,
     toggleChartColumnVisibility,
-    isColumnVisibleInChart
+    isColumnVisibleInChart,
+    // New multi-month range functions
+    areMonthsSequential,
+    formatMonthRange,
+    createCustomRange
   };
   
   return (

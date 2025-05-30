@@ -45,6 +45,17 @@ const BarChart = ({ data, periods, basePeriod }) => {
   const baseKey = basePeriod;
   const baseValue = data[baseKey]?.sales || 0;
 
+  // Helper function to create period key that matches ChartContainer logic
+  const createPeriodKey = (period) => {
+    if (period.isCustomRange) {
+      // For custom ranges, use the month field (which contains the CUSTOM_* ID)
+      return `${period.year}-${period.month}-${period.type}`;
+    } else {
+      // For regular periods, use the standard format
+      return `${period.year}-${period.month || 'Year'}-${period.type}`;
+    }
+  };
+
   // Function to initialize chart
   const initChart = () => {
     if (!chartRef.current || !data || !periods || periods.length === 0) return;
@@ -66,7 +77,10 @@ const BarChart = ({ data, periods, basePeriod }) => {
         console.log('Rendering chart with data:', { data, periods, basePeriod });
         
         const periodLabels = periods.map(period => {
-          if (period.month) {
+          if (period.isCustomRange) {
+            // For custom ranges, use displayName for clean display
+            return `${period.year}-${period.displayName}-${period.type}`;
+          } else if (period.month) {
             return `${period.year}-${period.month}-${period.type}`;
           }
           return `${period.year}-${period.type}`;
@@ -74,7 +88,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
         
         const seriesData = periods.map(period => {
           // Use the same key format as in ChartContainer
-          const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+          const periodKey = createPeriodKey(period);
           const value = data[periodKey]?.sales || 0;
           console.log(`Period ${periodKey}: ${value}`);
           return value;
@@ -82,13 +96,13 @@ const BarChart = ({ data, periods, basePeriod }) => {
 
       // Sales Volume (row 7)
       const salesVolumeData = periods.map(period => {
-        const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+        const periodKey = createPeriodKey(period);
         return data[periodKey]?.salesVolume || 0;
       });
 
       // Production Volume (row 8)
       const productionVolumeData = periods.map(period => {
-        const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+        const periodKey = createPeriodKey(period);
         return data[periodKey]?.productionVolume || 0;
         });
 
@@ -107,7 +121,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
           return colorSchemes[periods[idx].customColor];
         }
         // Default: highlight base period, otherwise green
-        if (`${period.year}-${period.month || 'Year'}-${period.type}` === basePeriod) {
+        const periodKey = createPeriodKey(period);
+        if (periodKey === basePeriod) {
           return '#5470c6';
         }
         return '#91cc75';
@@ -194,31 +209,42 @@ const BarChart = ({ data, periods, basePeriod }) => {
                 const parts = value.split('-');
                 if (parts.length >= 3) {
                   const year = parts[0];
-                  const month = parts[1];
-                  const type = parts[2];
-                  if (month === 'Year') {
-                    return `${year} ${type}`;
+                  
+                  // Check if this is a custom range (contains more than 3 parts due to hyphen in displayName)
+                  if (parts.length > 3) {
+                    // For custom ranges like "2025-Jan-Apr-Actual"
+                    // Reconstruct the displayName and type
+                    const displayName = parts.slice(1, -1).join('-'); // "Jan-Apr"
+                    const type = parts[parts.length - 1]; // "Actual"
+                    return `${year}\n${displayName}\n${type}`;
                   } else {
-                    return `${year} ${month} ${type}`;
+                    // Regular periods like "2025-Q1-Actual"
+                    const month = parts[1];
+                    const type = parts[2];
+                    if (month === 'Year') {
+                      return `${year}\n\n${type}`;
+                    } else {
+                      return `${year}\n${month}\n${type}`;
+                    }
                   }
                 }
                 return value;
+              },
+              margin: 30,
             },
-            margin: 30,
-          },
-          axisLine: {
-            lineStyle: {
-              color: '#000',
-              width: 2
-            }
-          },
-          axisTick: {
-            alignWithLabel: true,
-            length: 4,
-            lineStyle: {
-              color: '#ccc'
+            axisLine: {
+              lineStyle: {
+                color: '#000',
+                width: 2
               }
-            }
+            },
+            axisTick: {
+              alignWithLabel: true,
+              length: 4,
+              lineStyle: {
+                color: '#ccc'
+                }
+              }
     },
         yAxis: [
           {
@@ -452,7 +478,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
             marginBottom: '10px'
           }}>
             {periods.map((period, idx) => {
-              const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+              const periodKey = createPeriodKey(period);
               const value = data[periodKey]?.salesVolume || 0;
               const mtValue = Math.round(value / 1000);
               return (
@@ -476,7 +502,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
             marginBottom: '10px'
           }}>
             {periods.map((period, idx) => {
-              const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+              const periodKey = createPeriodKey(period);
               const salesValue = data[periodKey]?.sales || 0;
               const salesVolumeValue = data[periodKey]?.salesVolume || 0;
               // Calculate Sales per Kg (divide sales by sales volume)
@@ -504,7 +530,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
             gridTemplateColumns: `repeat(${periods.length}, 1fr)`,
           }}>
             {periods.map((period, idx) => {
-              const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+              const periodKey = createPeriodKey(period);
               const value = data[periodKey]?.productionVolume || 0;
               const mtValue = Math.round(value / 1000);
               return (

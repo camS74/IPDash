@@ -1,15 +1,34 @@
 .dashboard-container {
   padding: 20px;
   max-width: none; /* Remove max-width constraint */
-  width: 90%; /* Use exactly 90% of the screen width */
+  width: 88%; /* Balanced width that works well */
   margin: 0 auto;
   font-family: Arial, sans-serif;
 }
 
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.dashboard-logo {
+  position: absolute;
+  left: 0;
+  top: 5%;
+  height: 120px;
+  width: auto;
+  object-fit: contain;
+}
+
 .dashboard-container h1 {
   text-align: center;
-  margin-bottom: 30px;
+  margin: 0;
   color: #333;
+  font-size: 2.5rem;
+  font-weight: bold;
 }
 
 .dashboard-content {

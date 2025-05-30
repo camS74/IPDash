@@ -9,7 +9,10 @@ const FilterPanel = () => {
   const { 
     availableFilters, 
     addColumn,
-    columnOrder
+    columnOrder,
+    fullYear,
+    areMonthsSequential,
+    formatMonthRange
   } = useFilter();
   
   // Local state for the current selections
@@ -18,8 +21,17 @@ const FilterPanel = () => {
     month: '',
     type: ''
   });
+
+  // Multi-month selection state
+  const [isMultiMonth, setIsMultiMonth] = useState(false);
+  const [selectedMonths, setSelectedMonths] = useState([]);
   
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Get individual months from available filters (excluding Year, Q1, Q2, Q3, Q4)
+  const individualMonths = availableFilters.months.filter(month => 
+    !['Year', 'Q1', 'Q2', 'Q3', 'Q4'].includes(month)
+  );
   
   const handleSelectionChange = (filterType, e) => {
     setCurrentSelection({
@@ -27,33 +39,89 @@ const FilterPanel = () => {
       [filterType]: e.target.value
     });
   };
-  
+
+  const handleMultiMonthToggle = () => {
+    setIsMultiMonth(!isMultiMonth);
+    setSelectedMonths([]);
+    setCurrentSelection(prev => ({ ...prev, month: '' }));
+    setErrorMessage('');
+  };
+
+  const handleMonthSelection = (month) => {
+    setSelectedMonths(prev => {
+      const newSelection = prev.includes(month)
+        ? prev.filter(m => m !== month)
+        : [...prev, month];
+      
+      // Sort by month order and check if sequential
+      const sortedMonths = newSelection.sort((a, b) => 
+        fullYear.indexOf(a) - fullYear.indexOf(b)
+      );
+
+      // Validate sequential requirement if more than one month
+      if (sortedMonths.length > 1 && !areMonthsSequential(sortedMonths)) {
+        setErrorMessage('Selected months must be consecutive (sequential).');
+      } else {
+        setErrorMessage('');
+      }
+
+      return newSelection;
+    });
+  };
+
   const handleAddColumn = () => {
     // Clear any previous error message
     setErrorMessage('');
     
-    // Check if all selections are made
-    if (currentSelection.year && currentSelection.month && currentSelection.type) {
-      // Check if we've already reached the limit
-      if (columnOrder.length >= MAX_COLUMNS) {
-        setErrorMessage(`Maximum limit of ${MAX_COLUMNS} columns reached. Please remove a column before adding more.`);
-        return;
-      }
-      
-      // Try to add the column
-      const success = addColumn(currentSelection.year, currentSelection.month, currentSelection.type);
-      
-      if (!success) {
-        // If column already exists
-        setErrorMessage('This column combination already exists.');
+    if (isMultiMonth) {
+      // Multi-month mode
+      if (currentSelection.year && selectedMonths.length > 0 && currentSelection.type) {
+        // Check if we've already reached the limit
+        if (columnOrder.length >= MAX_COLUMNS) {
+          setErrorMessage(`Maximum limit of ${MAX_COLUMNS} columns reached. Please remove a column before adding more.`);
+          return;
+        }
+        
+        // Try to add the custom range column
+        const result = addColumn(currentSelection.year, null, currentSelection.type, selectedMonths);
+        
+        if (!result.success) {
+          setErrorMessage(result.error);
+        } else {
+          // Clear selections after successfully adding
+          setCurrentSelection({ year: '', month: '', type: '' });
+          setSelectedMonths([]);
+        }
       } else {
-        // Clear selections after successfully adding
-        setCurrentSelection({ year: '', month: '', type: '' });
+        setErrorMessage('Please select year, months, and type.');
+      }
+    } else {
+      // Single month mode (existing logic)
+      if (currentSelection.year && currentSelection.month && currentSelection.type) {
+        // Check if we've already reached the limit
+        if (columnOrder.length >= MAX_COLUMNS) {
+          setErrorMessage(`Maximum limit of ${MAX_COLUMNS} columns reached. Please remove a column before adding more.`);
+          return;
+        }
+        
+        // Try to add the column
+        const result = addColumn(currentSelection.year, currentSelection.month, currentSelection.type);
+        
+        if (!result.success) {
+          setErrorMessage(result.error);
+        } else {
+          // Clear selections after successfully adding
+          setCurrentSelection({ year: '', month: '', type: '' });
+        }
+      } else {
+        setErrorMessage('Please select year, period, and type.');
       }
     }
   };
-  
-  const isAddButtonDisabled = !currentSelection.year || !currentSelection.month || !currentSelection.type;
+
+  const isAddButtonDisabled = isMultiMonth 
+    ? !currentSelection.year || selectedMonths.length === 0 || !currentSelection.type
+    : !currentSelection.year || !currentSelection.month || !currentSelection.type;
   
   return (
     <div className="filter-panel">
@@ -77,19 +145,64 @@ const FilterPanel = () => {
       </div>
 
       <div className="filter-section">
-        <h3>Period</h3>
-        <select
-          value={currentSelection.month}
-          onChange={(e) => handleSelectionChange('month', e)}
-          className="filter-select single"
-        >
-          <option value="">Select Period</option>
-          {availableFilters.months.map(month => (
-            <option key={month} value={month}>
-              {month}
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+          <h3>Period</h3>
+          <label style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <input
+              type="checkbox"
+              checked={isMultiMonth}
+              onChange={handleMultiMonthToggle}
+            />
+            Multi-Month Range
+          </label>
+        </div>
+        
+        {!isMultiMonth ? (
+          // Single period selection (existing)
+          <select
+            value={currentSelection.month}
+            onChange={(e) => handleSelectionChange('month', e)}
+            className="filter-select single"
+          >
+            <option value="">Select Period</option>
+            {availableFilters.months.map(month => (
+              <option key={month} value={month}>
+                {month}
+              </option>
+            ))}
+          </select>
+        ) : (
+          // Multi-month selection
+          <div className="multi-month-selector">
+            <div className="month-grid">
+              {individualMonths.map(month => {
+                const isSelected = selectedMonths.includes(month);
+                const sortedSelected = [...selectedMonths].sort((a, b) => 
+                  fullYear.indexOf(a) - fullYear.indexOf(b)
+                );
+                const isSequential = sortedSelected.length <= 1 || areMonthsSequential(sortedSelected);
+                
+                return (
+                  <button
+                    key={month}
+                    type="button"
+                    className={`month-button ${isSelected ? 'selected' : ''} ${!isSequential ? 'invalid' : ''}`}
+                    onClick={() => handleMonthSelection(month)}
+                  >
+                    {month.substring(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedMonths.length > 0 && (
+              <div className="selected-range">
+                Selected: {formatMonthRange(
+                  [...selectedMonths].sort((a, b) => fullYear.indexOf(a) - fullYear.indexOf(b))
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="filter-section">

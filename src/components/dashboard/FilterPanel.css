@@ -90,3 +90,61 @@
   margin-top: 8px;
   font-weight: 500;
 }
+
+/* Multi-month selector styles */
+.multi-month-selector {
+  margin-top: 8px;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.month-button {
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  background-color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.month-button:hover {
+  border-color: #288cfa;
+  background-color: #f0f8ff;
+}
+
+.month-button.selected {
+  background-color: #288cfa;
+  border-color: #288cfa;
+  color: white;
+}
+
+.month-button.invalid {
+  border-color: #ff6b6b;
+  background-color: #ffe6e6;
+  color: #d63031;
+}
+
+.month-button.selected.invalid {
+  background-color: #ff6b6b;
+  border-color: #ff6b6b;
+  color: white;
+}
+
+.selected-range {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  text-align: center;
+}

@@ -109,7 +109,7 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
       };
       
       // Get base period values and name
-      const basePeriodName = `${basePeriod.year} ${basePeriod.month || ''} ${basePeriod.type}`.trim();
+      const basePeriodName = `${basePeriod.year} ${basePeriod.isCustomRange ? basePeriod.displayName : (basePeriod.month || '')} ${basePeriod.type}`.trim();
       const base = {
         sales: getKPI(ROWS.sales, basePeriod),
         material: getKPI(ROWS.material, basePeriod),
@@ -145,7 +145,8 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
       let prevYear = null;
       let prevYearName = '';
       if (prevYearPeriod) {
-        prevYearName = `${prevYearPeriod.year} ${prevYearPeriod.month || ''} ${prevYearPeriod.type}`.trim();
+        const monthDisplay = prevYearPeriod.isCustomRange ? prevYearPeriod.displayName : (prevYearPeriod.month || '');
+        prevYearName = `${prevYearPeriod.year} ${monthDisplay} ${prevYearPeriod.type}`.trim();
         prevYear = {
           sales: getKPI(ROWS.sales, prevYearPeriod),
           material: getKPI(ROWS.material, prevYearPeriod),
@@ -161,7 +162,8 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
       let budget = null;
       let budgetName = '';
       if (budgetPeriod) {
-        budgetName = `${budgetPeriod.year} ${budgetPeriod.month || ''} ${budgetPeriod.type}`.trim();
+        const monthDisplay = budgetPeriod.isCustomRange ? budgetPeriod.displayName : (budgetPeriod.month || '');
+        budgetName = `${budgetPeriod.year} ${monthDisplay} ${budgetPeriod.type}`.trim();
         budget = {
           sales: getKPI(ROWS.sales, budgetPeriod),
           material: getKPI(ROWS.material, budgetPeriod),
@@ -294,7 +296,7 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
           materialCostPerTon: salesVolume > 0 ? material / (salesVolume / 1000) : 0,
           grossProfitPerTon: salesVolume > 0 ? grossProfit / (salesVolume / 1000) : 0,
           
-          periodName: `${period.year} ${period.month || ''} ${period.type}`.trim()
+          periodName: `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`.trim()
         };
       }
       
@@ -674,7 +676,8 @@ const AIWriteupPanel = ({ tableData, selectedPeriods, basePeriod, division, chat
       borderRadius: 8,
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
       padding: 24,
-      width: 1024, // Wider panel
+      width: '100%', // Make responsive
+      maxWidth: 1024, // Limit maximum width for readability
       marginLeft: 'auto',
       marginRight: 'auto',
       textAlign: 'left',

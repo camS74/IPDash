@@ -29,7 +29,13 @@ const MarginGaugeChart = ({ data, periods, basePeriod }) => {
       const gaugeContainer = document.getElementById(`margin-gauge-${index}`);
       if (!gaugeContainer) return;
 
-      const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+      // FIXED: Use consistent key generation for custom ranges
+      let periodKey;
+      if (period.isCustomRange) {
+        periodKey = `${period.year}-${period.month}-${period.type}`;
+      } else {
+        periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
+      }
       
       // Get the values from the data
       const salesValue = data[periodKey]?.sales || 0;
@@ -294,7 +300,7 @@ const MarginGaugeChart = ({ data, periods, basePeriod }) => {
               marginTop: '5px',              
               textAlign: 'center'            
             }}>              
-              {period.month ? `${period.year} ${period.month}` : `${period.year}`} {period.type}            
+              {period.isCustomRange ? `${period.year} ${period.displayName} ${period.type}` : (period.month ? `${period.year} ${period.month}` : `${period.year}`)} {period.type}            
             </div>          
           </div>        
         ))}      

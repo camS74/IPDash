@@ -459,7 +459,7 @@ const TableView = () => {
                   style={getColumnHeaderStyle(column)}
                   colSpan="3"
                 >
-                  {column.month}
+                  {column.isCustomRange ? column.displayName : column.month}
                 </th>
               ))}
             </tr>

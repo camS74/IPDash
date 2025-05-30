@@ -8,12 +8,17 @@ import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
 import ChartView from './ChartView';
 import './Dashboard.css';
+// Import logo directly to embed it in the bundle
+import interplastLogo from '../../assets/Ip Logo.png';
+// Import embedded logo data as fallback
+import { INTERPLAST_LOGO_SVG } from '../../assets/logoData';
 
 const Dashboard = () => {
   const { loadExcelData, loading, error, selectedDivision, excelData } = useExcelData();
   const { columnOrder, dataGenerated } = useFilter();
   const [selectedPeriods, setSelectedPeriods] = useState([]);
-  const [exportFunction, setExportFunction] = useState(null);
+  const [chartExportFunction, setChartExportFunction] = useState(null);
+  const [logoSrc, setLogoSrc] = useState(interplastLogo);
   
   // Use useCallback to memoize the function to prevent it from changing on every render
   const loadData = useCallback(() => {
@@ -46,10 +51,10 @@ const Dashboard = () => {
       setSelectedPeriods(periods);
     }
   }, [columnOrder]);
-  
-  // Handle export refs from ChartContainer
+
+  // Handle when chart export function is ready
   const handleExportRefsReady = useCallback((exportData) => {
-    setExportFunction(() => exportData.exportFunction);
+    setChartExportFunction(() => exportData.exportFunction);
   }, []);
   
   console.log('Dashboard render state:', { loading, error, selectedDivision });
@@ -64,7 +69,18 @@ const Dashboard = () => {
   
   return (
     <div className="dashboard-container">
-      <h1>Excel Dashboard</h1>
+      <div className="dashboard-header">
+        <img 
+          src={logoSrc}
+          alt="Interplast Logo" 
+          className="dashboard-logo"
+          onError={() => {
+            console.log('PNG logo failed, switching to embedded SVG');
+            setLogoSrc(INTERPLAST_LOGO_SVG);
+          }}
+        />
+        <h1>Interplast Dashboard</h1>
+      </div>
       
       <DivisionSelector />
       
@@ -73,7 +89,7 @@ const Dashboard = () => {
           <FilterPanel />
           
           {/* Add the column configuration grid here */}
-          <ColumnConfigGrid exportPdfFunction={exportFunction} />
+          <ColumnConfigGrid exportPdfFunction={chartExportFunction} />
           
           <TabsComponent>
             <Tab label="Data Table">

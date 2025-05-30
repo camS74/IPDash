@@ -400,7 +400,7 @@ const TableView = () => {
                   style={getColumnHeaderStyle(column)}
                   colSpan="3"
                 >
-                  {column.month}
+                  {column.isCustomRange ? column.displayName : column.month}
                 </th>
               ))}
             </tr>
@@ -483,7 +483,7 @@ const TableView = () => {
                         const result = salesNum - materialNum;
 
                         // Debug log for comparison
-                        console.log(`DEBUG: Period: ${column.year} ${column.month || ''} ${column.type} | Sales: ${salesNum} | Material: ${materialNum} | Margin over Material: ${result}`);
+                        console.log(`DEBUG: Period: ${column.year} ${column.isCustomRange ? column.displayName : (column.month || '')} ${column.type} | Sales: ${salesNum} | Material: ${materialNum} | Margin over Material: ${result}`);
 
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {

@@ -61,7 +61,13 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Limit to 5 periods max
   const periodsToUse = selectedPeriods.slice(0, 5);
-  console.log('Using periods:', periodsToUse);
+  console.log('ManufacturingCostChart - periodsToUse:', periodsToUse.length, periodsToUse.map(p => ({
+    year: p.year,
+    month: p.month,
+    type: p.type,
+    isCustomRange: p.isCustomRange,
+    displayName: p.displayName
+  })));
 
   // DEBUG: Check if we can find the Sales row
   if (periodsToUse.length > 0 && tableData && tableData.length) {
@@ -85,16 +91,55 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
   const ledgersData = {};
   const periodTotals = {};
 
-  // Initialize data structure
+  // FIRST: Calculate all period names that will be used
+  const allPeriodNames = periodsToUse.map(period => {
+    const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
+    
+    // Debug custom ranges specifically
+    if (period.isCustomRange) {
+      console.log('Custom Range Debug:', {
+        year: period.year,
+        month: period.month,
+        displayName: period.displayName,
+        months: period.months,
+        type: period.type,
+        finalPeriodName: periodName
+      });
+    }
+    
+    return periodName;
+  });
+  
+  console.log('ManufacturingCostChart - allPeriodNames:', allPeriodNames);
+
+  // Initialize data structure for ALL periods and ledgers
   ledgerItems.forEach(ledger => {
     ledgersData[ledger.label] = { label: ledger.label, values: {} };
+    // Initialize ALL periods for this ledger
+    allPeriodNames.forEach(periodName => {
+      ledgersData[ledger.label].values[periodName] = {
+        amount: 0,
+        percentOfSales: 0,
+        perKg: 0
+      };
+    });
+  });
+
+  // ENSURE ALL PERIODS GET PROCESSED - Initialize all period totals first
+  // Initialize all periods in totals
+  allPeriodNames.forEach(periodName => {
+    periodTotals[periodName] = {
+      amount: 0,
+      percentOfSales: 0,
+      perKg: 0
+    };
   });
 
   // Process each period
   periodsToUse.forEach((period, periodIndex) => {
     try {
       // Create a readable period name 
-      const periodName = `${period.year} ${period.month || ''} ${period.type}`;
+      const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
       let periodTotal = 0;
 
       // Process each ledger for this period
@@ -201,7 +246,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
         console.error(`Error getting totals for period ${periodName}:`, err);
       }
     } catch (err) {
-      console.error(`Error processing period ${period.year} ${period.month} ${period.type}:`, err);
+      const errorPeriodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
+      console.error(`Error processing period ${errorPeriodName}:`, err);
     }
   });
 
@@ -215,11 +261,16 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Get sorted labels and period names
   const ledgerLabels = ledgersList.map(ledger => ledger.label);
-  const periodNames = periodsToUse.map(period => `${period.year} ${period.month || ''} ${period.type}`);
+  // Use the pre-calculated period names to ensure all 5 periods appear
+  const periodNames = allPeriodNames;
+  
+  console.log('ManufacturingCostChart - Final periodNames for legend:', periodNames);
 
   // Prepare series for each period
   const series = periodsToUse.map((period, index) => {
-    const periodName = `${period.year} ${period.month || ''} ${period.type}`;
+    const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
+    
+    console.log(`Creating series for period ${index + 1}/${periodsToUse.length}: ${periodName}`);
     
     // Get color based on period's customColor or fallback to default
     let color;
@@ -246,6 +297,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
       name: periodName,
       type: 'bar',
       stack: 'total',
+      hoverLayerThreshold: Infinity, // Disable hover layer
       label: {
         show: true,
         position: 'inside', // Always position labels inside as shown in the screenshot
@@ -262,9 +314,9 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           return [
             `${millionsValue}M`,
             '', // Add empty line for spacing
-            `${percentValue}% of Sales`,
+            `${percentValue}%/S`,
             '', // Add empty line for spacing
-            `${perKgValue} per kg`
+            `${perKgValue}/kg`
           ].join('\n');
         },
         fontSize: 14,
@@ -308,12 +360,12 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Format percentage values
   const formatPercent = value => {
-    return `${(Number(value) || 0).toFixed(1)}% of Sales`;
+    return `${(Number(value) || 0).toFixed(1)}%/S`;
   };
 
   // Format per kg values
   const formatPerKg = value => {
-    return `${(Number(value) || 0).toFixed(1)} per kg`;
+    return `${(Number(value) || 0).toFixed(1)}/kg`;
   };
 
   // Format for tooltip values with bold styling
@@ -324,73 +376,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Create ECharts option with improved styling
   const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { 
-        type: 'shadow',
-        shadowStyle: {
-          color: 'rgba(0,0,0,0.05)'
-        }
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#ddd',
-      borderWidth: 1,
-      padding: [10, 15],
-      textStyle: {
-        color: '#333',
-        fontSize: 12
-      },
-      extraCssText: 'box-shadow: 0 3px 10px rgba(0,0,0,0.15); border-radius: 4px;',
-      formatter: function(params) {
-        let result = `<div style="font-weight:bold;font-size:15px;margin-bottom:8px;color:#222">${params[0].name}</div>`;
-        
-        // Add each period's values
-        let total = 0;
-        params.forEach(param => {
-          const value = param.value;
-          total += value;
-          
-          // Get the full data
-          const ledgerLabel = param.name;
-          const periodName = param.seriesName;
-          const ledger = ledgersList.find(l => l.label === ledgerLabel);
-          const data = ledger?.values[periodName] || { amount: value, percentOfSales: 0, perKg: 0 };
-          
-          result += `<div style="margin-top:8px;border-top:1px solid #eee;padding-top:5px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <span style="display:flex;align-items:center">
-                <span style="display:inline-block;margin-right:8px;border-radius:3px;width:10px;height:10px;background-color:${param.color}"></span>
-                <span style="font-weight:600;color:#444">${param.seriesName}:</span>
-              </span>
-            </div>
-            <div style="margin-left:18px;margin-top:3px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-                <span style="color:#666">Amount:</span> 
-                <span style="font-weight:bold;color:#222">${formatTooltipValue(data.amount)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-                <span style="color:#666">% of Sales:</span> 
-                <span style="font-weight:bold;color:#222">${data.percentOfSales.toFixed(1)}%</span>
-              </div>
-              <div style="display:flex;justify-content:space-between">
-                <span style="color:#666">Per Kg:</span> 
-                <span style="font-weight:bold;color:#222">${data.perKg.toFixed(1)}</span>
-              </div>
-            </div>
-          </div>`;
-        });
-        
-        // Add total for this ledger across all displayed periods if more than one period
-        if (params.length > 1) {
-          result += `<div style="margin-top:10px;font-weight:bold;border-top:2px solid #ddd;padding-top:6px;display:flex;justify-content:space-between">
-            <span>Total:</span>
-            <span>${formatTooltipValue(total)}</span>
-          </div>`;
-        }
-        
-        return result;
-      }
-    },
+    tooltip: { trigger: 'none', show: false },
     legend: {
       data: periodNames,
       type: 'scroll',
@@ -400,7 +386,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
       itemWidth: 14,
       itemHeight: 8,
       textStyle: {
-        fontSize: 12,
+        fontSize: 16,
+        fontWeight: 'bold',
         color: '#666'
       },
       pageIconColor: '#888',
@@ -433,6 +420,9 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           color: '#eee',
           type: 'dashed'
         }
+      },
+      axisPointer: {
+        show: false // Disable axis pointer
       }
     },
     yAxis: {
@@ -479,6 +469,14 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
     series: series
   };
 
+  console.log('ManufacturingCostChart - Final chart configuration:', {
+    seriesCount: series.length,
+    legendDataCount: periodNames.length,
+    periodsToUseCount: periodsToUse.length,
+    seriesNames: series.map(s => s.name),
+    legendData: periodNames
+  });
+
   // Format a summary for each period's total
   const renderTotals = () => {
     return (
@@ -490,7 +488,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
         gap: '5px' // Reduced gap from 10px to 5px
       }}>
         {periodsToUse.map((period, index) => {
-          const periodName = `${period.year} ${period.month || ''} ${period.type}`;
+          const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
           const totals = periodTotals[periodName] || { amount: 0, percentOfSales: 0, perKg: 0 };
           
           // Format values with proper decimal places
@@ -561,8 +559,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
                 color: textColor, // Text color based on background brightness
                 marginTop: 8
               }}>
-                <div>{formattedPercent}% of Sales</div>
-                <div>{formattedPerKg} per kg</div>
+                <div>{formattedPercent}%/S</div>
+                <div>{formattedPerKg}/kg</div>
               </div>
             </div>
           );

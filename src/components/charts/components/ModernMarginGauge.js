@@ -23,7 +23,7 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
   const angleRad = (Math.PI / 180) * needleAngle;
   const tipX = 100 + 70 * Math.sin(angleRad); // 70 is the needle length
   const tipY = 100 - 70 * Math.cos(angleRad); // SVG y axis is down
-  const PERCENT_OFFSET = 32; // Increase this value for more space
+  const PERCENT_OFFSET = 45; // Increased from 32 to 45 for more space from arc
   const percentY = tipY - PERCENT_OFFSET;
   
   // Log the exact values for debugging
@@ -69,7 +69,7 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
               />
               <circle cx="100" cy="100" r="8" fill="#fff" stroke="#333" strokeWidth="4" />
             </g>
-            {/* Percentage value at the tip, always horizontal */}
+            {/* Percentage value at the tip with %/Sales format */}
             <text
               x={tipX}
               y={percentY}
@@ -79,7 +79,7 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
               fill={color}
               style={{ userSelect: 'none' }}
             >
-              {value.toFixed(2)}%
+              {value.toFixed(2)} %/Sales
             </text>
           </svg>
         </div>
@@ -88,9 +88,10 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
         <div className="gauge-absolute" style={{ fontSize: 28, fontWeight: 'bold', color: color, marginBottom: 5 }}>
           {absoluteValue}
         </div>
-        {/* Per kg value below the amount */}
-        <div className="gauge-perkg" style={{ fontSize: 18, fontWeight: 'bold', color: color, marginBottom: 5 }}>
-          {perKgValue} <span style={{ fontSize: 16, color: color, fontWeight: 'bold' }}>per kg</span>
+        
+        {/* Per kg value with correct format: xx.xx per kg */}
+        <div className="gauge-perkg" style={{ fontSize: 16, fontWeight: 'bold', color: color, marginBottom: 5 }}>
+          {perKgValue} per kg
         </div>
       </div>
       
@@ -127,38 +128,63 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
 
   // Process data for gauges
   const gaugeData = periods.map((period, index) => {
-    const periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
-    // Get raw values from data object
-    const salesValue = data[periodKey]?.sales || 0;
-    const materialCost = data[periodKey]?.materialCost || 0;
-    const marginPerKg = data[periodKey]?.marginPerKg;
-    const perKgValue = (typeof marginPerKg === 'number' && !isNaN(marginPerKg)) ? marginPerKg.toFixed(2) : '--';
-    // Calculate Margin over Material - Sales minus Material
-    const marginOverMaterial = salesValue - materialCost;
-    // Calculate it as a percentage of Sales for the gauge
-    let marginPercentage = 0;
-    if (salesValue > 0) {
-      marginPercentage = (marginOverMaterial / salesValue) * 100;
-      // Round to 2 decimal places
-      marginPercentage = Math.round(marginPercentage * 100) / 100;
+    // FIXED: Use consistent key generation with ChartContainer
+    let periodKey;
+    if (period.isCustomRange) {
+      periodKey = `${period.year}-${period.month}-${period.type}`;
+    } else {
+      periodKey = `${period.year}-${period.month || 'Year'}-${period.type}`;
     }
-    // Format the absolute value for display without $ sign
-    const formattedValue = `${(marginOverMaterial / 1000000).toFixed(1)}M`;
-    // Determine the color based on period's customColor property
+    
+    const chartData = data[periodKey] || {};
+    
+    // Get raw data values
+    const sales = chartData.sales || 0;
+    const materialCost = chartData.materialCost || 0;
+    const salesVolume = chartData.salesVolume || 0;
+    
+    // Calculate absolute margin (Sales - Material Cost)
+    const absoluteMargin = sales - materialCost;
+    
+    // Calculate margin per kg
+    const marginPerKg = salesVolume > 0 ? absoluteMargin / salesVolume : 0;
+    
+    // Calculate margin as percentage of sales for gauge needle
+    const marginPercent = sales > 0 ? (absoluteMargin / sales) * 100 : 0;
+    
+    // Format absolute value for display (in millions)
+    const absoluteValue = `${(absoluteMargin / 1000000).toFixed(1)}M`;
+    
+    // Format per kg value for display (xx.xx format)
+    const perKgValue = marginPerKg.toFixed(2);
+    
+    // FIXED: Use period-based colors (like other charts), not performance-based
     let color;
     if (period.customColor && colorSchemes[period.customColor]) {
       color = colorSchemes[period.customColor];
+    } else if (index === 0) {
+      color = '#FFCC33'; // First period - yellow
+    } else if (index === 1) {
+      color = '#288cfa'; // Second period - blue
+    } else if (index === 2) {
+      color = '#003366'; // Third period - dark blue
     } else {
-      // Fall back to default colors
-      color = defaultColors[index % defaultColors.length];
+      color = defaultColors[index % defaultColors.length]; // Cycle through default colors
     }
+    
     return {
-      title: `${period.year} ${period.month || ''} ${period.type}`,
-      value: marginPercentage,
-      absoluteValue: formattedValue,
-      absRaw: marginOverMaterial, // for variance calculation
+      index,
+      value: Math.max(0, Math.min(100, marginPercent)), // Clamp between 0-100 for gauge
+      absoluteValue,
       perKgValue,
-      color
+      color,
+      period,
+      sales,
+      materialCost,
+      salesVolume,
+      absRaw: absoluteMargin, // For variance calculations
+      title: `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`,
+      periodKey
     };
   });
 
