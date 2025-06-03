@@ -1,6 +1,7 @@
 // Professional HTML Report Generator
-// Uses the same ECharts, gauge charts, color schemes, and actual data from the application
+// Captures actual charts and table from the DOM and embeds them as base64 images in HTML
 
+import html2canvas from 'html2canvas';
 import interplastLogo from '../assets/Ip Logo.png';
 
 // Convert image to base64 for embedding
@@ -19,16 +20,147 @@ const getBase64Logo = async () => {
   }
 };
 
-// Same color scheme as the app
-const colorSchemes = {
-  blue: '#288cfa',
-  green: '#2E865F',
-  yellow: '#FFCC33',
-  orange: '#FF9800',
-  boldContrast: '#003366',
+// Capture chart or table as base64 image
+const captureElementAsBase64 = async (element, options = {}) => {
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      ...options
+    });
+    
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      return null;
+    }
+    
+    return canvas.toDataURL('image/jpeg', 0.95);
+  } catch (error) {
+    console.error('Error capturing element:', error);
+    return null;
+  }
 };
 
-// Professional CSS styling
+// Function to capture actual AI writeup content from the app
+const captureAIWriteupContent = async () => {
+  try {
+    console.log('Attempting to capture AI writeup content...');
+    
+    // Wait a moment for content to be visible
+    await new Promise(r => setTimeout(r, 500));
+    
+    // Look for the specific AIWriteupPanel structure
+    const aiWriteupContainer = document.querySelector('.ai-writeup-content');
+    
+    if (!aiWriteupContainer) {
+      console.log('AI writeup container (.ai-writeup-content) not found');
+      return null;
+    }
+    
+    console.log('Found AI writeup container');
+    
+    // Look for the contentEditable div that contains the actual content
+    const contentEditableDiv = aiWriteupContainer.querySelector('.ai-writeup-contenteditable');
+    
+    if (!contentEditableDiv) {
+      console.log('Content editable div not found');
+      return null;
+    }
+    
+    console.log('Found content editable div');
+    
+    // Clone the contentEditable div to avoid modifying the original
+    const clonedDiv = contentEditableDiv.cloneNode(true);
+    
+    // Remove ALL button elements and their containers
+    const buttonsToRemove = clonedDiv.querySelectorAll(`
+      button, 
+      input[type="button"], 
+      input[type="submit"],
+      .ai-writeup-button-container,
+      [class*="button"],
+      [onclick],
+      [role="button"]
+    `);
+    buttonsToRemove.forEach(btn => btn.remove());
+    
+    // Remove any div that contains button-like text
+    const allDivs = clonedDiv.querySelectorAll('div, span, p');
+    allDivs.forEach(div => {
+      const text = div.textContent?.toLowerCase() || '';
+      if (text.includes('generate') && text.length < 50) {
+        div.remove();
+      }
+    });
+    
+    // Get the cleaned content
+    const textContent = clonedDiv.textContent || clonedDiv.innerText || '';
+    
+    console.log('Cleaned content length:', textContent.length);
+    console.log('Cleaned content preview:', textContent.substring(0, 200));
+    
+    // Check if content is just the placeholder text or empty
+    const isPlaceholder = textContent.toLowerCase().includes('click "generate" to create') ||
+                         textContent.toLowerCase().includes('generate ai-powered') ||
+                         textContent.toLowerCase().includes('no content available') ||
+                         textContent.toLowerCase().includes('click generate') ||
+                         textContent.trim().length < 100;
+    
+    if (isPlaceholder) {
+      console.log('Content is placeholder text or too short');
+      return null;
+    }
+    
+    // Check if this is real AI analysis content
+    const hasAnalysisKeywords = textContent.toLowerCase().includes('analysis') ||
+                               textContent.toLowerCase().includes('performance') ||
+                               textContent.toLowerCase().includes('revenue') ||
+                               textContent.toLowerCase().includes('margin') ||
+                               textContent.toLowerCase().includes('profit') ||
+                               textContent.toLowerCase().includes('cost');
+    
+    if (!hasAnalysisKeywords) {
+      console.log('Content does not contain analysis keywords');
+      return null;
+    }
+    
+    // Get HTML content for formatting preservation - also clean it
+    let htmlContent = clonedDiv.innerHTML || '';
+    
+    // Clean the HTML content more aggressively
+    htmlContent = htmlContent
+      .replace(/<button[^>]*>.*?<\/button>/gi, '') // Remove button tags
+      .replace(/<div[^>]*class="[^"]*button[^"]*"[^>]*>.*?<\/div>/gi, '') // Remove button container divs
+      .replace(/<div[^>]*style="[^"]*cursor:[^"]*pointer[^"]*"[^>]*>.*?<\/div>/gi, '') // Remove clickable divs
+      .replace(/Generate.*?<\/.*?>/gi, '') // Remove any remaining generate text
+      .replace(/<div[^>]*style="color:[^"]*666[^"]*font-style:[^"]*italic[^"]*"[^>]*>.*?<\/div>/gi, '') // Remove placeholder div
+      .trim();
+    
+    // Final text cleaning
+    const cleanedText = textContent
+      .replace(/Generate.*?Analysis/gi, '')
+      .replace(/Click.*?to.*?generate/gi, '')
+      .replace(/Generating\.\.\./gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    console.log(`✅ Successfully captured clean AI content: ${cleanedText.length} characters`);
+    
+    return {
+      text: cleanedText,
+      html: htmlContent,
+      hasContent: true
+    };
+    
+  } catch (error) {
+    console.error('Error capturing AI writeup content:', error);
+    return null;
+  }
+};
+
+// CSS styles for the HTML report
 const getEmbeddedCSS = () => `
 <style>
   * {
@@ -39,459 +171,670 @@ const getEmbeddedCSS = () => `
 
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a8b8e6 100%);
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   .report-container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
     background: white;
-    box-shadow: 0 0 30px rgba(0,0,0,0.1);
-    border-radius: 12px;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    min-height: 100vh;
+    position: relative;
   }
-
-  .report-header {
+  
+  /* Title Page / Navigation */
+  .title-page {
+    background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);
+    color: white;
+    padding: 60px;
     text-align: center;
-    padding: 30px 0 40px;
-    border-bottom: 3px solid #2E865F;
-    margin-bottom: 40px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     position: relative;
   }
 
   .logo-container {
-    margin-bottom: 20px;
+    margin-bottom: 40px;
   }
 
-  .logo {
-    max-height: 80px;
+  .logo-container img {
+    max-height: 180px;
     width: auto;
+    filter: brightness(1.1);
   }
 
-  .company-name {
-    font-size: 2.5em;
+  .title-page h1 {
+    font-size: 42px;
     font-weight: 700;
-    color: #2E865F;
-    margin-bottom: 10px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
   }
 
-  .report-title {
-    font-size: 1.8em;
-    color: #555;
+  .title-page h2 {
+    font-size: 24px;
     font-weight: 400;
-    margin-bottom: 8px;
-  }
-
-  .base-period-info {
-    background: linear-gradient(135deg, #2E865F, #34a085);
-    color: white;
-    padding: 15px 30px;
-    border-radius: 50px;
-    display: inline-block;
-    font-weight: 600;
-    font-size: 1.1em;
-    box-shadow: 0 4px 15px rgba(46, 134, 95, 0.3);
-  }
-
-  .section {
     margin-bottom: 50px;
-    background: white;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    border: 1px solid #e8e8e8;
+    opacity: 0.9;
   }
-
-  .section-title {
-    font-size: 1.6em;
-    color: #003366;
-    margin-bottom: 25px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #e8e8e8;
-    display: flex;
-    align-items: center;
-  }
-
-  .section-title::before {
-    content: '';
-    width: 4px;
-    height: 30px;
-    background: linear-gradient(135deg, #003366, #288cfa);
-    border-radius: 2px;
-    margin-right: 15px;
-  }
-
-  .chart-container {
-    background: #fafafa;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-    border: 1px solid #e0e0e0;
-    position: relative;
-    overflow: hidden;
-    height: 625px;
-  }
-
-  .chart-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #2E865F, #34a085, #288cfa);
-  }
-
-  .footer {
-    text-align: center;
-    padding: 30px 0;
-    color: #666;
-    border-top: 2px solid #e8e8e8;
+  
+  /* Navigation Tabs - 3x3x1 Layout */
+  .nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 1000px;
+    width: 100%;
     margin-top: 40px;
   }
-
-  .generated-time {
-    font-size: 0.9em;
-    color: #888;
-    font-style: italic;
+  
+  .nav-tab {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    text-align: center;
+  }
+  
+  .nav-tab:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  
+  .nav-tab h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: white;
   }
 
+  .nav-tab p {
+    font-size: 12px;
+    opacity: 0.8;
+    color: white;
+  }
+  
+  .nav-tab .icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  
+  /* Single column for write-up tab */
+  .nav-tab.writeup-tab {
+    grid-column: 1 / -1;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+  
+  /* Content Sections */
+  .content-section {
+    display: none;
+    min-height: 100vh;
+    padding: 40px;
+    position: relative;
+    background: white;
+  }
+  
+  .content-section.active {
+    display: block;
+  }
+  
+  .chart-wrapper {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.3s ease;
+    margin: 0 auto;
+    max-width: 100%;
+  }
+  
+  .chart-wrapper:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+  }
+  
+  .chart-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  /* Write-up Section */
+  .writeup-section {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+  
+  .writeup-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #0066cc;
+  }
+  
+  .writeup-header h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #003366;
+  }
+  
+  .writeup-editor {
+    position: relative;
+  }
+  
+  .writeup-textarea {
+    width: 100%;
+    min-height: 600px;
+    padding: 25px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #333;
+    background: #fafafa;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+  }
+  
+  .writeup-textarea:focus {
+    outline: none;
+    border-color: #0066cc;
+    background: white;
+  }
+  
+  .writeup-textarea:read-only {
+    background: #f9f9f9;
+    border-color: #ddd;
+    cursor: default;
+  }
+  
+  .writeup-content-readonly {
+    padding: 25px;
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #333;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  .writeup-content-readonly h1,
+  .writeup-content-readonly h2,
+  .writeup-content-readonly h3,
+  .writeup-content-readonly h4,
+  .writeup-content-readonly h5,
+  .writeup-content-readonly h6 {
+    margin: 20px 0 10px 0;
+    color: #003366;
+    font-weight: bold;
+  }
+  
+  .writeup-content-readonly h1 { font-size: 24px; }
+  .writeup-content-readonly h2 { font-size: 20px; }
+  .writeup-content-readonly h3 { font-size: 18px; }
+  
+  .writeup-content-readonly p {
+    margin: 12px 0;
+  }
+  
+  .writeup-content-readonly strong,
+  .writeup-content-readonly b {
+    font-weight: bold;
+    color: #003366;
+  }
+  
+  .writeup-content-readonly em,
+  .writeup-content-readonly i {
+    font-style: italic;
+  }
+  
+  .writeup-content-readonly ul,
+  .writeup-content-readonly ol {
+    margin: 12px 0;
+    padding-left: 30px;
+  }
+  
+  .writeup-content-readonly li {
+    margin: 6px 0;
+  }
+  
+  .writeup-content-readonly br {
+    line-height: 1.8;
+  }
+  
+  .writeup-controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .writeup-controls.hidden {
+    display: none;
+  }
+  
+  .save-button {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+  }
+  
+  .save-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  }
+  
+  .save-status {
+    color: #28a745;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .save-status.visible {
+    opacity: 1;
+  }
+  
+  .word-count {
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .saved-notice {
+    text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    background: #e8f5e8;
+    border: 1px solid #4caf50;
+    border-radius: 8px;
+    color: #2e7d32;
+    font-weight: 600;
+  }
+  
+  /* Floating Back Button */
+  .back-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: linear-gradient(135deg, #003366, #0066cc);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: none;
+  }
+  
+  .back-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+  }
+  
+  .back-button.visible {
+    display: block;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .title-page {
+      padding: 40px 20px;
+    }
+    
+    .title-page h1 {
+      font-size: 32px;
+    }
+    
+    .title-page h2 {
+      font-size: 20px;
+    }
+    
+    .nav-tabs {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .nav-tab.writeup-tab {
+      grid-column: 1;
+      max-width: none;
+    }
+    
+    .nav-tab h3 {
+      font-size: 14px;
+    }
+    
+    .nav-tab p {
+      font-size: 11px;
+    }
+    
+    .content-section {
+      padding: 20px;
+    }
+    
+    .writeup-section {
+      padding: 20px;
+    }
+    
+    .writeup-textarea {
+      min-height: 400px;
+      padding: 15px;
+      font-size: 14px;
+    }
+    
+    .writeup-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+  
+  /* Print Styles */
   @media print {
     body {
       background: white;
     }
-    .report-container {
-      box-shadow: none;
-      margin: 0;
+    
+    .back-button, .save-button, .writeup-controls {
+      display: none !important;
     }
-    .section {
-      break-inside: avoid;
+    
+    .title-page {
+      page-break-after: always;
     }
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .section {
-    animation: fadeIn 0.6s ease-out;
+    
+    .content-section {
+      page-break-before: always;
+      display: block !important;
+    }
+    
+    .writeup-textarea {
+      border: none;
+      background: white;
+      padding: 0;
+      min-height: auto;
+    }
   }
 </style>
 `;
 
-// ECharts script with same charts as the original app
-const getEChartsScript = (actualData) => `
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+// JavaScript for navigation and write-up functionality
+const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => `
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  let writeupData = ${actualWriteupContent ? JSON.stringify(actualWriteupContent) : 'null'};
+  let hasBeenSaved = false;
+  let currentContent = '';
+  
+  // Create unique key for this HTML file based on content
+  const fileUniqueKey = 'financial-report-' + (writeupData ? btoa(writeupData.text.substring(0, 50)).replace(/[^a-zA-Z0-9]/g, '') : 'empty');
+
+  console.log('=== WRITEUP DEBUG INFO ===');
+  console.log('File unique key:', fileUniqueKey);
+  console.log('Writeup data:', writeupData);
+  console.log('Has content:', writeupData ? writeupData.hasContent : 'No data');
+  console.log('Content length:', writeupData ? writeupData.text.length : 0);
+  console.log('Content preview:', writeupData ? writeupData.text.substring(0, 100) : 'No content');
+
+  function showSection(sectionId) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.classList.remove('active'));
     
-    // 1. Sales and Volume Bar Chart (exactly like original)
-    const salesChart = echarts.init(document.getElementById('salesChart'));
-    salesChart.setOption({
-      title: { show: false },
-      legend: { show: false },
-      grid: {
-        left: '8%',
-        right: '8%',
-        bottom: 140,
-        top: 50,
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: ${JSON.stringify(actualData.periodLabels)},
-        axisLabel: {
-          rotate: 0,
-          fontWeight: 'bold',
-          fontSize: 18,
-          color: '#000',
-          formatter: function(value) {
-            const parts = value.split('-');
-            if (parts.length >= 3) {
-              const year = parts[0];
-              if (parts.length > 3) {
-                const displayName = parts.slice(1, -1).join('-');
-                const type = parts[parts.length - 1];
-                return year + '\\n' + displayName + '\\n' + type;
-              } else {
-                const month = parts[1];
-                const type = parts[2];
-                if (month === 'Year') {
-                  return year + '\\n\\n' + type;
-                } else {
-                  return year + '\\n' + month + '\\n' + type;
-                }
-              }
-            }
-            return value;
-          },
-          margin: 30,
-        },
-        axisLine: {
-          lineStyle: {
-            color: '#000',
-            width: 2
-          }
-        }
-      },
-      yAxis: {
-        type: 'value',
-        show: false,
-        scale: true,
-        max: function(value) {
-          return value.max * 1.05;
-        }
-      },
-      series: [{
-        name: '',
-        data: ${JSON.stringify(actualData.salesData)},
-        type: 'bar',
-        barMaxWidth: '85%',
-        barWidth: '80%',
-        itemStyle: {
-          color: function(params) {
-            const colors = ${JSON.stringify(actualData.barColors)};
-            return colors[params.dataIndex] || '#91cc75';
-          }
-        },
-        label: {
-          show: true,
-          position: 'top',
-          fontWeight: 'bold',
-          fontSize: 18,
-          color: '#222',
-          formatter: function(params) {
-            const value = params.value;
-            if (value >= 1000000) {
-              return (value / 1000000).toFixed(1) + 'M';
-            } else if (value >= 1000) {
-              return (value / 1000).toFixed(1) + 'K';
-            }
-            return value;
-          }
-        }
-      }],
-      tooltip: { show: false, trigger: 'none' },
-      animation: false
+    // Hide title page
+    const titlePage = document.querySelector('.title-page');
+    titlePage.style.display = 'none';
+    
+    // Show selected section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+      targetSection.classList.add('active');
+      
+      // If showing writeup, load content
+      if (sectionId === 'writeup') {
+        loadWriteupContent();
+      }
+    }
+    
+    // Show back button
+    const backButton = document.querySelector('.back-button');
+    backButton.classList.add('visible');
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+  }
+  
+  function showHomePage() {
+    // Hide all content sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.classList.remove('active'));
+    
+    // Show title page
+    const titlePage = document.querySelector('.title-page');
+    titlePage.style.display = 'flex';
+    
+    // Hide back button
+    const backButton = document.querySelector('.back-button');
+    backButton.classList.remove('visible');
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+  }
+  
+  function loadWriteupContent() {
+    console.log('=== LOADING WRITEUP CONTENT ===');
+    const container = document.querySelector('.writeup-editor');
+    
+    if (!container) {
+      console.error('Writeup editor container not found!');
+      return;
+    }
+    
+    console.log('Container found:', container);
+    console.log('Writeup data check:', {
+      hasWriteupData: !!writeupData,
+      hasContent: writeupData ? writeupData.hasContent : false,
+      textLength: writeupData ? writeupData.text.length : 0
     });
-
-    // 2. Margin Gauge Chart (exactly like original)
-    const marginChart = echarts.init(document.getElementById('marginChart'));
-    marginChart.setOption({
-      title: { show: false },
-      series: [{
-        type: 'gauge',
-        startAngle: 180,
-        endAngle: 0,
-        center: ['50%', '75%'],
-        radius: '90%',
-        min: 0,
-        max: 50,
-        splitNumber: 5,
-        axisLine: {
-          lineStyle: {
-            width: 6,
-            color: [
-              [0.3, '#ff4757'],
-              [0.7, '#ffa502'],
-              [1, '#2ed573']
-            ]
-          }
-        },
-        pointer: {
-          icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-          length: '12%',
-          width: 20,
-          offsetCenter: [0, '-60%'],
-          itemStyle: {
-            color: '#2E865F'
-          }
-        },
-        axisTick: {
-          length: 12,
-          lineStyle: {
-            color: 'auto',
-            width: 2
-          }
-        },
-        splitLine: {
-          length: 20,
-          lineStyle: {
-            color: 'auto',
-            width: 5
-          }
-        },
-        axisLabel: {
-          color: '#464646',
-          fontSize: 14,
-          distance: -60,
-          formatter: function (value) {
-            return value + '%';
-          }
-        },
-        detail: {
-          valueAnimation: true,
-          formatter: function (value) {
-            return '{value|' + value.toFixed(1) + '}{unit|%/S}\\n{subtitle|${actualData.marginPerKg} AED/kg}';
-          },
-          rich: {
-            value: {
-              fontSize: 50,
-              fontWeight: 'bold',
-              color: '#2E865F'
-            },
-            unit: {
-              fontSize: 20,
-              color: '#999',
-              padding: [0, 0, -20, 10]
-            },
-            subtitle: {
-              fontSize: 16,
-              color: '#666',
-              padding: [10, 0, 0, 0]
-            }
-          }
-        },
-        data: [{ value: ${actualData.marginValue} }]
-      }],
-      tooltip: { show: false }
+    
+    // Check localStorage for THIS file's save state
+    const savedState = localStorage.getItem(fileUniqueKey + '-saved');
+    const savedContent = localStorage.getItem(fileUniqueKey + '-content');
+    
+    console.log('Save state check for this file:', {
+      fileKey: fileUniqueKey,
+      savedState: savedState,
+      hasSavedContent: !!savedContent,
+      hasBeenSaved: hasBeenSaved,
+      contentPreview: savedContent ? savedContent.substring(0, 50) : 'None'
     });
-
-    // 3. Manufacturing Cost Chart (exactly like original)
-    const manufacturingChart = echarts.init(document.getElementById('manufacturingChart'));
-    manufacturingChart.setOption({
-      title: { show: false },
-      tooltip: { trigger: 'none', show: false },
-      legend: {
-        data: ${JSON.stringify(actualData.periodNames)},
-        type: 'scroll',
-        top: 40,
-        left: 'center',
-        icon: 'roundRect',
-        itemWidth: 14,
-        itemHeight: 8,
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 'bold',
-          color: '#666'
+    
+    // If this specific file was previously saved, show read-only
+    if (hasBeenSaved || savedState === 'true') {
+      console.log('✅ This file was previously saved - showing PERMANENT read-only');
+      currentContent = savedContent || (writeupData ? writeupData.text : 'No content available');
+      
+      const formattedContent = formatContentForDisplay(currentContent, writeupData ? writeupData.html : '');
+      container.innerHTML = \`
+        <div class="writeup-content-readonly">\${formattedContent}</div>
+      \`;
+      return;
+    }
+    
+    // Default: Show editable content with save button (first time opening this file)
+    // Always show editable version regardless of whether writeupData exists
+    console.log('✅ FIRST TIME opening this file - Showing EDITABLE content with SAVE BUTTON');
+    
+    // Use captured content if available, otherwise provide placeholder
+    currentContent = '';
+    if (writeupData && writeupData.text && writeupData.text.length > 50) {
+      currentContent = writeupData.text;
+      console.log('📝 Using captured AI content:', currentContent.length, 'characters');
+    } else {
+      currentContent = 'Edit your financial analysis and insights here...\\n\\nThis write-up will be permanently finalized after you click Save.';
+      console.log('📝 Using default placeholder content');
+    }
+    
+    container.innerHTML = \`
+      <textarea 
+        id="writeup-content" 
+        class="writeup-textarea" 
+        placeholder="Edit your financial analysis writeup..."
+      >\${currentContent}</textarea>
+      <div class="writeup-controls">
+        <button class="save-button" onclick="saveWriteup()" style="background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">💾 Save & Finalize Write-up</button>
+        <div class="save-status"></div>
+        <div class="word-count">0 words, 0 characters</div>
+      </div>
+    \`;
+    
+    // Add event listeners
+    const textarea = document.getElementById('writeup-content');
+    if (textarea) {
+      console.log('✅ Adding event listeners to textarea');
+      textarea.addEventListener('input', updateWordCount);
+      textarea.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 's') {
+          e.preventDefault();
+          saveWriteup();
         }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%', 
-        top: '80px',
-        containLabel: true
-      },
-      xAxis: {
-        show: true,
-        type: 'value',
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: { show: false },
-        splitLine: {
-          show: true,
-          lineStyle: {
-            color: '#eee',
-            type: 'dashed'
-          }
-        }
-      },
-      yAxis: {
-        type: 'category',
-        data: ${JSON.stringify(actualData.manufacturingCategories)},
-        axisLabel: {
-          fontWeight: 'bold',
-          fontSize: 13,
-          color: '#444'
-        },
-        axisLine: {
-          lineStyle: { color: '#ddd' }
-        },
-        axisTick: { show: false }
-      },
-      series: ${JSON.stringify(actualData.manufacturingSeries)}
+      });
+      updateWordCount();
+      console.log('✅ Event listeners added successfully');
+    } else {
+      console.error('❌ Textarea not found after creating it!');
+    }
+    
+    // Verify save button exists
+    const saveButton = document.querySelector('.save-button');
+    console.log('Save button check:', {
+      exists: !!saveButton,
+      text: saveButton ? saveButton.textContent : 'Not found'
     });
-
-    // 4. Below GP Expenses Chart (exactly like original)
-    const expensesChart = echarts.init(document.getElementById('expensesChart'));
-    expensesChart.setOption({
-      title: { show: false },
-      tooltip: { trigger: 'none', show: false },
-      legend: {
-        data: ${JSON.stringify(actualData.periodNames)},
-        type: 'scroll',
-        top: 40,
-        left: 'center',
-        icon: 'roundRect',
-        itemWidth: 14,
-        itemHeight: 8,
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 'bold',
-          color: '#666'
-        }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%', 
-        top: '80px',
-        containLabel: true
-      },
-      xAxis: {
-        show: true,
-        type: 'value',
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: { show: false },
-        splitLine: {
-          show: true,
-          lineStyle: {
-            color: '#eee',
-            type: 'dashed'
-          }
-        }
-      },
-      yAxis: {
-        type: 'category',
-        data: ${JSON.stringify(actualData.expenseCategories)},
-        axisLabel: {
-          fontWeight: 'bold',
-          fontSize: 13,
-          color: '#444'
-        },
-        axisLine: {
-          lineStyle: { color: '#ddd' }
-        },
-        axisTick: { show: false }
-      },
-      series: ${JSON.stringify(actualData.expensesSeries)}
-    });
-
-    // Handle window resize
-    window.addEventListener('resize', function() {
-      salesChart.resize();
-      marginChart.resize();
-      manufacturingChart.resize();
-      expensesChart.resize();
-    });
+  }
+  
+  function formatContentForDisplay(textContent, htmlContent) {
+    // If we have HTML with formatting, use it
+    if (htmlContent && htmlContent.includes('<')) {
+      return htmlContent;
+    }
+    
+    // Otherwise, format the text with basic HTML
+    if (!textContent) return 'No content available';
+    
+    return textContent
+      .replace(/\\n\\n+/g, '</p><p>')
+      .replace(/\\n/g, '<br>')
+      .replace(/^/, '<p>')
+      .replace(/$/, '</p>')
+      .replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>')
+      .replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
+  }
+  
+  function saveWriteup() {
+    console.log('=== SAVE WRITEUP CALLED ===');
+    const textarea = document.getElementById('writeup-content');
+    const saveStatus = document.querySelector('.save-status');
+    const saveButton = document.querySelector('.save-button');
+    const wordCount = document.querySelector('.word-count');
+    
+    if (!textarea) {
+      console.error('❌ Textarea not found for saving!');
+      return;
+    }
+    
+    console.log('✅ Saving content for this file...');
+    currentContent = textarea.value;
+    hasBeenSaved = true;
+    
+    // Show save confirmation
+    saveStatus.textContent = 'Saving and finalizing...';
+    saveStatus.classList.add('visible');
+    
+    // Save to localStorage with unique file key
+    localStorage.setItem(fileUniqueKey + '-content', currentContent);
+    localStorage.setItem(fileUniqueKey + '-saved', 'true');
+    
+    console.log('✅ Content saved to localStorage with key:', fileUniqueKey);
+    
+    // Hide save button and word count immediately
+    if (saveButton) saveButton.style.display = 'none';
+    if (wordCount) wordCount.style.display = 'none';
+    
+    // Hide confirmation and reload content after 2 seconds
+    setTimeout(() => {
+      saveStatus.classList.remove('visible');
+      loadWriteupContent(); // Reload as permanent read-only
+      
+      // Show success message
+      setTimeout(() => {
+        alert('✅ Write-up finalized!\\n\\nThis document is now permanently ready for distribution and cannot be edited.');
+      }, 500);
+    }, 2000);
+  }
+  
+  function updateWordCount() {
+    const textarea = document.getElementById('writeup-content');
+    const wordCountEl = document.querySelector('.word-count');
+    
+    if (textarea && wordCountEl) {
+      const text = textarea.value.trim();
+      const words = text ? text.split(/\\s+/).length : 0;
+      const characters = text.length;
+      wordCountEl.textContent = \`\${words} words, \${characters} characters\`;
+    }
+  }
+  
+  // Debug on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== PAGE LOADED ===');
+    console.log('File unique key:', fileUniqueKey);
+    console.log('Writeup data on load:', writeupData);
+    setTimeout(() => {
+      console.log('DOM elements check:');
+      console.log('- Writeup editor:', !!document.querySelector('.writeup-editor'));
+      console.log('- Navigation tabs:', document.querySelectorAll('.nav-tab').length);
+    }, 1000);
   });
 </script>
 `;
 
-// Generate HTML with actual data from the app
-export const generateHTMLReport = async (exportData, actualData) => {
-  const logoBase64 = await getBase64Logo();
-  const currentDate = new Date().toLocaleString();
-  
+// Main HTML export function - captures actual charts and table from DOM
+export const exportHTMLReport = async (exportData) => {
+  try {
+    console.log('Starting enhanced HTML report generation...');
+
+    // Division full names mapping
   const divisionNames = {
     FP: 'Flexible Packaging',
     SB: 'Shopping Bags', 
@@ -499,7 +842,213 @@ export const generateHTMLReport = async (exportData, actualData) => {
     HCM: 'Preforms and Closures'
   };
 
-  const divisionName = divisionNames[exportData.division] || exportData.division;
+    const divisionFullName = divisionNames[exportData.division] || exportData.division;
+
+    // Find and switch to Charts tab to ensure charts are visible
+    const allTabs = document.querySelectorAll('.tab-button');
+    let chartsTabElement = null;
+    
+    allTabs.forEach(tab => {
+      if (tab.textContent.includes('Charts')) {
+        chartsTabElement = tab;
+      }
+    });
+    
+    if (!chartsTabElement) {
+      alert('Charts tab not found. Please ensure the Charts view is available.');
+      return false;
+    }
+    
+    // Check if Charts tab is not already active
+    if (!chartsTabElement.classList.contains('active')) {
+      chartsTabElement.click();
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    // Additional wait to ensure charts are fully rendered
+    await new Promise(r => setTimeout(r, 500));
+
+    // Get the logo as base64
+    const logoBase64 = await getBase64Logo();
+
+    const capturedCharts = [];
+    
+    // Find the main ChartContainer div
+    const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+    
+    if (mainContainer) {
+      console.log('Found main chart container');
+      
+      // Get direct children that are chart containers (excluding AI writeup)
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
+                       !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+      });
+      
+      console.log(`Found ${children.length} chart containers`);
+      
+      // Chart titles for navigation tabs (not overlays)
+      const chartTitles = [
+        'Sales and Volume Analysis',
+        'Margin over Material Cost', 
+        'Manufacturing Cost Breakdown',
+        'Below Gross Profit Expenses',
+        'Expenses Trends & Profit Analysis'
+      ];
+      
+      for (let i = 0; i < children.length && i < chartTitles.length; i++) {
+        const container = children[i];
+        
+        // Hide tooltips
+        const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');
+        tooltips.forEach(tooltip => {
+          if (tooltip) tooltip.style.display = 'none';
+        });
+
+        await new Promise(r => setTimeout(r, 300));
+
+        // Try to resize ECharts instances
+        const echartsElements = container.querySelectorAll('.echarts-for-react');
+        echartsElements.forEach(echartsEl => {
+          if (typeof echartsEl.getEchartsInstance === 'function') {
+            const inst = echartsEl.getEchartsInstance();
+            if (inst) {
+              inst.dispatchAction({ type: 'hideTip' });
+              inst.resize();
+            }
+          }
+        });
+
+        await new Promise(r => setTimeout(r, 300));
+
+        // Capture the chart
+        const chartImage = await captureElementAsBase64(container, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          logging: false
+        });
+
+        if (chartImage) {
+          capturedCharts.push({
+            title: chartTitles[i],
+            image: chartImage,
+            id: `chart-${i + 1}`
+          });
+          console.log(`Captured chart: ${chartTitles[i]}`);
+        }
+      }
+    }
+
+    // Capture table data
+    let tableImage = null;
+    try {
+      console.log('Starting table capture...');
+      
+      // Switch to Data Table tab
+      const dataTableTab = Array.from(allTabs).find(tab => tab.textContent.includes('Data Table'));
+      
+      if (dataTableTab && !dataTableTab.classList.contains('active')) {
+        console.log('Switching to Data Table tab...');
+        dataTableTab.click();
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+
+      // Find the table element
+      const tableElement = document.querySelector('.table-view');
+      
+      if (tableElement) {
+        const financialTable = tableElement.querySelector('.financial-table');
+        
+        if (financialTable) {
+          console.log('Capturing table...');
+          tableImage = await captureElementAsBase64(financialTable, {
+            scale: 1.2,
+            width: financialTable.scrollWidth,
+            height: financialTable.scrollHeight
+          });
+          
+          if (tableImage) {
+            console.log('Table captured successfully');
+          }
+        }
+      }
+
+      // Switch back to Charts tab
+      if (chartsTabElement) {
+        chartsTabElement.click();
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (tableErr) {
+      console.error('Error capturing table:', tableErr);
+    }
+
+    // Capture actual AI writeup content with improved detection
+    const actualWriteupContent = await captureAIWriteupContent();
+    console.log('AI content capture result:', actualWriteupContent ? 'Found content' : 'No content found');
+
+    // Generate navigation tabs in 3-3-1 layout
+    const chartTabs = capturedCharts.map(chart => `
+      <div class="nav-tab" onclick="showSection('${chart.id}')">
+        <span class="icon">📊</span>
+        <h3>${chart.title}</h3>
+        <p>Click to view chart</p>
+      </div>
+    `).join('');
+
+    const tableTab = tableImage ? `
+      <div class="nav-tab" onclick="showSection('data-table')">
+        <span class="icon">📋</span>
+        <h3>Financial Data Table</h3>
+        <p>Click to view table</p>
+      </div>
+    ` : '';
+
+    // Write-up tab (single column at the end)
+    const writeupTab = `
+      <div class="nav-tab writeup-tab" onclick="showSection('writeup')">
+        <span class="icon">✍️</span>
+        <h3>Write-up</h3>
+        <p>Edit & finalize report</p>
+      </div>
+    `;
+
+    // Generate content sections (without overlay titles since charts have their own)
+    const chartSections = capturedCharts.map(chart => `
+      <div id="${chart.id}" class="content-section">
+        <div class="chart-wrapper">
+          <img src="${chart.image}" alt="${chart.title}" class="chart-image" />
+        </div>
+      </div>
+    `).join('');
+
+    const tableSection = tableImage ? `
+      <div id="data-table" class="content-section">
+        <div class="chart-wrapper">
+          <img src="${tableImage}" alt="Financial Data Table" class="chart-image" />
+        </div>
+      </div>
+    ` : '';
+
+    // Write-up section with dynamic content
+    const writeupSection = `
+      <div id="writeup" class="content-section">
+        <div class="writeup-section">
+          <div class="writeup-header">
+            <h2>Financial Analysis Write-up</h2>
+          </div>
+          <div class="writeup-editor">
+            <!-- Content will be loaded dynamically -->
+          </div>
+        </div>
+      </div>
+    `;
   
   const html = `
 <!DOCTYPE html>
@@ -507,128 +1056,63 @@ export const generateHTMLReport = async (exportData, actualData) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${divisionName} Financial Report - Interactive</title>
+    <title>${divisionFullName} Financial Report</title>
     ${getEmbeddedCSS()}
 </head>
 <body>
     <div class="report-container">
-        <!-- Header Section -->
-        <div class="report-header">
+        <!-- Title Page with Navigation -->
+        <div class="title-page">
             ${logoBase64 ? `
             <div class="logo-container">
-                <img src="${logoBase64}" 
-                     alt="Company Logo" 
-                     style="height: 160px; width: auto; margin-bottom: 20px;" />
+                <img src="${logoBase64}" alt="Company Logo" />
             </div>
             ` : ''}
-            <h1 style="color: #003366; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">
-              ${exportData.divisionName} Financial Report
-            </h1>
+            <h1>${divisionFullName} Financial Report</h1>
+            <h2>Period: ${exportData.basePeriod || 'No Period Set'}</h2>
             
-            <h2 style="color: #003366; margin: 0; font-size: 16px; font-weight: bold;">
-              Period: ${exportData.basePeriod || 'No Period Set'}
-            </h2>
-        </div>
-
-        <!-- Sales and Volume Chart -->
-        <div class="section">
-            <h2 class="section-title">Sales and Volume Analysis</h2>
-            <div class="chart-container">
-                <div id="salesChart" style="width: 100%; height: 575px;"></div>
+            <div class="nav-tabs">
+                ${chartTabs}
+                ${tableTab}
+                ${writeupTab}
             </div>
         </div>
 
-        <!-- Margin Gauge -->
-        <div class="section">
-            <h2 class="section-title">Margin over Material Cost</h2>
-            <div class="chart-container">
-                <div id="marginChart" style="width: 100%; height: 575px;"></div>
-            </div>
+        <!-- Content Sections -->
+        ${chartSections}
+        ${writeupSection}
+        ${tableSection}
+
+        <!-- Floating Back Button -->
+        <button class="back-button" onclick="showHomePage()" title="Back to Home">
+            ↑
+        </button>
         </div>
 
-        <!-- Manufacturing Cost -->
-        <div class="section">
-            <h2 class="section-title">Manufacturing Cost Breakdown</h2>
-            <div class="chart-container">
-                <div id="manufacturingChart" style="width: 100%; height: 575px;"></div>
-            </div>
-        </div>
-
-        <!-- Below GP Expenses -->
-        <div class="section">
-            <h2 class="section-title">Below Gross Profit Expenses</h2>
-            <div class="chart-container">
-                <div id="expensesChart" style="width: 100%; height: 575px;"></div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <p>Generated on: <span class="generated-time">${currentDate}</span></p>
-            <p>© 2025 Interplast - Confidential Financial Report</p>
-        </div>
-    </div>
-
-    ${getEChartsScript(actualData)}
+    ${getNavigationScript(capturedCharts, !!tableImage, actualWriteupContent)}
 </body>
 </html>
   `;
 
-  return html;
-};
-
-// Main export function - now uses actual data from the application
-export const exportHTMLReport = async (exportData) => {
-  try {
-    console.log('Generating HTML report with actual data...');
-    
-    // Use the actual data passed from the application
-    const actualData = exportData.actualData || {
-      periodLabels: exportData.periods ? exportData.periods.map(p => 
-        p.isCustomRange ? `${p.year}-${p.displayName}-${p.type}` : `${p.year}-${p.month || 'Year'}-${p.type}`
-      ) : [],
-      periodNames: exportData.periods ? exportData.periods.map(p => 
-        `${p.year} ${p.isCustomRange ? p.displayName : (p.month || '')} ${p.type}`
-      ) : [],
-      salesData: [45.2, 42.8, 38.5], // Fallback if no actual data
-      barColors: ['#FFCC33', '#288cfa', '#003366'],
-      marginValue: 25.3,
-      marginPerKg: '2.85',
-      manufacturingCategories: ['Labour', 'Depreciation', 'Electricity', 'Others Mfg. Overheads'],
-      manufacturingSeries: [],
-      expenseCategories: ['Selling Expenses', 'Admin Expenses', 'Finance Cost'],
-      expensesSeries: []
-    };
-
-    console.log('Using actual chart data:', actualData);
-
-    const htmlContent = await generateHTMLReport(exportData, actualData);
-    
-    // Create blob and download
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    // Create and download the HTML file
+    const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    // Create download link
     const link = document.createElement('a');
     link.href = url;
-    const divisionNames = {
-      FP: 'Flexible_Packaging',
-      SB: 'Shopping_Bags', 
-      TF: 'Thermoforming_Products',
-      HCM: 'Preforms_and_Closures'
-    };
-    link.download = `${divisionNames[exportData.division] || 'Financial'}_Report_Interactive.html`;
+    const filenameDivision = divisionNames[exportData.division]?.replace(/\s+/g, '_') || 'Financial';
+    link.download = `${filenameDivision}_Interactive_Report.html`;
     
-    // Trigger download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    // Cleanup
     URL.revokeObjectURL(url);
     
-    console.log('✅ HTML report generated successfully with actual data!');
-    console.log('📧 File can be sent by email and opened in any browser');
+    console.log(`✅ Interactive HTML report generated: ${capturedCharts.length} charts${tableImage ? ' and table' : ''}!`);
+    console.log('📝 Write-up content captured and ready for one-time editing');
+    console.log('📧 File ready for email distribution after write-up finalization');
+    
     return true;
   } catch (error) {
     console.error('Error generating HTML report:', error);
