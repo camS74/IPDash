@@ -314,7 +314,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           return [
             `${millionsValue}M`,
             '', // Add empty line for spacing
-            `${percentValue}%/S`,
+            `${percentValue}%/Sls`,
             '', // Add empty line for spacing
             `${perKgValue}/kg`
           ].join('\n');
@@ -360,7 +360,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Format percentage values
   const formatPercent = value => {
-    return `${(Number(value) || 0).toFixed(1)}%/S`;
+    return `${(Number(value) || 0).toFixed(1)}%/Sls`;
   };
 
   // Format per kg values
@@ -559,7 +559,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
                 color: textColor, // Text color based on background brightness
                 marginTop: 8
               }}>
-                <div>{formattedPercent}%/S</div>
+                <div>{formattedPercent}%/Sls</div>
                 <div>{formattedPerKg}/kg</div>
               </div>
             </div>

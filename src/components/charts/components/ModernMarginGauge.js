@@ -22,7 +22,7 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
   // Calculate the tip of the needle
   const angleRad = (Math.PI / 180) * needleAngle;
   const tipX = 100 + 70 * Math.sin(angleRad); // 70 is the needle length
-  const tipY = 100 - 70 * Math.cos(angleRad); // SVG y axis is down
+  const tipY = 120 - 70 * Math.cos(angleRad); // SVG y axis is down, moved center to y=120
   const PERCENT_OFFSET = 45; // Increased from 32 to 45 for more space from arc
   const percentY = tipY - PERCENT_OFFSET;
   
@@ -30,15 +30,15 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
   console.log(`Gauge ${index} (${title}): Value=${value}%, Angle=${needleAngle}, Offset=${progressOffset}`);
   
   return (
-    <div className="modern-gauge-card" style={{ minHeight: 340 }}>
+    <div className="modern-gauge-card" style={{ minHeight: 380 }}>
       <div className="gauge-body">
         {/* Gauge visualization with percentage at needle tip */}
         <div className="gauge-container">
           {/* SVG Gauge with Arc, Needle, and Percentage */}
-          <svg viewBox="0 0 200 110" className="gauge-svg">
+          <svg viewBox="0 0 200 140" className="gauge-svg">
             {/* Arc background */}
             <path
-              d="M20,100 A80,80 0 0,1 180,100"
+              d="M20,120 A80,80 0 0,1 180,120"
               fill="none"
               stroke="#e5e7eb"
               strokeWidth="18"
@@ -47,7 +47,7 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
             />
             {/* Arc progress */}
             <path
-              d="M20,100 A80,80 0 0,1 180,100"
+              d="M20,120 A80,80 0 0,1 180,120"
               fill="none"
               stroke={color}
               strokeWidth="18"
@@ -57,17 +57,17 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
               className="gauge-progress"
             />
             {/* Needle */}
-            <g transform={`rotate(${needleAngle} 100 100)`}>
+            <g transform={`rotate(${needleAngle} 100 120)`}>
               <line
                 x1="100"
-                y1="100"
+                y1="120"
                 x2="100"
-                y2="30"
+                y2="50"
                 stroke="#333"
                 strokeWidth="4"
                 strokeLinecap="round"
               />
-              <circle cx="100" cy="100" r="8" fill="#fff" stroke="#333" strokeWidth="4" />
+              <circle cx="100" cy="120" r="8" fill="#fff" stroke="#333" strokeWidth="4" />
             </g>
             {/* Percentage value at the tip with %/Sales format */}
             <text
@@ -79,7 +79,7 @@ const SingleGauge = ({ value, absoluteValue, perKgValue, title, color, index }) 
               fill={color}
               style={{ userSelect: 'none' }}
             >
-              {value.toFixed(2)} %/Sales
+              {value.toFixed(2)} %/Sls
             </text>
           </svg>
         </div>

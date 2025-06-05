@@ -102,7 +102,7 @@ const SummaryKPIBarChart = ({ tableData, selectedPeriods, computeCellValue, styl
           const millions = (data.amount / 1000000).toFixed(2);
           const percent = data.percentOfSales.toFixed(2);
           const perKg = data.perKg.toFixed(2);
-          return `${millions}M\n${percent}%/S\n${perKg}/kg`;
+          return `${millions}M\n${percent}%/Sls\n${perKg}/kg`;
         },
         align: 'center',
         verticalAlign: 'middle',
@@ -182,7 +182,7 @@ const SummaryKPIBarChart = ({ tableData, selectedPeriods, computeCellValue, styl
           const variance = variances[key][param.name];
           result += `<div style="margin-bottom:6px;"><span style="font-weight:600;color:${defaultColors[param.seriesIndex % defaultColors.length]}">${kpiLabels[param.seriesIndex]}</span><br/>` +
             `<span style="font-weight:bold;">${(data.amount / 1000000).toFixed(2)}M</span> &nbsp;` +
-            `<span style="color:#888;">${data.percentOfSales.toFixed(2)}%/S</span> &nbsp;` +
+            `<span style="color:#888;">${data.percentOfSales.toFixed(2)}%/Sls</span> &nbsp;` +
             `<span style="color:#888;">${data.perKg.toFixed(2)}/kg</span><br/>` +
             `<span style="color:${variance > 0 ? '#2E865F' : variance < 0 ? '#cf1322' : '#888'};font-weight:bold;">` +
             `${variance === null || isNaN(variance) ? 'N/A' : (variance > 0 ? '▲' : variance < 0 ? '▼' : '–') + ' ' + Math.abs(variance).toFixed(1) + '%'}` +

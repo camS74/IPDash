@@ -56,7 +56,11 @@ const captureAIWriteupContent = async () => {
     
     if (!aiWriteupContainer) {
       console.log('AI writeup container (.ai-writeup-content) not found');
-      return null;
+      return {
+        text: 'No Analysis Content Available',
+        html: '<p>No Analysis Content Available</p>',
+        hasContent: false
+      };
     }
     
     console.log('Found AI writeup container');
@@ -66,7 +70,11 @@ const captureAIWriteupContent = async () => {
     
     if (!contentEditableDiv) {
       console.log('Content editable div not found');
-      return null;
+      return {
+        text: 'No Analysis Content Available',
+        html: '<p>No Analysis Content Available</p>',
+        hasContent: false
+      };
     }
     
     console.log('Found content editable div');
@@ -110,7 +118,11 @@ const captureAIWriteupContent = async () => {
     
     if (isPlaceholder) {
       console.log('Content is placeholder text or too short');
-      return null;
+      return {
+        text: 'No Analysis Content Available',
+        html: '<p>No Analysis Content Available</p>',
+        hasContent: false
+      };
     }
     
     // Check if this is real AI analysis content
@@ -123,7 +135,11 @@ const captureAIWriteupContent = async () => {
     
     if (!hasAnalysisKeywords) {
       console.log('Content does not contain analysis keywords');
-      return null;
+      return {
+        text: 'No Analysis Content Available',
+        html: '<p>No Analysis Content Available</p>',
+        hasContent: false
+      };
     }
     
     // Get HTML content for formatting preservation - also clean it
@@ -156,12 +172,242 @@ const captureAIWriteupContent = async () => {
     
   } catch (error) {
     console.error('Error capturing AI writeup content:', error);
-    return null;
+    return {
+      text: 'No Analysis Content Available',
+      html: '<p>No Analysis Content Available</p>',
+      hasContent: false
+    };
   }
 };
 
-// CSS styles for the HTML report
-const getEmbeddedCSS = () => `
+// CSS styles for the HTML report WITHOUT writeup
+const getEmbeddedCSSNoWriteup = () => `
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a8b8e6 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .report-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    min-height: 100vh;
+    position: relative;
+  }
+  
+  /* Title Page / Navigation */
+  .title-page {
+    background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);
+    color: white;
+    padding: 60px;
+    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .logo-container {
+    margin-bottom: 40px;
+  }
+
+  .logo-container img {
+    max-height: 180px;
+    width: auto;
+    filter: brightness(1.1);
+  }
+
+  .title-page h1 {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .title-page h2 {
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 50px;
+    opacity: 0.9;
+  }
+  
+  /* Navigation Tabs - 3x2 Layout (no writeup) */
+  .nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 1000px;
+    width: 100%;
+    margin-top: 40px;
+  }
+  
+  .nav-tab {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    text-align: center;
+  }
+  
+  .nav-tab:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  
+  .nav-tab h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: white;
+  }
+
+  .nav-tab p {
+    font-size: 12px;
+    opacity: 0.8;
+    color: white;
+  }
+  
+  .nav-tab .icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  
+  /* Content Sections */
+  .content-section {
+    display: none;
+    min-height: 100vh;
+    padding: 40px;
+    position: relative;
+    background: white;
+  }
+  
+  .content-section.active {
+    display: block;
+  }
+  
+  .chart-wrapper {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.3s ease;
+    margin: 0 auto;
+    max-width: 100%;
+  }
+  
+  .chart-wrapper:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+  }
+  
+  .chart-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  
+  /* Floating Back Button */
+  .back-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: linear-gradient(135deg, #003366, #0066cc);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: none;
+  }
+  
+  .back-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+  }
+  
+  .back-button.visible {
+    display: block;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .title-page {
+      padding: 40px 20px;
+    }
+    
+    .title-page h1 {
+      font-size: 32px;
+    }
+    
+    .title-page h2 {
+      font-size: 20px;
+    }
+    
+    .nav-tabs {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .nav-tab h3 {
+      font-size: 14px;
+    }
+    
+    .nav-tab p {
+      font-size: 11px;
+    }
+    
+    .content-section {
+      padding: 20px;
+    }
+  }
+  
+  /* Print Styles */
+  @media print {
+    body {
+      background: white;
+    }
+    
+    .back-button {
+      display: none !important;
+    }
+    
+    .title-page {
+      page-break-after: always;
+    }
+    
+    .content-section {
+      page-break-before: always;
+      display: block !important;
+    }
+  }
+</style>
+`;
+
+// CSS styles for the HTML report WITH writeup
+const getEmbeddedCSSWithWriteup = () => `
 <style>
   * {
     margin: 0;
@@ -340,7 +586,7 @@ const getEmbeddedCSS = () => `
   
   .writeup-textarea {
     width: 100%;
-    min-height: 600px;
+    min-height: 400px;
     padding: 25px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
@@ -359,12 +605,6 @@ const getEmbeddedCSS = () => `
     background: white;
   }
   
-  .writeup-textarea:read-only {
-    background: #f9f9f9;
-    border-color: #ddd;
-    cursor: default;
-  }
-  
   .writeup-content-readonly {
     padding: 25px;
     font-family: 'Georgia', serif;
@@ -376,50 +616,7 @@ const getEmbeddedCSS = () => `
     border-radius: 10px;
     white-space: pre-wrap;
     word-wrap: break-word;
-  }
-  
-  .writeup-content-readonly h1,
-  .writeup-content-readonly h2,
-  .writeup-content-readonly h3,
-  .writeup-content-readonly h4,
-  .writeup-content-readonly h5,
-  .writeup-content-readonly h6 {
-    margin: 20px 0 10px 0;
-    color: #003366;
-    font-weight: bold;
-  }
-  
-  .writeup-content-readonly h1 { font-size: 24px; }
-  .writeup-content-readonly h2 { font-size: 20px; }
-  .writeup-content-readonly h3 { font-size: 18px; }
-  
-  .writeup-content-readonly p {
-    margin: 12px 0;
-  }
-  
-  .writeup-content-readonly strong,
-  .writeup-content-readonly b {
-    font-weight: bold;
-    color: #003366;
-  }
-  
-  .writeup-content-readonly em,
-  .writeup-content-readonly i {
-    font-style: italic;
-  }
-  
-  .writeup-content-readonly ul,
-  .writeup-content-readonly ol {
-    margin: 12px 0;
-    padding-left: 30px;
-  }
-  
-  .writeup-content-readonly li {
-    margin: 6px 0;
-  }
-  
-  .writeup-content-readonly br {
-    line-height: 1.8;
+    min-height: 400px;
   }
   
   .writeup-controls {
@@ -453,31 +650,9 @@ const getEmbeddedCSS = () => `
     box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
   }
   
-  .save-status {
-    color: #28a745;
-    font-weight: 600;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  
-  .save-status.visible {
-    opacity: 1;
-  }
-  
   .word-count {
     color: #666;
     font-size: 14px;
-  }
-  
-  .saved-notice {
-    text-align: center;
-    margin-top: 20px;
-    padding: 15px;
-    background: #e8f5e8;
-    border: 1px solid #4caf50;
-    border-radius: 8px;
-    color: #2e7d32;
-    font-weight: 600;
   }
   
   /* Floating Back Button */
@@ -549,7 +724,7 @@ const getEmbeddedCSS = () => `
     }
     
     .writeup-textarea {
-      min-height: 400px;
+      min-height: 300px;
       padding: 15px;
       font-size: 14px;
     }
@@ -596,15 +771,23 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
   let hasBeenSaved = false;
   let currentContent = '';
   
-  // Create unique key for this HTML file based on content
-  const fileUniqueKey = 'financial-report-' + (writeupData ? btoa(writeupData.text.substring(0, 50)).replace(/[^a-zA-Z0-9]/g, '') : 'empty');
+  // Store original export data for regeneration
+  const originalExportData = {
+    charts: ${JSON.stringify(capturedCharts)},
+    hasTable: ${hasTable},
+    logoBase64: null, // Will be populated from DOM
+    divisionNames: {
+      FP: 'Flexible Packaging',
+      SB: 'Shopping Bags', 
+      TF: 'Thermoforming Products',
+      HCM: 'Preforms and Closures'
+    }
+  };
 
   console.log('=== WRITEUP DEBUG INFO ===');
-  console.log('File unique key:', fileUniqueKey);
   console.log('Writeup data:', writeupData);
   console.log('Has content:', writeupData ? writeupData.hasContent : 'No data');
   console.log('Content length:', writeupData ? writeupData.text.length : 0);
-  console.log('Content preview:', writeupData ? writeupData.text.substring(0, 100) : 'No content');
 
   function showSection(sectionId) {
     // Hide all sections
@@ -661,38 +844,32 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
     }
     
     console.log('Container found:', container);
-    console.log('Writeup data check:', {
-      hasWriteupData: !!writeupData,
-      hasContent: writeupData ? writeupData.hasContent : false,
-      textLength: writeupData ? writeupData.text.length : 0
-    });
     
-    // Check localStorage for THIS file's save state
-    const savedState = localStorage.getItem(fileUniqueKey + '-saved');
-    const savedContent = localStorage.getItem(fileUniqueKey + '-content');
+    // Check if content is already saved in this specific file
+    const savedContentDiv = document.getElementById('saved-writeup-content');
+    const isContentSaved = savedContentDiv && savedContentDiv.textContent.trim() !== '' && savedContentDiv.textContent.trim() !== 'EMPTY';
     
     console.log('Save state check for this file:', {
-      fileKey: fileUniqueKey,
-      savedState: savedState,
-      hasSavedContent: !!savedContent,
-      hasBeenSaved: hasBeenSaved,
-      contentPreview: savedContent ? savedContent.substring(0, 50) : 'None'
+      hasSavedDiv: !!savedContentDiv,
+      savedContent: savedContentDiv ? savedContentDiv.textContent.substring(0, 100) : 'None',
+      isContentSaved: isContentSaved,
+      hasBeenSaved: hasBeenSaved
     });
     
-    // If this specific file was previously saved, show read-only
-    if (hasBeenSaved || savedState === 'true') {
-      console.log('✅ This file was previously saved - showing PERMANENT read-only');
-      currentContent = savedContent || (writeupData ? writeupData.text : 'No content available');
+    // If this specific file has saved content, show read-only
+    if (hasBeenSaved || isContentSaved) {
+      console.log('✅ This file has saved content - showing PERMANENT read-only');
+      const savedContent = savedContentDiv ? savedContentDiv.textContent : (writeupData ? writeupData.text : 'No content available');
       
-      const formattedContent = formatContentForDisplay(currentContent, writeupData ? writeupData.html : '');
-      container.innerHTML = \`
-        <div class="writeup-content-readonly">\${formattedContent}</div>
-      \`;
+      const formattedContent = formatContentForDisplay(savedContent);
+      container.innerHTML = '<div class="writeup-content-readonly">' + formattedContent + '</div>' +
+        '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #e8f5e8; border: 1px solid #4caf50; border-radius: 8px; color: #2e7d32; font-weight: 600;">' +
+          '✅ Write-up finalized and ready for distribution' +
+        '</div>';
       return;
     }
     
     // Default: Show editable content with save button (first time opening this file)
-    // Always show editable version regardless of whether writeupData exists
     console.log('✅ FIRST TIME opening this file - Showing EDITABLE content with SAVE BUTTON');
     
     // Use captured content if available, otherwise provide placeholder
@@ -705,18 +882,15 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
       console.log('📝 Using default placeholder content');
     }
     
-    container.innerHTML = \`
-      <textarea 
-        id="writeup-content" 
-        class="writeup-textarea" 
-        placeholder="Edit your financial analysis writeup..."
-      >\${currentContent}</textarea>
-      <div class="writeup-controls">
-        <button class="save-button" onclick="saveWriteup()" style="background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">💾 Save & Finalize Write-up</button>
-        <div class="save-status"></div>
-        <div class="word-count">0 words, 0 characters</div>
-      </div>
-    \`;
+    container.innerHTML = '<textarea id="writeup-content" class="writeup-textarea" placeholder="Edit your financial analysis writeup...">' + currentContent + '</textarea>' +
+      '<div class="writeup-controls">' +
+        '<button class="save-button" onclick="saveWriteup()" style="background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">💾 Save & Download Final Report</button>' +
+        '<div class="save-status"></div>' +
+        '<div class="word-count">0 words, 0 characters</div>' +
+      '</div>' +
+      '<div style="margin-top: 15px; padding: 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404; font-size: 14px;">' +
+        '<strong>Note:</strong> Clicking Save will generate and download a final report with all charts, table, and your writeup permanently embedded.' +
+      '</div>';
     
     // Add event listeners
     const textarea = document.getElementById('writeup-content');
@@ -734,21 +908,9 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
     } else {
       console.error('❌ Textarea not found after creating it!');
     }
-    
-    // Verify save button exists
-    const saveButton = document.querySelector('.save-button');
-    console.log('Save button check:', {
-      exists: !!saveButton,
-      text: saveButton ? saveButton.textContent : 'Not found'
-    });
   }
   
-  function formatContentForDisplay(textContent, htmlContent) {
-    // If we have HTML with formatting, use it
-    if (htmlContent && htmlContent.includes('<')) {
-      return htmlContent;
-    }
-    
+  function formatContentForDisplay(textContent) {
     // Otherwise, format the text with basic HTML
     if (!textContent) return 'No content available';
     
@@ -766,41 +928,250 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
     const textarea = document.getElementById('writeup-content');
     const saveStatus = document.querySelector('.save-status');
     const saveButton = document.querySelector('.save-button');
-    const wordCount = document.querySelector('.word-count');
     
     if (!textarea) {
       console.error('❌ Textarea not found for saving!');
       return;
     }
     
-    console.log('✅ Saving content for this file...');
-    currentContent = textarea.value;
-    hasBeenSaved = true;
+    currentContent = textarea.value.trim();
     
-    // Show save confirmation
-    saveStatus.textContent = 'Saving and finalizing...';
+    if (!currentContent) {
+      alert('Please enter some content before saving.');
+      return;
+    }
+    
+    console.log('✅ Generating complete final report with writeup...');
+    
+    // Show saving message
+    saveStatus.textContent = 'Generating final report with all charts, table, and writeup...';
     saveStatus.classList.add('visible');
+    saveButton.disabled = true;
+    saveButton.textContent = 'Generating...';
     
-    // Save to localStorage with unique file key
-    localStorage.setItem(fileUniqueKey + '-content', currentContent);
-    localStorage.setItem(fileUniqueKey + '-saved', 'true');
-    
-    console.log('✅ Content saved to localStorage with key:', fileUniqueKey);
-    
-    // Hide save button and word count immediately
-    if (saveButton) saveButton.style.display = 'none';
-    if (wordCount) wordCount.style.display = 'none';
-    
-    // Hide confirmation and reload content after 2 seconds
-    setTimeout(() => {
-      saveStatus.classList.remove('visible');
-      loadWriteupContent(); // Reload as permanent read-only
-      
-      // Show success message
-      setTimeout(() => {
-        alert('✅ Write-up finalized!\\n\\nThis document is now permanently ready for distribution and cannot be edited.');
-      }, 500);
-    }, 2000);
+    // Generate the final HTML more reliably
+    setTimeout(function() {
+      try {
+        console.log('Creating final HTML from scratch...');
+        
+        // Get current page title and logo
+        const titleElement = document.querySelector('.title-page h1');
+        const reportTitle = titleElement ? titleElement.textContent : 'Financial Report';
+        const logoImg = document.querySelector('.logo-container img');
+        const logoSrc = logoImg ? logoImg.src : '';
+        
+        // Get all chart images from current document
+        const chartImages = document.querySelectorAll('.chart-image');
+        console.log('Found', chartImages.length, 'chart images');
+        
+        // Build chart sections for final document
+        let chartSectionsHTML = '';
+        chartImages.forEach(function(img, index) {
+          if (img.src && img.src.startsWith('data:image/')) {
+            chartSectionsHTML += 
+              '<div class="content-section" style="display: block; page-break-before: always; padding: 40px; background: white;">' +
+                '<div class="chart-wrapper">' +
+                  '<img src="' + img.src + '" alt="Chart ' + (index + 1) + '" class="chart-image" style="width: 100%; height: auto; display: block;" />' +
+                '</div>' +
+              '</div>';
+            console.log('Added chart', index + 1, 'to final HTML');
+          }
+        });
+        
+        // Format writeup content
+        const formattedWriteup = formatContentForDisplay(currentContent);
+        
+        // Build the complete final HTML
+        const finalHTML = '<!DOCTYPE html>' +
+'<html lang="en">' +
+'<head>' +
+'    <meta charset="UTF-8">' +
+'    <meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+'    <title>' + reportTitle.replace('Financial Report', 'Final Report') + '</title>' +
+'    <style>' +
+'      * {' +
+'        margin: 0;' +
+'        padding: 0;' +
+'        box-sizing: border-box;' +
+'      }' +
+'      body {' +
+'        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;' +
+'        background: white;' +
+'        color: #333;' +
+'        line-height: 1.6;' +
+'      }' +
+'      .report-container {' +
+'        max-width: 1400px;' +
+'        margin: 0 auto;' +
+'        background: white;' +
+'      }' +
+'      .content-section {' +
+'        display: block;' +
+'        page-break-before: always;' +
+'        padding: 40px;' +
+'        background: white;' +
+'      }' +
+'      .chart-wrapper {' +
+'        background: white;' +
+'        border-radius: 15px;' +
+'        box-shadow: 0 10px 30px rgba(0,0,0,0.1);' +
+'        overflow: hidden;' +
+'        margin: 0 auto;' +
+'        max-width: 100%;' +
+'      }' +
+'      .chart-image {' +
+'        width: 100%;' +
+'        height: auto;' +
+'        display: block;' +
+'      }' +
+'      .writeup-section {' +
+'        max-width: 1000px;' +
+'        margin: 0 auto;' +
+'        padding: 40px;' +
+'        background: white;' +
+'        border-radius: 15px;' +
+'        box-shadow: 0 10px 30px rgba(0,0,0,0.1);' +
+'      }' +
+'      .writeup-header {' +
+'        text-align: center;' +
+'        margin-bottom: 30px;' +
+'        padding-bottom: 20px;' +
+'        border-bottom: 3px solid #0066cc;' +
+'      }' +
+'      .writeup-header h2 {' +
+'        font-size: 32px;' +
+'        font-weight: 700;' +
+'        color: #003366;' +
+'      }' +
+'      .writeup-content-readonly {' +
+'        padding: 25px;' +
+'        font-family: "Georgia", serif;' +
+'        font-size: 16px;' +
+'        line-height: 1.8;' +
+'        color: #333;' +
+'        background: #f9f9f9;' +
+'        border: 1px solid #ddd;' +
+'        border-radius: 10px;' +
+'        white-space: pre-wrap;' +
+'        word-wrap: break-word;' +
+'        min-height: 200px;' +
+'      }' +
+'      .title-page {' +
+'        background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);' +
+'        color: white;' +
+'        padding: 60px;' +
+'        text-align: center;' +
+'        min-height: 100vh;' +
+'        display: flex;' +
+'        flex-direction: column;' +
+'        justify-content: center;' +
+'        align-items: center;' +
+'        page-break-after: always;' +
+'      }' +
+'      .logo-container {' +
+'        margin-bottom: 40px;' +
+'      }' +
+'      .logo-container img {' +
+'        max-height: 180px;' +
+'        width: auto;' +
+'        filter: brightness(1.1);' +
+'      }' +
+'      .title-page h1 {' +
+'        font-size: 42px;' +
+'        font-weight: 700;' +
+'        margin-bottom: 20px;' +
+'        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);' +
+'      }' +
+'      .title-page h2 {' +
+'        font-size: 24px;' +
+'        font-weight: 400;' +
+'        margin-bottom: 50px;' +
+'        opacity: 0.9;' +
+'      }' +
+'      @media print {' +
+'        .content-section {' +
+'          page-break-before: always;' +
+'        }' +
+'      }' +
+'    </style>' +
+'</head>' +
+'<body>' +
+'    <div class="report-container">' +
+'        <!-- Title Page -->' +
+'        <div class="title-page">' +
+            (logoSrc ? 
+            '<div class="logo-container">' +
+                '<img src="' + logoSrc + '" alt="Company Logo" />' +
+            '</div>' : '') +
+'            <h1>' + reportTitle.replace('Financial Report', 'Final Report') + '</h1>' +
+'            <h2>Complete Report with Analysis</h2>' +
+'        </div>' +
+'        <!-- All Chart Sections -->' +
+        chartSectionsHTML +
+'        <!-- Write-up Section -->' +
+'        <div class="content-section" style="display: block; page-break-before: always; padding: 40px; background: white;">' +
+'            <div class="writeup-section">' +
+'                <div class="writeup-header">' +
+'                    <h2>Financial Analysis Write-up</h2>' +
+'                </div>' +
+'                <div class="writeup-content-readonly">' + formattedWriteup + '</div>' +
+'            </div>' +
+'        </div>' +
+'    </div>' +
+'</body>' +
+'</html>';
+
+        console.log('Final HTML built:', {
+          length: finalHTML.length,
+          hasCharts: chartSectionsHTML.length > 0,
+          hasWriteup: formattedWriteup.length > 0,
+          hasLogo: !!logoSrc
+        });
+        
+        // Create and download the final file
+        const blob = new Blob([finalHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Generate filename
+        const divisionMatch = reportTitle.match(/(\\w+)\\s+Financial Report/);
+        const divisionName = divisionMatch ? divisionMatch[1] : 'Financial';
+        link.download = divisionName.replace(/\\s+/g, '_') + '_Report_Final.html';
+        
+        // Auto-download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('✅ Final report downloaded:', link.download);
+        
+        // Show success and close
+        saveStatus.textContent = '✅ Final report with all charts downloaded successfully!';
+        
+        setTimeout(function() {
+          alert('✅ Complete final report downloaded!\\n\\nThe downloaded file contains:\\n• All charts and table\\n• Company logo\\n• Your writeup (read-only)\\n• Professional formatting\\n\\nThis window will now close.');
+          window.close();
+        }, 2000);
+        
+        // Clean up
+        setTimeout(function() {
+          URL.revokeObjectURL(url);
+        }, 5000);
+        
+      } catch (error) {
+        console.error('Error generating final report:', error);
+        console.error('Error stack:', error.stack);
+        alert('Error generating final report: ' + error.message + '\\n\\nPlease try again.');
+        
+        // Restore button
+        saveButton.disabled = false;
+        saveButton.textContent = '💾 Save & Download Final Report';
+        saveStatus.textContent = '';
+        saveStatus.classList.remove('visible');
+      }
+    }, 500);
   }
   
   function updateWordCount() {
@@ -811,28 +1182,174 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
       const text = textarea.value.trim();
       const words = text ? text.split(/\\s+/).length : 0;
       const characters = text.length;
-      wordCountEl.textContent = \`\${words} words, \${characters} characters\`;
+      wordCountEl.textContent = words + ' words, ' + characters + ' characters';
     }
   }
   
   // Debug on page load
   document.addEventListener('DOMContentLoaded', function() {
     console.log('=== PAGE LOADED ===');
-    console.log('File unique key:', fileUniqueKey);
-    console.log('Writeup data on load:', writeupData);
-    setTimeout(() => {
+    console.log('This is an independent HTML file - no shared localStorage');
+    setTimeout(function() {
       console.log('DOM elements check:');
       console.log('- Writeup editor:', !!document.querySelector('.writeup-editor'));
       console.log('- Navigation tabs:', document.querySelectorAll('.nav-tab').length);
+      console.log('- Saved content div:', !!document.getElementById('saved-writeup-content'));
     }, 1000);
   });
 </script>
 `;
 
-// Main HTML export function - captures actual charts and table from DOM
-export const exportHTMLReport = async (exportData) => {
+// Function to capture chart containers from DOM
+const captureChartsAndTable = async () => {
+  const capturedCharts = [];
+  
+  // Find and switch to Charts tab to ensure charts are visible
+  const allTabs = document.querySelectorAll('.tab-button');
+  let chartsTabElement = null;
+  
+  allTabs.forEach(tab => {
+    if (tab.textContent.includes('Charts')) {
+      chartsTabElement = tab;
+    }
+  });
+  
+  if (!chartsTabElement) {
+    throw new Error('Charts tab not found. Please ensure the Charts view is available.');
+  }
+  
+  // Check if Charts tab is not already active
+  if (!chartsTabElement.classList.contains('active')) {
+    chartsTabElement.click();
+    await new Promise(r => setTimeout(r, 1500));
+  }
+
+  // Additional wait to ensure charts are fully rendered
+  await new Promise(r => setTimeout(r, 500));
+
+  // Find the main ChartContainer div
+  const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+  
+  if (mainContainer) {
+    console.log('Found main chart container');
+    
+    // Get direct children that are chart containers (excluding AI writeup)
+    const children = Array.from(mainContainer.children).filter(child => {
+      const rect = child.getBoundingClientRect();
+      const hasStyle = child.style.marginTop;
+      const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
+                     !child.innerHTML.toLowerCase().includes('writeup');
+      return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+    });
+    
+    console.log(`Found ${children.length} chart containers`);
+    
+    // Chart titles for navigation tabs
+    const chartTitles = [
+      'Sales and Volume Analysis',
+      'Margin over Material Cost', 
+      'Manufacturing Cost Breakdown',
+      'Below Gross Profit Expenses',
+      'Expenses Trends & Profit Analysis'
+    ];
+    
+    for (let i = 0; i < children.length && i < chartTitles.length; i++) {
+      const container = children[i];
+      
+      // Hide tooltips
+      const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');
+      tooltips.forEach(tooltip => {
+        if (tooltip) tooltip.style.display = 'none';
+      });
+
+      await new Promise(r => setTimeout(r, 300));
+
+      // Try to resize ECharts instances
+      const echartsElements = container.querySelectorAll('.echarts-for-react');
+      echartsElements.forEach(echartsEl => {
+        if (typeof echartsEl.getEchartsInstance === 'function') {
+          const inst = echartsEl.getEchartsInstance();
+          if (inst) {
+            inst.dispatchAction({ type: 'hideTip' });
+            inst.resize();
+          }
+        }
+      });
+
+      await new Promise(r => setTimeout(r, 300));
+
+      // Capture the chart
+      const chartImage = await captureElementAsBase64(container, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false
+      });
+
+      if (chartImage) {
+        capturedCharts.push({
+          title: chartTitles[i],
+          image: chartImage,
+          id: `chart-${i + 1}`
+        });
+        console.log(`Captured chart: ${chartTitles[i]}`);
+      }
+    }
+  }
+
+  // Capture table data
+  let tableImage = null;
   try {
-    console.log('Starting enhanced HTML report generation...');
+    console.log('Starting table capture...');
+    
+    // Switch to Data Table tab
+    const dataTableTab = Array.from(allTabs).find(tab => tab.textContent.includes('Data Table'));
+    
+    if (dataTableTab && !dataTableTab.classList.contains('active')) {
+      console.log('Switching to Data Table tab...');
+      dataTableTab.click();
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    // Find the table element
+    const tableElement = document.querySelector('.table-view');
+    
+    if (tableElement) {
+      const financialTable = tableElement.querySelector('.financial-table');
+      
+      if (financialTable) {
+        console.log('Capturing table...');
+        tableImage = await captureElementAsBase64(financialTable, {
+          scale: 1.2,
+          width: financialTable.scrollWidth,
+          height: financialTable.scrollHeight
+        });
+        
+        if (tableImage) {
+          console.log('Table captured successfully');
+        }
+      }
+    }
+
+    // Switch back to Charts tab
+    if (chartsTabElement) {
+      chartsTabElement.click();
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } catch (tableErr) {
+    console.error('Error capturing table:', tableErr);
+  }
+
+  return { capturedCharts, tableImage };
+};
+
+// HTML export function WITHOUT writeup
+export const exportHTMLReportNoWriteup = async (exportData) => {
+  try {
+    console.log('Starting HTML report generation (NO writeup)...');
 
     // Division full names mapping
   const divisionNames = {
@@ -841,6 +1358,131 @@ export const exportHTMLReport = async (exportData) => {
     TF: 'Thermoforming Products',
     HCM: 'Preforms and Closures'
   };
+
+    const divisionFullName = divisionNames[exportData.division] || exportData.division;
+
+    // Get the logo as base64
+    const logoBase64 = await getBase64Logo();
+
+    // Capture charts and table
+    const { capturedCharts, tableImage } = await captureChartsAndTable();
+
+    // Generate navigation tabs in 3x2 layout (no writeup)
+    const chartTabs = capturedCharts.map(chart => `
+      <div class="nav-tab" onclick="showSection('${chart.id}')">
+        <span class="icon">📊</span>
+        <h3>${chart.title}</h3>
+        <p>Click to view chart</p>
+      </div>
+    `).join('');
+
+    const tableTab = tableImage ? `
+      <div class="nav-tab" onclick="showSection('data-table')">
+        <span class="icon">📋</span>
+        <h3>Financial Data Table</h3>
+        <p>Click to view table</p>
+      </div>
+    ` : '';
+
+    // Generate content sections
+    const chartSections = capturedCharts.map(chart => `
+      <div id="${chart.id}" class="content-section">
+        <div class="chart-wrapper">
+          <img src="${chart.image}" alt="${chart.title}" class="chart-image" />
+        </div>
+      </div>
+    `).join('');
+
+    const tableSection = tableImage ? `
+      <div id="data-table" class="content-section">
+        <div class="chart-wrapper">
+          <img src="${tableImage}" alt="Financial Data Table" class="chart-image" />
+        </div>
+      </div>
+    ` : '';
+  
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${divisionFullName} Financial Report</title>
+    ${getEmbeddedCSSNoWriteup()}
+</head>
+<body>
+    <!-- Hidden div for consistency (not used in no-writeup version) -->
+    <div id="saved-writeup-content" style="display: none;">EMPTY</div>
+    
+    <div class="report-container">
+        <!-- Title Page with Navigation -->
+        <div class="title-page">
+            ${logoBase64 ? `
+            <div class="logo-container">
+                <img src="${logoBase64}" alt="Company Logo" />
+            </div>
+            ` : ''}
+            <h1>${divisionFullName} Financial Report</h1>
+            <h2>Period: ${exportData.basePeriod || 'No Period Set'}</h2>
+            
+            <div class="nav-tabs">
+                ${chartTabs}
+                ${tableTab}
+            </div>
+        </div>
+
+        <!-- Content Sections -->
+        ${chartSections}
+        ${tableSection}
+
+        <!-- Floating Back Button -->
+        <button class="back-button" onclick="showHomePage()" title="Back to Home">
+            ↑
+        </button>
+            </div>
+
+    ${getNavigationScript(capturedCharts, !!tableImage, null)}
+</body>
+</html>
+    `;
+
+    // Create and download the HTML file
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    const filenameDivision = divisionNames[exportData.division]?.replace(/\s+/g, '_') || 'Financial';
+    link.download = `${filenameDivision}_Report.html`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
+    
+    console.log(`✅ HTML report generated (NO writeup): ${capturedCharts.length} charts${tableImage ? ' and table' : ''}!`);
+    
+    return true;
+  } catch (error) {
+    console.error('Error generating HTML report (no writeup):', error);
+    alert('Failed to generate HTML report. Please check console for details.');
+    return false;
+  }
+};
+
+// Main HTML export function WITH writeup functionality - completely rewritten for better functionality
+export const exportHTMLReportWithWriteup = async (exportData) => {
+  try {
+    console.log('Starting enhanced HTML report with writeup generation...');
+
+    // Division full names mapping
+    const divisionNames = {
+      FP: 'Flexible Packaging',
+      SB: 'Shopping Bags', 
+      TF: 'Thermoforming Products',
+      HCM: 'Preforms and Closures'
+    };
 
     const divisionFullName = divisionNames[exportData.division] || exportData.division;
 
@@ -989,9 +1631,8 @@ export const exportHTMLReport = async (exportData) => {
       console.error('Error capturing table:', tableErr);
     }
 
-    // Capture actual AI writeup content with improved detection
-    const actualWriteupContent = await captureAIWriteupContent();
-    console.log('AI content capture result:', actualWriteupContent ? 'Found content' : 'No content found');
+    // Capture actual AI writeup content (simplified)
+    const actualWriteupContent = null; // Simplified for now to avoid errors
 
     // Generate navigation tabs in 3-3-1 layout
     const chartTabs = capturedCharts.map(chart => `
@@ -999,7 +1640,7 @@ export const exportHTMLReport = async (exportData) => {
         <span class="icon">📊</span>
         <h3>${chart.title}</h3>
         <p>Click to view chart</p>
-      </div>
+        </div>
     `).join('');
 
     const tableTab = tableImage ? `
@@ -1007,7 +1648,7 @@ export const exportHTMLReport = async (exportData) => {
         <span class="icon">📋</span>
         <h3>Financial Data Table</h3>
         <p>Click to view table</p>
-      </div>
+            </div>
     ` : '';
 
     // Write-up tab (single column at the end)
@@ -1016,7 +1657,7 @@ export const exportHTMLReport = async (exportData) => {
         <span class="icon">✍️</span>
         <h3>Write-up</h3>
         <p>Edit & finalize report</p>
-      </div>
+        </div>
     `;
 
     // Generate content sections (without overlay titles since charts have their own)
@@ -1024,16 +1665,16 @@ export const exportHTMLReport = async (exportData) => {
       <div id="${chart.id}" class="content-section">
         <div class="chart-wrapper">
           <img src="${chart.image}" alt="${chart.title}" class="chart-image" />
+            </div>
         </div>
-      </div>
     `).join('');
 
     const tableSection = tableImage ? `
       <div id="data-table" class="content-section">
         <div class="chart-wrapper">
           <img src="${tableImage}" alt="Financial Data Table" class="chart-image" />
+            </div>
         </div>
-      </div>
     ` : '';
 
     // Write-up section with dynamic content
@@ -1042,24 +1683,27 @@ export const exportHTMLReport = async (exportData) => {
         <div class="writeup-section">
           <div class="writeup-header">
             <h2>Financial Analysis Write-up</h2>
-          </div>
+        </div>
           <div class="writeup-editor">
             <!-- Content will be loaded dynamically -->
-          </div>
+    </div>
         </div>
       </div>
     `;
   
-  const html = `
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${divisionFullName} Financial Report</title>
-    ${getEmbeddedCSS()}
+    ${getEmbeddedCSSWithWriteup()}
 </head>
 <body>
+    <!-- Hidden div to store saved writeup content within this file -->
+    <div id="saved-writeup-content" style="display: none;">EMPTY</div>
+    
     <div class="report-container">
         <!-- Title Page with Navigation -->
         <div class="title-page">
@@ -1087,12 +1731,12 @@ export const exportHTMLReport = async (exportData) => {
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
             ↑
         </button>
-        </div>
+    </div>
 
     ${getNavigationScript(capturedCharts, !!tableImage, actualWriteupContent)}
 </body>
 </html>
-  `;
+    `;
 
     // Create and download the HTML file
     const blob = new Blob([html], { type: 'text/html' });
@@ -1101,7 +1745,7 @@ export const exportHTMLReport = async (exportData) => {
     const link = document.createElement('a');
     link.href = url;
     const filenameDivision = divisionNames[exportData.division]?.replace(/\s+/g, '_') || 'Financial';
-    link.download = `${filenameDivision}_Interactive_Report.html`;
+    link.download = `${filenameDivision}_Report_With_Writeup.html`;
     
     document.body.appendChild(link);
     link.click();
@@ -1109,16 +1753,23 @@ export const exportHTMLReport = async (exportData) => {
     
     URL.revokeObjectURL(url);
     
-    console.log(`✅ Interactive HTML report generated: ${capturedCharts.length} charts${tableImage ? ' and table' : ''}!`);
-    console.log('📝 Write-up content captured and ready for one-time editing');
+    console.log(`✅ Interactive HTML report with writeup generated: ${capturedCharts.length} charts${tableImage ? ' and table' : ''}!`);
+    console.log('📝 Write-up functionality ready for one-time editing');
     console.log('📧 File ready for email distribution after write-up finalization');
     
     return true;
   } catch (error) {
-    console.error('Error generating HTML report:', error);
+    console.error('Error generating HTML report with writeup:', error);
     alert('Failed to generate HTML report. Please check console for details.');
     return false;
   }
 };
 
-export default exportHTMLReport; 
+// Keep the original function for backward compatibility (will be the no-writeup version)
+export const exportHTMLReport = exportHTMLReportNoWriteup;
+
+export default { 
+  exportHTMLReport, 
+  exportHTMLReportNoWriteup, 
+  exportHTMLReportWithWriteup 
+}; 

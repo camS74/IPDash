@@ -393,14 +393,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
       <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: 24, marginBottom: 8 }}>
         <button 
           className="generate-btn" 
-          style={{ 
-            minWidth: 200, 
-            fontSize: 16, 
-            padding: '10px 24px',
-            background: 'linear-gradient(135deg, #FCA5A5, #DC2626)',
-            border: 'none',
-            color: 'white'
-          }} 
+          style={{ minWidth: 200, fontSize: 16, padding: '10px 24px' }} 
           onClick={exportPdfFunction}
           disabled={!exportPdfFunction || !dataGenerated}
           title={!dataGenerated ? "Please generate data first" : !exportPdfFunction ? "Charts are loading..." : "Export all charts to PDF"}
@@ -413,9 +406,9 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
             minWidth: 200, 
             fontSize: 16, 
             padding: '10px 24px',
-            background: 'linear-gradient(135deg, #FEF3C7, #FDE047)',
+            background: 'linear-gradient(135deg, #2E865F, #34a085)',
             border: 'none',
-            color: 'black'
+            color: 'white'
           }} 
           onClick={handleHTMLExport}
           disabled={!dataGenerated}
@@ -429,7 +422,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
             minWidth: 250, 
             fontSize: 16, 
             padding: '10px 24px',
-            background: 'linear-gradient(135deg, #7DD3FC, #0891B2)',
+            background: 'linear-gradient(135deg, #FF9800, #FFB74D)',
             border: 'none',
             color: 'white'
           }} 

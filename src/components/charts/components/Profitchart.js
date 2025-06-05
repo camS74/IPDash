@@ -130,7 +130,7 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
                       marginTop: 8,
                       width: '100%'
                     }}>
-                      <div>{card.percentOfSales.toFixed(1)}% of Sales</div>
+                      <div>{card.percentOfSales.toFixed(1)}%/Sls</div>
                       <div>{card.perKg.toFixed(1)} per kg</div>
                     </div>
                   </div>

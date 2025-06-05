@@ -64,6 +64,9 @@ export const FilterProvider = ({ children }) => {
   // State to track if data has been generated
   const [dataGenerated, setDataGenerated] = useState(false);
   
+  // Column selection state for styling/highlighting
+  const [selectedColumnIndex, setSelectedColumnIndex] = useState(null);
+  
   // Full year and quarters mapping for aggregation
   const fullYear = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const quarters = {
@@ -267,6 +270,9 @@ export const FilterProvider = ({ children }) => {
     return chartVisibleColumns.includes(columnId);
   };
 
+  // Alias for backward compatibility
+  const setSelectedColumn = setSelectedColumnIndex;
+
   // Values to expose in the context
   const value = {
     availableFilters,
@@ -290,7 +296,10 @@ export const FilterProvider = ({ children }) => {
     // New multi-month range functions
     areMonthsSequential,
     formatMonthRange,
-    createCustomRange
+    createCustomRange,
+    selectedColumnIndex,
+    setSelectedColumnIndex,
+    setSelectedColumn
   };
   
   return (

@@ -265,7 +265,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
           return [
             `${millionsValue}M`,
             '', // Add empty line for spacing
-            `${percentValue}%/S`,
+            `${percentValue}%/Sls`,
             '', // Add empty line for spacing
             `${perKgValue}/kg`
           ].join('\n');
@@ -311,7 +311,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
 
   // Format percentage values
   const formatPercent = value => {
-    return `${(Number(value) || 0).toFixed(1)}% of Sales`;
+    return `${(Number(value) || 0).toFixed(1)}%/Sls`;
   };
 
   // Format per kg values
@@ -484,7 +484,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
                   marginTop: 8,
                   width: '100%'
               }}>
-                <div>{formattedPercent}% of Sales</div>
+                <div>{formattedPercent}%/Sls</div>
                 <div>{formattedPerKg} per kg</div>
               </div>
             </div>
