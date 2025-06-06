@@ -7,7 +7,6 @@ import ManufacturingCostChart from './ManufacturingCostChart.tsx';
 import BelowGPExpensesChart from './BelowGPExpensesChart.tsx';
 import ExpencesChart from './ExpencesChart';
 import Profitchart from './Profitchart';
-import AIWriteupPanel from './AIWriteupPanel';
 import './ChartContainer.css';
 import { computeCellValue as sharedComputeCellValue } from '../../../utils/computeCellValue';
 import jsPDF from 'jspdf';
@@ -687,11 +686,6 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
           <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} />
           <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} />
         </div>
-      </div>
-
-      {/* AI Write-up */}
-      <div style={{ marginTop: 40 }}>
-        <AIWriteupPanel tableData={tableData} selectedPeriods={visiblePeriods} basePeriod={basePeriod} division={selectedDivision} chatContext={null} computeCellValue={computeCellValue} />
       </div>
     </div>
   );

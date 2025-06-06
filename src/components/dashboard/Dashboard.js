@@ -7,6 +7,7 @@ import ColumnConfigGrid from './ColumnConfigGrid';
 import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
 import ChartView from './ChartView';
+import WriteUpView from './WriteUpView';
 import './Dashboard.css';
 // Import logo directly to embed it in the bundle
 import interplastLogo from '../../assets/Ip Logo.png';
@@ -105,6 +106,18 @@ const Dashboard = () => {
               ) : (
                 <div className="empty-charts-container">
                   <p>Please select columns and click the Generate button to view charts.</p>
+                </div>
+              )}
+            </Tab>
+            <Tab label="Write-Up">
+              {dataGenerated ? (
+                <WriteUpView 
+                  tableData={excelData}
+                  selectedPeriods={selectedPeriods}
+                />
+              ) : (
+                <div className="empty-writeup-container">
+                  <p>Please select columns and click the Generate button to access the AI writeup assistant.</p>
                 </div>
               )}
             </Tab>
