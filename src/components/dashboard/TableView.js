@@ -362,7 +362,7 @@ const TableView = () => {
     <div className="table-view">
       <div className="table-header">
         <div className="table-title">
-          <h3>Financial Table - {selectedDivision}</h3>
+          <h3>Financials - {selectedDivision}</h3>
           <div className="table-subtitle">(AED)</div>
         </div>
         <PDFExport 

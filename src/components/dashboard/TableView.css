@@ -372,20 +372,21 @@
   color: #666;
 }
 
-/* Total Section Styling - Apply blue shade to Total rows */
+/* Total Section Styling - Apply darker blue shade to Total rows */
 .total-header-row {
-  background-color: #b3d9ff !important; /* Blue shade background for Total header */
+  background-color: #1a365d !important; /* Dark blue background for Total header */
 }
 
 .total-header {
   font-weight: bold !important;
   font-size: 16px !important;
-  color: #1a365d !important;
-  background-color: #b3d9ff !important; /* Blue shade background for Total header */
+  color: #ffffff !important; /* White text */
+  background-color: #1a365d !important; /* Dark blue background for Total header */
 }
 
 .total-header-cell {
-  background-color: #b3d9ff !important; /* Blue shade background for Total header cells */
+  background-color: #1a365d !important; /* Dark blue background for Total header cells */
+  color: #ffffff !important; /* White text for Total header cells */
 }
 
 .total-metric-row {
