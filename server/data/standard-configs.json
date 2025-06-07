@@ -19,7 +19,8 @@
       ],
       "displayName": "Jan-Apr",
       "isCustomRange": true,
-      "id": "2022-CUSTOM_January_February_March_April-Actual"
+      "id": "2022-CUSTOM_January_February_March_April-Actual",
+      "customColor": "yellow"
     },
     {
       "year": "2023",
@@ -34,7 +35,7 @@
       "displayName": "Jan-Apr",
       "isCustomRange": true,
       "id": "2023-CUSTOM_January_February_March_April-Actual",
-      "customColor": "boldContrast"
+      "customColor": "blue"
     },
     {
       "year": "2024",
@@ -79,7 +80,7 @@
       "displayName": "Jan-Apr",
       "isCustomRange": true,
       "id": "2025-CUSTOM_January_February_March_April-Budget",
-      "customColor": "yellow"
+      "customColor": "boldContrast"
     }
   ],
   "basePeriodIndex": 3

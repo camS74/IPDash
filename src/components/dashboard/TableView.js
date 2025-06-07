@@ -335,7 +335,7 @@ const TableView = () => {
 
   // Function to get cell background color based on column configuration
   const getCellBackgroundColor = (column) => {
-    // Use exactly the same color logic as in ColumnConfigGrid.js but for cell backgrounds
+    // Use exactly the same color logic as in ProductGroupTable.js for dynamic backgrounds
     if (column.customColor) {
       const scheme = colorSchemes.find(s => s.name === column.customColor);
       if (scheme) {

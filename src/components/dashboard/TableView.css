@@ -97,8 +97,8 @@
   display: inline-block;
 }
 
-/* Additional rules to enforce consistent column widths */
-.financial-table col {
+/* Additional rules to enforce consistent column widths - Allow specific table overrides */
+.financial-table:not(.product-group-table) col {
   width: auto !important; /* Override any dynamic calculations */
 }
 
@@ -193,6 +193,8 @@
   color: #000000;
 }
 
+/* Financial Table backgrounds are now handled by JavaScript getCellBackgroundColor function */
+
 .table-empty-state {
   padding: 30px;
   text-align: center;
@@ -242,8 +244,199 @@
 /* Hide PDF export button in print/export */
 @media print {
   .pdf-export-button {
-    display: none !important;
+    display: none;
   }
+}
+
+/* Product Group Table Specific Styles */
+.table-title-over-table {
+  text-align: center;
+  margin: 0 auto 20px auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-title-over-table h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.table-title-over-table .table-subtitle {
+  font-style: italic;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 5px;
+  color: #000000;
+  font-size: 1.1rem;
+}
+
+.product-header-row {
+  background-color: #f0f8ff !important;
+}
+
+.product-header {
+  font-weight: bold !important;
+  font-size: 14px !important;
+  color: #2c5aa0 !important;
+  background-color: #f0f8ff !important;
+}
+
+.product-header-cell {
+  background-color: #f0f8ff !important;
+}
+
+.metric-row {
+  background-color: #fff;
+}
+
+.metric-label {
+  font-weight: normal;
+  color: #333;
+  padding-left: 20px !important;
+  font-size: 12px;
+}
+
+.metric-cell {
+  font-size: 12px;
+  text-align: center !important;
+}
+
+/* Make separator between product groups more visible */
+.financial-table .separator-row td {
+  height: 8px;
+  background-color: #ffffff;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Special styling for calculated metrics */
+.metric-row.calculated {
+  font-style: italic;
+}
+
+/* Product Group Table Responsive Styles */
+.product-group-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  min-width: unset !important;
+}
+
+.product-group-table colgroup col {
+  /* Force equal width distribution for period columns */
+}
+
+/* Override any conflicting CSS - Allow colgroup width settings */
+.product-group-table th,
+.product-group-table td {
+  max-width: none !important;
+  min-width: none !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .product-group-table {
+    font-size: 12px;
+  }
+  
+  .product-group-table th,
+  .product-group-table td {
+    padding: 4px;
+  }
+  
+  .product-group-table .metric-label {
+    font-size: 10px;
+    padding-left: 10px !important;
+  }
+  
+  .product-group-table .metric-cell {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  .product-group-table {
+    min-width: 600px;
+  }
+}
+.metric-row.calculated {
+  font-style: italic;
+  color: #666;
+}
+
+/* Total Section Styling - Apply blue shade to Total rows */
+.total-header-row {
+  background-color: #b3d9ff !important; /* Blue shade background for Total header */
+}
+
+.total-header {
+  font-weight: bold !important;
+  font-size: 16px !important;
+  color: #1a365d !important;
+  background-color: #b3d9ff !important; /* Blue shade background for Total header */
+}
+
+.total-header-cell {
+  background-color: #b3d9ff !important; /* Blue shade background for Total header cells */
+}
+
+.total-metric-row {
+  background-color: #f0f8ff !important; /* Light blue background for Total metric rows */
+}
+
+.total-metric-label {
+  font-weight: bold !important;
+  color: #1a365d !important;
+  background-color: #f0f8ff !important; /* Light blue background for Total metric labels */
+}
+
+.total-metric-cell {
+  font-weight: bold !important;
+}
+
+/* Category breakdown rows styling - Blue background shade like Total */
+.category-header-row {
+  background: #b3d9ff !important;
+}
+
+.category-header {
+  background: #b3d9ff !important;
+  color: #1a365d !important;
+  font-weight: bold;
+  font-style: normal;
+  font-size: 14px !important;
+}
+
+.category-header-cell {
+  background: #b3d9ff !important;
+}
+
+.category-metric-row {
+  background: #f0f8ff !important;
+}
+
+.category-metric-label {
+  background: #f0f8ff !important;
+  color: #1a365d !important;
+  font-style: normal;
+  font-weight: bold !important;
+  padding-left: 20px !important;
+  font-size: 12px;
+}
+
+.category-metric-cell {
+  color: #1a365d !important;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: bold !important;
 }
 
 

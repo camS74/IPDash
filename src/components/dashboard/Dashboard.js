@@ -1,13 +1,16 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
+import { useSalesData } from '../../contexts/SalesDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import DivisionSelector from './DivisionSelector';
 import FilterPanel from './FilterPanel';
 import ColumnConfigGrid from './ColumnConfigGrid';
 import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
+import ProductGroupTable from './ProductGroupTable';
 import ChartView from './ChartView';
 import WriteUpView from './WriteUpView';
+import MasterData from './MasterData';
 import './Dashboard.css';
 // Import logo directly to embed it in the bundle
 import interplastLogo from '../../assets/Ip Logo.png';
@@ -16,6 +19,7 @@ import { INTERPLAST_LOGO_SVG } from '../../assets/logoData';
 
 const Dashboard = () => {
   const { loadExcelData, loading, error, selectedDivision, excelData } = useExcelData();
+  const { loadSalesData, loading: salesLoading, error: salesError } = useSalesData();
   const { columnOrder, dataGenerated } = useFilter();
   const [selectedPeriods, setSelectedPeriods] = useState([]);
   const [chartExportFunction, setChartExportFunction] = useState(null);
@@ -29,7 +33,13 @@ const Dashboard = () => {
       .catch(err => {
         console.error('Error in Dashboard useEffect:', err);
       });
-  }, [loadExcelData]);
+      
+    // Load Sales data
+    loadSalesData('/api/sales.xlsx')
+      .catch(err => {
+        console.error('Error loading sales data:', err);
+      });
+  }, [loadExcelData, loadSalesData]);
   
   // Only run this effect once when the component mounts
   useEffect(() => {
@@ -60,12 +70,12 @@ const Dashboard = () => {
   
   console.log('Dashboard render state:', { loading, error, selectedDivision });
   
-  if (loading) {
+  if (loading || salesLoading) {
     return <div className="loading">Loading Excel data...</div>;
   }
   
-  if (error) {
-    return <div className="error">Error: {error}</div>;
+  if (error || salesError) {
+    return <div className="error">Error: {error || salesError}</div>;
   }
   
   return (
@@ -93,8 +103,11 @@ const Dashboard = () => {
           <ColumnConfigGrid exportPdfFunction={chartExportFunction} />
           
           <TabsComponent>
-            <Tab label="Data Table">
+            <Tab label="Financial Table">
               <TableView />
+            </Tab>
+            <Tab label="Product Group Table">
+              <ProductGroupTable />
             </Tab>
             <Tab label="Charts">
               {dataGenerated ? (
@@ -120,6 +133,9 @@ const Dashboard = () => {
                   <p>Please select columns and click the Generate button to access the AI writeup assistant.</p>
                 </div>
               )}
+            </Tab>
+            <Tab label="Master Data">
+              <MasterData />
             </Tab>
           </TabsComponent>
         </div>
