@@ -117,6 +117,7 @@ const TableView = () => {
       { key: 'index59', label: divisionData[59] ? divisionData[59][0] : 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: divisionData[54] ? divisionData[54][0] : 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
+      { key: 'ebit', label: 'EBIT', index: -12, isHeader: false, isCalculated: true, formula: 'sum-54-42' },
       { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44' },
     ];
   } else {
@@ -156,6 +157,7 @@ const TableView = () => {
       { key: 'index59', label: 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
+      { key: 'ebit', label: 'EBIT', index: -12, isHeader: false, isCalculated: true, formula: 'sum-54-42' },
       { key: 'index56', label: 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44' },
     ];
   }
@@ -456,6 +458,7 @@ const TableView = () => {
                 row.label.includes('Total Expenses') ||
                 row.label === 'Row 54 (Row19-Row52)' || 
                 row.label.includes('Net Profit') ||
+                row.label === 'EBIT' ||
                 row.label === 'Row 56 (EBITDA)' ||
                 row.label.includes('EBITDA');
               
@@ -745,6 +748,49 @@ const TableView = () => {
 
                         // Calculate EBITDA as sum of rows 54, 10, 42, and 44
                         const result = num54 + num10 + num42 + num44;
+                        
+                        // Format the result with commas
+                        formattedResult = result.toLocaleString('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        });
+                      } else if (row.formula === 'sum-54-42') {
+                        // Calculate Net Profit (Row 54) first: Row 19 - Row 52
+                        // First calculate Row 19 (Sales - Material)
+                        const salesValue = computeCellValue(3, column);
+                        const materialValue = computeCellValue(4, column);
+                        
+                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        
+                        const row19 = sales - material;
+                        
+                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50)
+                        const value31 = computeCellValue(31, column);
+                        const value32 = computeCellValue(32, column);
+                        const value40 = computeCellValue(40, column);
+                        const value42 = computeCellValue(42, column);
+                        const value43 = computeCellValue(43, column);
+                        const value44 = computeCellValue(44, column);
+                        const value49 = computeCellValue(49, column);
+                        const value50 = computeCellValue(50, column);
+
+                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        
+                        // Calculate Net Profit (Row 54) = Row 19 - Row 52
+                        const netProfit = row19 - row52;
+                        
+                        // Calculate EBIT = Net Profit + Bank Interest (Row 42)
+                        const result = netProfit + num42;
                         
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {

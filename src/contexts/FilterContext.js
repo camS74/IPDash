@@ -16,50 +16,13 @@ export const FilterProvider = ({ children }) => {
   });
   
   // Column order state - explicitly added by user
-  const [columnOrder, setColumnOrder] = useState(() => {
-    // Try to load standard selection from localStorage on initial load
-    const savedStandard = localStorage.getItem('standardColumnSelection');
-    return savedStandard ? JSON.parse(savedStandard) : [];
-  });
+  const [columnOrder, setColumnOrder] = useState([]);
   
   // Chart visible columns - track which columns are visible in charts
-  const [chartVisibleColumns, setChartVisibleColumns] = useState(() => {
-    // By default, all columns are visible
-    const savedVisibility = localStorage.getItem('chartVisibleColumns');
-    return savedVisibility ? JSON.parse(savedVisibility) : [];
-  });
-  
-  // Update chart visibility when columnOrder changes
-  useEffect(() => {
-    // Make sure all columns have a visibility setting
-    setChartVisibleColumns(prev => {
-      // Find any columns that aren't in the visibility list yet
-      const newColumns = columnOrder.filter(col => !prev.includes(col.id));
-      
-      // If there are any new columns, add them to the visibility list
-      if (newColumns.length > 0) {
-        const updatedVisibility = [...prev, ...newColumns.map(col => col.id)];
-        // Save to localStorage immediately
-        localStorage.setItem('chartVisibleColumns', JSON.stringify(updatedVisibility));
-        return updatedVisibility;
-      }
-      
-      // If all columns already have visibility settings, just return the current list
-      // But filter out any columns that no longer exist
-      const filtered = prev.filter(id => columnOrder.some(col => col.id === id));
-      if (filtered.length !== prev.length) {
-        // Save the filtered list if it changed
-        localStorage.setItem('chartVisibleColumns', JSON.stringify(filtered));
-      }
-      return filtered;
-    });
-  }, [columnOrder]);
+  const [chartVisibleColumns, setChartVisibleColumns] = useState([]);
   
   // Base period index state
-  const [basePeriodIndex, setBasePeriodIndex] = useState(() => {
-    const savedBase = localStorage.getItem('basePeriodIndex');
-    return savedBase !== null ? JSON.parse(savedBase) : null;
-  });
+  const [basePeriodIndex, setBasePeriodIndex] = useState(null);
   
   // State to track if data has been generated
   const [dataGenerated, setDataGenerated] = useState(false);
@@ -226,30 +189,82 @@ export const FilterProvider = ({ children }) => {
   };
 
   // Function to save current selection as standard
-  const saveAsStandardSelection = () => {
+  const saveAsStandardSelection = async () => {
     if (columnOrder.length > 0) {
-      localStorage.setItem('standardColumnSelection', JSON.stringify(columnOrder));
-      return true;
+      try {
+        const response = await fetch('http://localhost:3001/api/standard-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'standardColumnSelection',
+            data: columnOrder
+          })
+        });
+        
+        if (response.ok) {
+          console.log('Standard configuration saved to backend');
+          return true;
+        } else {
+          console.error('Failed to save standard configuration to backend');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error saving standard configuration:', error);
+        return false;
+      }
     }
     return false;
   };
 
   // Function to clear standard selection
-  const clearStandardSelection = () => {
-    localStorage.removeItem('standardColumnSelection');
-    return true;
+  const clearStandardSelection = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/standard-config/standardColumnSelection', {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        console.log('Standard configuration cleared from backend');
+        return true;
+      } else {
+        console.error('Failed to clear standard configuration from backend');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error clearing standard configuration:', error);
+      return false;
+    }
   };
 
   // Function to set base period
-  const setBasePeriod = (index) => {
+  const setBasePeriod = async (index) => {
     setBasePeriodIndex(index);
-    localStorage.setItem('basePeriodIndex', JSON.stringify(index));
+    try {
+      await fetch('http://localhost:3001/api/standard-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'basePeriodIndex',
+          data: index
+        })
+      });
+      console.log('Base period saved to backend');
+    } catch (error) {
+      console.error('Failed to save base period to backend:', error);
+    }
   };
 
   // Function to clear base period
-  const clearBasePeriod = () => {
+  const clearBasePeriod = async () => {
     setBasePeriodIndex(null);
-    localStorage.removeItem('basePeriodIndex');
+    try {
+      await fetch('http://localhost:3001/api/standard-config/basePeriodIndex', {
+        method: 'DELETE'
+      });
+      console.log('Base period cleared from backend');
+    } catch (error) {
+      console.error('Failed to clear base period from backend:', error);
+    }
   };
 
   // Toggle visibility of a column in charts
@@ -259,8 +274,8 @@ export const FilterProvider = ({ children }) => {
         ? prev.filter(id => id !== columnId)  // Remove if present (hide)
         : [...prev, columnId];                // Add if not present (show)
       
-      // Save to localStorage
-      localStorage.setItem('chartVisibleColumns', JSON.stringify(newVisibility));
+      // Save to backend immediately
+      saveChartVisibilityToBackend(newVisibility);
       return newVisibility;
     });
   };
@@ -272,6 +287,100 @@ export const FilterProvider = ({ children }) => {
 
   // Alias for backward compatibility
   const setSelectedColumn = setSelectedColumnIndex;
+
+  // Load standard configuration from backend on component mount
+  useEffect(() => {
+    const loadStandardConfig = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/standard-config/standardColumnSelection');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setColumnOrder(result.data);
+            console.log('Loaded standard configuration from backend');
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load standard configuration from backend:', error);
+      }
+    };
+
+    const loadChartVisibility = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/standard-config/chartVisibleColumns');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setChartVisibleColumns(result.data);
+            console.log('Loaded chart visibility from backend');
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load chart visibility from backend:', error);
+      }
+    };
+
+    const loadBasePeriod = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/standard-config/basePeriodIndex');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data !== null) {
+            setBasePeriodIndex(result.data);
+            console.log('Loaded base period from backend');
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load base period from backend:', error);
+      }
+    };
+
+    loadStandardConfig();
+    loadChartVisibility();
+    loadBasePeriod();
+  }, []);
+  
+  // Update chart visibility when columnOrder changes
+  useEffect(() => {
+    // Make sure all columns have a visibility setting
+    setChartVisibleColumns(prev => {
+      // Find any columns that aren't in the visibility list yet
+      const newColumns = columnOrder.filter(col => !prev.includes(col.id));
+      
+      // If there are any new columns, add them to the visibility list
+      if (newColumns.length > 0) {
+        const updatedVisibility = [...prev, ...newColumns.map(col => col.id)];
+        // Save to backend immediately
+        saveChartVisibilityToBackend(updatedVisibility);
+        return updatedVisibility;
+      }
+      
+      // If all columns already have visibility settings, just return the current list
+      // But filter out any columns that no longer exist
+      const filtered = prev.filter(id => columnOrder.some(col => col.id === id));
+      if (filtered.length !== prev.length) {
+        // Save the filtered list if it changed
+        saveChartVisibilityToBackend(filtered);
+      }
+      return filtered;
+    });
+  }, [columnOrder]);
+
+  // Helper function to save chart visibility to backend
+  const saveChartVisibilityToBackend = async (visibility) => {
+    try {
+      await fetch('http://localhost:3001/api/standard-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'chartVisibleColumns',
+          data: visibility
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save chart visibility to backend:', error);
+    }
+  };
 
   // Values to expose in the context
   const value = {

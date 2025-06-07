@@ -222,19 +222,22 @@ const FilterPanel = () => {
       </div>
       
       <div className="filter-actions">
-        <button 
-          className="add-column-btn" 
-          onClick={handleAddColumn}
-          disabled={isAddButtonDisabled || columnOrder.length >= MAX_COLUMNS}
-        >
-          Add Column
-        </button>
+        <h3>Actions</h3>
+        <div className="action-buttons">
+          <button 
+            className="add-column-btn" 
+            onClick={handleAddColumn}
+            disabled={isAddButtonDisabled || columnOrder.length >= MAX_COLUMNS}
+          >
+            Add Column
+          </button>
+          {columnOrder.length > 0 && (
+            <div className="column-count">
+              Periods: {columnOrder.length}/{MAX_COLUMNS}
+            </div>
+          )}
+        </div>
         {errorMessage && <div className="error-message">{errorMessage}</div>}
-        {columnOrder.length > 0 && (
-          <div className="column-count">
-            Columns: {columnOrder.length}/{MAX_COLUMNS}
-          </div>
-        )}
       </div>
     </div>
   );

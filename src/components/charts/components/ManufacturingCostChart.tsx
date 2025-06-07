@@ -438,9 +438,9 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           if (value.length > 25) {
             return value.substring(0, 22) + '...';
           }
-          // Split "Others Mfg. Overheads" into two lines
+          // Split "Others Mfg. Overheads" into two lines as requested
           if (value === 'Others Mfg. Overheads') {
-            return 'Others Mfg.\nOverheads';
+            return 'Manufacturing\n\nOverhead';
           }
           return value;
         },
@@ -575,7 +575,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
       backgroundColor: 'white',
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      padding: '20px',
+      padding: style?.padding || '20px', // Allow padding override for PDF export
       ...(style || {}) // Apply any style props passed from parent component
     }}>
       <h2 className="modern-gauge-heading" style={{

@@ -17,6 +17,13 @@ const debounce = (func, wait) => {
   };
 };
 
+// Format MT (Metric Tons) with thousand separators
+const formatMT = (volumeInKg) => {
+  if (typeof volumeInKg !== 'number' || isNaN(volumeInKg)) return '0';
+  const mt = Math.round(volumeInKg / 1000);
+  return mt.toLocaleString();
+};
+
 const createHistoryStack = (initialState = null, maxSize = 50) => {
   let stack = initialState ? [initialState] : [];
   let currentIndex = initialState ? 0 : -1;
@@ -294,6 +301,15 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
     setRegenerationFeedback('');
 
     try {
+      // Validation: Check if base period is selected first
+      if (basePeriodIndex === null || !basePeriod) {
+        throw new Error('Please Select Base Period');
+      }
+      
+      if (!periods || periods.length === 0) {
+        throw new Error('Missing required period data');
+      }
+
       function getKPI(rowIndex, period) {
         if (!period || !computeCellValue) return 0;
         try {
@@ -304,11 +320,72 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
         }
       }
 
-      if (!basePeriod || !selectedPeriods || selectedPeriods.length === 0) {
-        throw new Error('Missing required period data');
+      function getEBIT(period) {
+        const netProfit = getKPI(54, period);  // Net Profit row
+        const bankInterest = getKPI(42, period);  // Bank Interest row
+        return netProfit + bankInterest;
       }
 
-      const basePeriodName = `${basePeriod.year} ${basePeriod.isCustomRange ? basePeriod.displayName : (basePeriod.month || '')} ${basePeriod.type}`.trim();
+      function formatCurrency(amount) {
+        if (typeof amount !== 'number' || isNaN(amount)) return '0.00M';
+        return `${(amount / 1000000).toFixed(2)}M`;
+      }
+
+      function getCleanPeriodName(period) {
+        if (!period) return 'Unknown';
+        
+        console.log('DEBUG Period:', period); // Debug line
+        
+        // Handle custom ranges with better formatting
+        if (period.isCustomRange && period.displayName) {
+          // Convert displayNames like "January_February_March_April" to "Q1"
+          const name = period.displayName;
+          if (name.includes('January_February_March_April') || name.includes('Jan_Feb_Mar_Apr')) {
+            return `${period.year} Q1 ${period.type}`;
+          } else if (name.includes('May_June_July_August') || name.includes('May_Jun_Jul_Aug')) {
+            return `${period.year} Q2 ${period.type}`;
+          } else if (name.includes('September_October_November_December') || name.includes('Sep_Oct_Nov_Dec')) {
+            return `${period.year} Q3 ${period.type}`;
+          } else if (name.includes('January_February_March') || name.includes('Jan_Feb_Mar')) {
+            return `${period.year} Q1 ${period.type}`;
+          } else if (name.includes('April_May_June') || name.includes('Apr_May_Jun')) {
+            return `${period.year} Q2 ${period.type}`;
+          } else if (name.includes('July_August_September') || name.includes('Jul_Aug_Sep')) {
+            return `${period.year} Q3 ${period.type}`;
+          } else if (name.includes('October_November_December') || name.includes('Oct_Nov_Dec')) {
+            return `${period.year} Q4 ${period.type}`;
+          } else {
+            // For other custom ranges, use a cleaner format
+            const cleanName = name.replace(/_/g, '-').replace(/January|February|March|April|May|June|July|August|September|October|November|December/g, (match) => {
+              const monthMap = {
+                'January': 'Jan', 'February': 'Feb', 'March': 'Mar', 'April': 'Apr',
+                'May': 'May', 'June': 'Jun', 'July': 'Jul', 'August': 'Aug',
+                'September': 'Sep', 'October': 'Oct', 'November': 'Nov', 'December': 'Dec'
+              };
+              return monthMap[match] || match;
+            });
+            return `${period.year} ${cleanName} ${period.type}`;
+          }
+        }
+        
+        // Handle regular monthly periods
+        if (period.month) {
+          return `${period.year} ${period.month} ${period.type}`;
+        }
+        
+        // Handle yearly periods
+        return `${period.year} ${period.type}`;
+      }
+
+      function getComparisonLabel(basePeriod, comparisonPeriod) {
+        const baseName = getCleanPeriodName(basePeriod);
+        const compName = getCleanPeriodName(comparisonPeriod);
+        
+        // Simple approach: just use clean names
+        return `${compName} vs ${baseName}`;
+      }
+
+      const basePeriodName = getCleanPeriodName(basePeriod);
       const baseData = {
         sales: getKPI(3, basePeriod),
         material: getKPI(5, basePeriod),
@@ -323,7 +400,13 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
         admin: getKPI(19, basePeriod),
       };
 
+      // Get comparison periods data - USE columnOrder directly, not selectedPeriods
+      const comparisonPeriods = periods.filter(p => p !== basePeriod);
+      
       const totalCosts = baseData.material + baseData.mfgExpenses + baseData.belowGP;
+      const ebit = getEBIT(basePeriod);
+      const ebitMargin = baseData.sales > 0 ? (ebit / baseData.sales) * 100 : 0;
+      
       const metrics = {
         grossMargin: baseData.sales > 0 ? (baseData.grossProfit / baseData.sales) * 100 : 0,
         netMargin: baseData.sales > 0 ? (baseData.netProfit / baseData.sales) * 100 : 0,
@@ -347,49 +430,293 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
       let aiText = `**COMPREHENSIVE FINANCIAL ANALYSIS: ${basePeriodName}**\n`;
       aiText += `**${divisionNames[selectedDivision] || selectedDivision}**\n\n`;
 
-      aiText += `**EXECUTIVE SUMMARY**\n\n`;
-      aiText += `This analysis evaluates the financial performance of ${basePeriodName}. Key highlights include `;
-      aiText += `a gross margin of ${metrics.grossMargin.toFixed(1)}% and a net margin of ${metrics.netMargin.toFixed(1)}%. `;
-      aiText += `Performance metrics indicate areas for optimization in cost control and profitability.\n\n`;
-
-      aiText += `**REVENUE & VOLUME ANALYSIS**\n`;
-      aiText += `• Total Revenue: ${(baseData.sales / 1000000).toFixed(2)}M\n`;
-      aiText += `• Sales Volume: ${(baseData.salesVolume / 1000).toFixed(1)} k tons\n`;
-      aiText += `• Average Selling Price: ${metrics.pricePerKg.toFixed(3)}/kg\n`;
-      aiText += `• Revenue per Ton: ${(metrics.revenuePerTon / 1000).toFixed(0)}K\n`;
-      if (!userPreferences.excludeMarketPositioning) {
-        aiText += `• Market Positioning: ${metrics.pricePerKg > 3.0 ? 'Premium pricing' : metrics.pricePerKg > 2.0 ? 'Competitive' : 'Value-focused'}\n`;
+      // Ensure we have comparison periods for analysis
+      if (comparisonPeriods.length === 0) {
+        aiText += `**NOTE: Only base period selected. Add additional periods for comparative analysis.**\n\n`;
+      }
+      
+      aiText += `**EXECUTIVE SUMMARY**\n`;
+      aiText += `• Base Period: ${basePeriodName}\n`;
+      aiText += `• Comparison Periods: ${comparisonPeriods.length} period(s) selected\n`;
+      aiText += `• Sales: ${formatCurrency(baseData.sales)} (${formatMT(baseData.salesVolume)} MT at ${baseData.salesVolume > 0 ? (baseData.sales / baseData.salesVolume).toFixed(2) : '0.00'} AED/kg)\n`;
+      aiText += `• Gross Profit: ${formatCurrency(baseData.grossProfit)} (${metrics.grossMargin.toFixed(1)}% margin)\n`;
+      aiText += `• Net Profit: ${formatCurrency(baseData.netProfit)} (${metrics.netMargin.toFixed(1)}% margin)\n`;
+      aiText += `• EBIT: ${formatCurrency(ebit)} (${ebitMargin.toFixed(1)}% margin)\n`;
+      aiText += `• EBITDA: ${formatCurrency(baseData.ebitda)} (${metrics.ebitdaMargin.toFixed(1)}% margin)\n\n`;
+      
+      // Sales Analysis with Enhanced Comparisons
+      aiText += `**SALES PERFORMANCE ANALYSIS**\n`;
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compSales = getKPI(3, period);
+          const compVolume = getKPI(7, period);
+          const compPricePerKg = compVolume > 0 ? compSales / compVolume : 0;
+          
+          const salesChange = compSales > 0 ? ((baseData.sales - compSales) / compSales * 100) : 0;
+          const volumeChange = compVolume > 0 ? ((baseData.salesVolume - compVolume) / compVolume * 100) : 0;
+          const priceChange = compPricePerKg > 0 ? ((metrics.pricePerKg - compPricePerKg) / compPricePerKg * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Sales Amount: ${formatCurrency(compSales)} → ${formatCurrency(baseData.sales)} (${salesChange >= 0 ? '+' : ''}${salesChange.toFixed(1)}%)\n`;
+          aiText += `  - Sales Volume: ${formatMT(compVolume)} MT → ${formatMT(baseData.salesVolume)} MT (${volumeChange >= 0 ? '+' : ''}${volumeChange.toFixed(1)}%)\n`;
+          aiText += `  - Price per kg: ${compPricePerKg.toFixed(2)} → ${metrics.pricePerKg.toFixed(2)} AED/kg (${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%)\n`;
+          aiText += `  - **Performance:** ${Math.abs(salesChange) > 15 ? 'MAJOR' : Math.abs(salesChange) > 8 ? 'MODERATE' : 'STABLE'} sales change\n`;
+        });
+      } else {
+        aiText += `• Sales Amount: ${formatCurrency(baseData.sales)} (${formatMT(baseData.salesVolume)} MT)\n`;
+        aiText += `• Price per kg: ${baseData.salesVolume > 0 ? (baseData.sales / baseData.salesVolume).toFixed(2) : '0.00'} AED/kg\n`;
+        aiText += `• **Note:** Select additional periods for comparative analysis\n`;
       }
       aiText += `\n`;
-
-      aiText += `**PROFITABILITY ANALYSIS**\n`;
-      aiText += `• Gross Profit: ${(baseData.grossProfit / 1000000).toFixed(2)}M (${metrics.grossMargin.toFixed(1)}% margin)\n`;
-      aiText += `• EBITDA: ${(baseData.ebitda / 1000000).toFixed(2)}M (${metrics.ebitdaMargin.toFixed(1)}% margin)\n`;
-      aiText += `• Net Profit: ${(baseData.netProfit / 1000000).toFixed(2)}M (${metrics.netMargin.toFixed(1)}% margin)\n`;
-      aiText += `• Gross Profit per Ton: ${(metrics.grossProfitPerTon / 1000).toFixed(0)}K\n`;
-      aiText += `\n`;
-
-      aiText += `**COST STRUCTURE BREAKDOWN**\n`;
-      aiText += `• Material Costs: ${(baseData.material / 1000000).toFixed(2)}M (${metrics.materialRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Manufacturing Expenses: ${(baseData.mfgExpenses / 1000000).toFixed(2)}M (${metrics.mfgRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Labor Costs: ${(baseData.labor / 1000000).toFixed(2)}M (${metrics.laborRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Electricity Costs: ${(baseData.electricity / 1000000).toFixed(2)}M (${metrics.electricityRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Admin Costs: ${(baseData.admin / 1000000).toFixed(2)}M (${metrics.adminRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Below Gross Profit Costs: ${(baseData.belowGP / 1000000).toFixed(2)}M (${metrics.belowGPRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Total Operating Costs: ${(metrics.totalCosts / 1000000).toFixed(2)}M (${metrics.totalCostRatio.toFixed(1)}%/Sls)\n`;
-      aiText += `• Material Cost per Ton: ${(metrics.materialCostPerTon / 1000).toFixed(0)}K\n`;
-      aiText += `\n`;
-
-      if (!userPreferences.excludeStrategy) {
-        aiText += `**STRATEGIC RECOMMENDATIONS**\n`;
-        aiText += `• Cost Optimization: Reduce material costs by ${metrics.materialRatio > 70 ? '5-10%' : '2-5%'} through supplier negotiations\n`;
-        aiText += `• Pricing Strategy: Adjust pricing to improve price per kg by ${metrics.pricePerKg < 2.0 ? '10-15%' : '5%'}\n`;
-        aiText += `• Efficiency Improvement: Invest in automation to lower mfg costs by ${metrics.mfgRatio > 20 ? '10%' : '5%'}\n`;
-        aiText += `\n`;
+      
+      // Material & Margin Analysis with Enhanced Comparisons
+      aiText += `**MATERIAL & MARGIN OVER MATERIAL ANALYSIS**\n`;
+      const marginOverMaterial = baseData.material > 0 ? ((baseData.sales - baseData.material) / baseData.material) * 100 : 0;
+      const marginOverMaterialAmount = baseData.sales - baseData.material;
+      const materialPerKg = baseData.salesVolume > 0 ? baseData.material / baseData.salesVolume : 0;
+      
+      aiText += `• **Base Period Material Performance:**\n`;
+      aiText += `  - Material Cost: ${formatCurrency(baseData.material)} (${metrics.materialRatio.toFixed(1)}% of sales)\n`;
+      aiText += `  - Material Cost per kg: ${materialPerKg.toFixed(2)} AED/kg\n`;
+      aiText += `  - Margin over Material: ${formatCurrency(marginOverMaterialAmount)} (${marginOverMaterial.toFixed(1)}%)\n`;
+      
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compMaterial = getKPI(5, period);
+          const compSales = getKPI(3, period);
+          const compVolume = getKPI(7, period);
+          const compMarginAmount = compSales - compMaterial;
+          const compMarginPercent = compMaterial > 0 ? ((compSales - compMaterial) / compMaterial) * 100 : 0;
+          const compMaterialRatio = compSales > 0 ? (compMaterial / compSales) * 100 : 0;
+          const compMaterialPerKg = compVolume > 0 ? compMaterial / compVolume : 0;
+          
+          const materialCostChange = compMaterial > 0 ? ((baseData.material - compMaterial) / compMaterial * 100) : 0;
+          const materialRatioChange = compMaterialRatio > 0 ? ((metrics.materialRatio - compMaterialRatio) / compMaterialRatio * 100) : 0;
+          const marginChange = compMarginAmount > 0 ? ((marginOverMaterialAmount - compMarginAmount) / compMarginAmount * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Material Cost: ${formatCurrency(compMaterial)} → ${formatCurrency(baseData.material)} (${materialCostChange >= 0 ? '+' : ''}${materialCostChange.toFixed(1)}%)\n`;
+          aiText += `  - Material % of Sales: ${compMaterialRatio.toFixed(1)}% → ${metrics.materialRatio.toFixed(1)}% (${materialRatioChange >= 0 ? '+' : ''}${materialRatioChange.toFixed(1)}%)\n`;
+          aiText += `  - Material AED/kg: ${compMaterialPerKg.toFixed(2)} → ${materialPerKg.toFixed(2)}\n`;
+          aiText += `  - Margin over Material: ${formatCurrency(compMarginAmount)} → ${formatCurrency(marginOverMaterialAmount)} (${marginChange >= 0 ? '+' : ''}${marginChange.toFixed(1)}%)\n`;
+          aiText += `  - **Impact:** ${Math.abs(materialRatioChange) > 10 ? 'MAJOR' : Math.abs(materialRatioChange) > 5 ? 'MODERATE' : 'MINOR'} material efficiency change\n`;
+        });
       }
-
-      aiText += `**SCENARIO ANALYSIS SUGGESTION**\n`;
-      aiText += `Use the chat to simulate scenarios (e.g., "What if material costs drop by 5%?") for deeper insights.\n`;
+      aiText += `\n`;
+      
+      // Manufacturing Costs Analysis
+      aiText += `**MANUFACTURING COSTS & DIRECT COSTS ANALYSIS**\n`;
+      const mfgCostPerKg = baseData.salesVolume > 0 ? baseData.mfgExpenses / baseData.salesVolume : 0;
+      
+      aiText += `• **Base Period Manufacturing Performance:**\n`;
+      aiText += `  - Total Manufacturing Cost: ${formatCurrency(baseData.mfgExpenses)} (${metrics.mfgRatio.toFixed(1)}% of sales)\n`;
+      aiText += `  - Manufacturing Cost per kg: ${mfgCostPerKg.toFixed(2)} AED/kg\n`;
+      aiText += `  - Key Cost Components:\n`;
+      aiText += `    * Labor: ${formatCurrency(baseData.labor)} (${metrics.laborRatio.toFixed(1)}% of sales)\n`;
+      aiText += `    * Electricity: ${formatCurrency(baseData.electricity)} (${metrics.electricityRatio.toFixed(1)}% of sales)\n`;
+      
+      // Identify highest cost component affecting profitability
+      const costComponents = [
+        { name: 'Labor', amount: baseData.labor, ratio: metrics.laborRatio },
+        { name: 'Electricity', amount: baseData.electricity, ratio: metrics.electricityRatio }
+      ];
+      const highestCost = costComponents.reduce((max, comp) => comp.amount > max.amount ? comp : max);
+      aiText += `  - **HIGHEST IMPACT ON PROFITABILITY:** ${highestCost.name} at ${formatCurrency(highestCost.amount)} (${highestCost.ratio.toFixed(1)}% of sales)\n`;
+      
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compMfg = getKPI(14, period);
+          const compSales = getKPI(3, period);
+          const compVolume = getKPI(7, period);
+          const compMfgRatio = compSales > 0 ? (compMfg / compSales) * 100 : 0;
+          const compMfgPerKg = compVolume > 0 ? compMfg / compVolume : 0;
+          
+          const mfgCostChange = compMfg > 0 ? ((baseData.mfgExpenses - compMfg) / compMfg * 100) : 0;
+          const mfgRatioChange = compMfgRatio > 0 ? ((metrics.mfgRatio - compMfgRatio) / compMfgRatio * 100) : 0;
+          const mfgPerKgChange = compMfgPerKg > 0 ? ((mfgCostPerKg - compMfgPerKg) / compMfgPerKg * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Manufacturing Cost: ${formatCurrency(compMfg)} → ${formatCurrency(baseData.mfgExpenses)} (${mfgCostChange >= 0 ? '+' : ''}${mfgCostChange.toFixed(1)}%)\n`;
+          aiText += `  - Manufacturing % of Sales: ${compMfgRatio.toFixed(1)}% → ${metrics.mfgRatio.toFixed(1)}% (${mfgRatioChange >= 0 ? '+' : ''}${mfgRatioChange.toFixed(1)}%)\n`;
+          aiText += `  - Manufacturing AED/kg: ${compMfgPerKg.toFixed(2)} → ${mfgCostPerKg.toFixed(2)} (${mfgPerKgChange >= 0 ? '+' : ''}${mfgPerKgChange.toFixed(1)}%)\n`;
+          aiText += `  - **Impact:** ${Math.abs(mfgRatioChange) > 15 ? 'CRITICAL' : Math.abs(mfgRatioChange) > 8 ? 'SIGNIFICANT' : 'MODERATE'} manufacturing efficiency change\n`;
+        });
+      }
+      aiText += `\n`;
+      
+      // Gross Profit Analysis
+      aiText += `**GROSS PROFIT ANALYSIS**\n`;
+      const grossProfitPerKg = baseData.salesVolume > 0 ? baseData.grossProfit / baseData.salesVolume : 0;
+      
+      aiText += `• **Base Period Gross Profit Performance:**\n`;
+      aiText += `  - Gross Profit: ${formatCurrency(baseData.grossProfit)} (${metrics.grossMargin.toFixed(1)}% of sales)\n`;
+      aiText += `  - Gross Profit per kg: ${grossProfitPerKg.toFixed(2)} AED/kg\n`;
+      
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compGrossProfit = getKPI(4, period);
+          const compSales = getKPI(3, period);
+          const compVolume = getKPI(7, period);
+          const compGrossMargin = compSales > 0 ? (compGrossProfit / compSales) * 100 : 0;
+          const compGrossProfitPerKg = compVolume > 0 ? compGrossProfit / compVolume : 0;
+          
+          const grossProfitChange = compGrossProfit > 0 ? ((baseData.grossProfit - compGrossProfit) / compGrossProfit * 100) : 0;
+          const grossMarginChange = compGrossMargin > 0 ? ((metrics.grossMargin - compGrossMargin) / compGrossMargin * 100) : 0;
+          const grossProfitPerKgChange = compGrossProfitPerKg > 0 ? ((grossProfitPerKg - compGrossProfitPerKg) / compGrossProfitPerKg * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Gross Profit: ${formatCurrency(compGrossProfit)} → ${formatCurrency(baseData.grossProfit)} (${grossProfitChange >= 0 ? '+' : ''}${grossProfitChange.toFixed(1)}%)\n`;
+          aiText += `  - Gross Margin %: ${compGrossMargin.toFixed(1)}% → ${metrics.grossMargin.toFixed(1)}% (${grossMarginChange >= 0 ? '+' : ''}${grossMarginChange.toFixed(1)}%)\n`;
+          aiText += `  - Gross Profit AED/kg: ${compGrossProfitPerKg.toFixed(2)} → ${grossProfitPerKg.toFixed(2)} (${grossProfitPerKgChange >= 0 ? '+' : ''}${grossProfitPerKgChange.toFixed(1)}%)\n`;
+          aiText += `  - **Impact:** ${Math.abs(grossMarginChange) > 15 ? 'MAJOR' : Math.abs(grossMarginChange) > 8 ? 'MODERATE' : 'MINOR'} gross profitability change\n`;
+        });
+      }
+      aiText += `\n`;
+      
+      // Below GP Expenses Analysis
+      aiText += `**BELOW GROSS PROFIT EXPENSES ANALYSIS**\n`;
+      const belowGPPerKg = baseData.salesVolume > 0 ? baseData.belowGP / baseData.salesVolume : 0;
+      
+      aiText += `• **Base Period Below GP Expenses:**\n`;
+      aiText += `  - Total Below GP Expenses: ${formatCurrency(baseData.belowGP)} (${metrics.belowGPRatio.toFixed(1)}% of sales)\n`;
+      aiText += `  - Below GP Expenses per kg: ${belowGPPerKg.toFixed(2)} AED/kg\n`;
+      aiText += `  - Key Components:\n`;
+      aiText += `    * Admin Expenses: ${formatCurrency(baseData.admin)} (${metrics.adminRatio.toFixed(1)}% of sales)\n`;
+      
+      // Identify which below GP expense affects profitability most
+      aiText += `  - **HIGHEST IMPACT ON PROFITABILITY:** Admin Expenses at ${formatCurrency(baseData.admin)} (${metrics.adminRatio.toFixed(1)}% of sales)\n`;
+      
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compBelowGP = getKPI(52, period);
+          const compSales = getKPI(3, period);
+          const compVolume = getKPI(7, period);
+          const compBelowGPRatio = compSales > 0 ? (compBelowGP / compSales) * 100 : 0;
+          const compBelowGPPerKg = compVolume > 0 ? compBelowGP / compVolume : 0;
+          
+          const belowGPChange = compBelowGP > 0 ? ((baseData.belowGP - compBelowGP) / compBelowGP * 100) : 0;
+          const belowGPRatioChange = compBelowGPRatio > 0 ? ((metrics.belowGPRatio - compBelowGPRatio) / compBelowGPRatio * 100) : 0;
+          const belowGPPerKgChange = compBelowGPPerKg > 0 ? ((belowGPPerKg - compBelowGPPerKg) / compBelowGPPerKg * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Below GP Expenses: ${formatCurrency(compBelowGP)} → ${formatCurrency(baseData.belowGP)} (${belowGPChange >= 0 ? '+' : ''}${belowGPChange.toFixed(1)}%)\n`;
+          aiText += `  - Below GP % of Sales: ${compBelowGPRatio.toFixed(1)}% → ${metrics.belowGPRatio.toFixed(1)}% (${belowGPRatioChange >= 0 ? '+' : ''}${belowGPRatioChange.toFixed(1)}%)\n`;
+          aiText += `  - Below GP AED/kg: ${compBelowGPPerKg.toFixed(2)} → ${belowGPPerKg.toFixed(2)} (${belowGPPerKgChange >= 0 ? '+' : ''}${belowGPPerKgChange.toFixed(1)}%)\n`;
+          aiText += `  - **Impact:** ${Math.abs(belowGPRatioChange) > 20 ? 'HIGH' : Math.abs(belowGPRatioChange) > 10 ? 'MODERATE' : 'LOW'} overhead cost impact\n`;
+        });
+      }
+      aiText += `\n`;
+      
+      // Total Expenses Analysis
+      aiText += `**TOTAL EXPENSES ANALYSIS**\n`;
+      const totalExpensesPerKg = baseData.salesVolume > 0 ? metrics.totalCosts / baseData.salesVolume : 0;
+      
+      aiText += `• **Base Period Total Expenses:**\n`;
+      aiText += `  - Total Expenses: ${formatCurrency(metrics.totalCosts)} (${metrics.totalCostRatio.toFixed(1)}% of sales)\n`;
+      aiText += `  - Total Expenses per kg: ${totalExpensesPerKg.toFixed(2)} AED/kg\n`;
+      aiText += `  - Breakdown: Material ${metrics.materialRatio.toFixed(1)}% + Manufacturing ${metrics.mfgRatio.toFixed(1)}% + Below GP ${metrics.belowGPRatio.toFixed(1)}%\n`;
+      
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compMaterial = getKPI(5, period);
+          const compMfg = getKPI(14, period);
+          const compBelowGP = getKPI(52, period);
+          const compTotalCosts = compMaterial + compMfg + compBelowGP;
+          const compSales = getKPI(3, period);
+          const compVolume = getKPI(7, period);
+          const compTotalCostRatio = compSales > 0 ? (compTotalCosts / compSales) * 100 : 0;
+          const compTotalExpensesPerKg = compVolume > 0 ? compTotalCosts / compVolume : 0;
+          
+          const totalExpensesChange = compTotalCosts > 0 ? ((metrics.totalCosts - compTotalCosts) / compTotalCosts * 100) : 0;
+          const totalExpensesRatioChange = compTotalCostRatio > 0 ? ((metrics.totalCostRatio - compTotalCostRatio) / compTotalCostRatio * 100) : 0;
+          const totalExpensesPerKgChange = compTotalExpensesPerKg > 0 ? ((totalExpensesPerKg - compTotalExpensesPerKg) / compTotalExpensesPerKg * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Total Expenses: ${formatCurrency(compTotalCosts)} → ${formatCurrency(metrics.totalCosts)} (${totalExpensesChange >= 0 ? '+' : ''}${totalExpensesChange.toFixed(1)}%)\n`;
+          aiText += `  - Total Expenses % of Sales: ${compTotalCostRatio.toFixed(1)}% → ${metrics.totalCostRatio.toFixed(1)}% (${totalExpensesRatioChange >= 0 ? '+' : ''}${totalExpensesRatioChange.toFixed(1)}%)\n`;
+          aiText += `  - Total Expenses AED/kg: ${compTotalExpensesPerKg.toFixed(2)} → ${totalExpensesPerKg.toFixed(2)} (${totalExpensesPerKgChange >= 0 ? '+' : ''}${totalExpensesPerKgChange.toFixed(1)}%)\n`;
+          aiText += `  - **Overall Cost Control:** ${Math.abs(totalExpensesRatioChange) > 10 ? 'NEEDS ATTENTION' : Math.abs(totalExpensesRatioChange) > 5 ? 'MONITOR CLOSELY' : 'STABLE'}\n`;
+        });
+      }
+      aiText += `\n`;
+      
+      // Net Profit/EBIT/EBITDA Analysis
+      aiText += `**NET PROFIT/EBIT/EBITDA ANALYSIS**\n`;
+      const netProfitPerKg = baseData.salesVolume > 0 ? baseData.netProfit / baseData.salesVolume : 0;
+      const ebitPerKg = baseData.salesVolume > 0 ? ebit / baseData.salesVolume : 0;
+      const ebitdaPerKg = baseData.salesVolume > 0 ? baseData.ebitda / baseData.salesVolume : 0;
+      
+      aiText += `• **Base Period Profitability Performance:**\n`;
+      aiText += `  - Net Profit: ${formatCurrency(baseData.netProfit)} (${metrics.netMargin.toFixed(1)}% margin)\n`;
+      aiText += `  - EBIT: ${formatCurrency(ebit)} (${ebitMargin.toFixed(1)}% margin)\n`;
+      aiText += `  - EBITDA: ${formatCurrency(baseData.ebitda)} (${metrics.ebitdaMargin.toFixed(1)}% margin)\n`;
+      aiText += `  - Per kg: Net ${netProfitPerKg.toFixed(2)}, EBIT ${ebitPerKg.toFixed(2)}, EBITDA ${ebitdaPerKg.toFixed(2)} AED/kg\n`;
+      
+      // Business Strength Explanations
+      aiText += `\n**BUSINESS STRENGTH INDICATORS:**\n`;
+      aiText += `• **EBIT (${ebitMargin.toFixed(1)}% margin):** ${ebitMargin > 15 ? 'STRONG operational profitability before financing costs' : ebitMargin > 10 ? 'ADEQUATE operational performance with room for improvement' : ebitMargin > 5 ? 'WEAK operational efficiency needs immediate attention' : 'CRITICAL operational issues requiring urgent action'}\n`;
+      aiText += `• **EBITDA (${metrics.ebitdaMargin.toFixed(1)}% margin):** ${metrics.ebitdaMargin > 20 ? 'EXCELLENT cash generation and debt servicing capacity' : metrics.ebitdaMargin > 15 ? 'GOOD cash flow generation supporting growth investments' : metrics.ebitdaMargin > 10 ? 'MODERATE cash generation limiting expansion potential' : 'POOR cash generation constraining business growth'}\n`;
+      aiText += `• **Net Profit (${metrics.netMargin.toFixed(1)}% margin):** ${metrics.netMargin > 10 ? 'STRONG bottom-line performance for shareholders' : metrics.netMargin > 5 ? 'ACCEPTABLE profitability with optimization opportunities' : metrics.netMargin > 2 ? 'THIN margins requiring cost management focus' : 'UNSUSTAINABLE profitability needs immediate intervention'}\n`;
+      
+      if (comparisonPeriods.length > 0) {
+        comparisonPeriods.forEach(period => {
+          const periodName = getCleanPeriodName(period);
+          const compNetProfit = getKPI(54, period);
+          const compEBIT = getEBIT(period);
+          const compEBITDA = getKPI(56, period);
+          const compSales = getKPI(3, period);
+          const compNetMargin = compSales > 0 ? (compNetProfit / compSales) * 100 : 0;
+          const compEBITMargin = compSales > 0 ? (compEBIT / compSales) * 100 : 0;
+          const compEBITDAMargin = compSales > 0 ? (compEBITDA / compSales) * 100 : 0;
+          
+          const netProfitChange = compNetProfit > 0 ? ((baseData.netProfit - compNetProfit) / compNetProfit * 100) : 0;
+          const ebitChange = compEBIT > 0 ? ((ebit - compEBIT) / compEBIT * 100) : 0;
+          const ebitdaChange = compEBITDA > 0 ? ((baseData.ebitda - compEBITDA) / compEBITDA * 100) : 0;
+          const netMarginChange = compNetMargin > 0 ? ((metrics.netMargin - compNetMargin) / compNetMargin * 100) : 0;
+          const ebitMarginChange = compEBITMargin > 0 ? ((ebitMargin - compEBITMargin) / compEBITMargin * 100) : 0;
+          const ebitdaMarginChange = compEBITDAMargin > 0 ? ((metrics.ebitdaMargin - compEBITDAMargin) / compEBITDAMargin * 100) : 0;
+          
+          aiText += `• **${getComparisonLabel(basePeriod, period)}:**\n`;
+          aiText += `  - Net Profit: ${formatCurrency(compNetProfit)} → ${formatCurrency(baseData.netProfit)} (${netProfitChange >= 0 ? '+' : ''}${netProfitChange.toFixed(1)}%)\n`;
+          aiText += `  - EBIT: ${formatCurrency(compEBIT)} → ${formatCurrency(ebit)} (${ebitChange >= 0 ? '+' : ''}${ebitChange.toFixed(1)}%)\n`;
+          aiText += `  - EBITDA: ${formatCurrency(compEBITDA)} → ${formatCurrency(baseData.ebitda)} (${ebitdaChange >= 0 ? '+' : ''}${ebitdaChange.toFixed(1)}%)\n`;
+          aiText += `  - Margin Changes: Net ${netMarginChange >= 0 ? '+' : ''}${netMarginChange.toFixed(1)}%, EBIT ${ebitMarginChange >= 0 ? '+' : ''}${ebitMarginChange.toFixed(1)}%, EBITDA ${ebitdaMarginChange >= 0 ? '+' : ''}${ebitdaMarginChange.toFixed(1)}%\n`;
+          aiText += `  - **Performance:** ${Math.abs(netProfitChange) > 20 ? 'DRAMATIC' : Math.abs(netProfitChange) > 10 ? 'SIGNIFICANT' : Math.abs(netProfitChange) > 5 ? 'MODERATE' : 'STABLE'} profitability change\n`;
+        });
+      }
+      
+      aiText += `\n**KEY BUSINESS INSIGHTS:**\n`;
+      if (comparisonPeriods.length > 0) {
+        aiText += `This analysis compares ${basePeriodName} against ${comparisonPeriods.length} selected period(s). `;
+      } else {
+        aiText += `This analysis covers ${basePeriodName} only. Add comparison periods for trend analysis. `;
+      }
+      
+      // Provide specific management recommendations based on metrics
+      if (metrics.netMargin < 5) {
+        aiText += `URGENT: Low net margins require immediate cost reduction focus. `;
+      }
+      if (ebitMargin < 10) {
+        aiText += `Operations need efficiency improvements. `;
+      }
+      if (metrics.ebitdaMargin < 15) {
+        aiText += `Cash generation limits growth investment capacity. `;
+      }
+      
+      aiText += `Key management priorities: `;
+      const priorities = [];
+      if (metrics.materialRatio > 60) priorities.push('material cost optimization');
+      if (metrics.mfgRatio > 25) priorities.push('manufacturing efficiency');
+      if (metrics.belowGPRatio > 20) priorities.push('overhead cost control');
+      if (priorities.length === 0) priorities.push('maintain current performance levels');
+      
+      aiText += priorities.join(', ') + '.\n';
 
       const processedText = applyUserPreferences(aiText);
       
@@ -404,7 +731,7 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
 
       setChatMessages(prev => [...prev, {
         type: 'system',
-        content: `Analysis generated with ${Object.keys(userPreferences).length} learned preferences applied.`,
+        content: `Comprehensive comparative analysis generated with ${Object.keys(userPreferences).length} learned preferences applied.`,
         timestamp: new Date(),
       }]);
 

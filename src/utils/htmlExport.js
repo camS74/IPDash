@@ -332,20 +332,25 @@ const getEmbeddedCSSNoWriteup = () => `
     background: linear-gradient(135deg, #003366, #0066cc);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
+    border-radius: 25px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     transition: all 0.3s ease;
     z-index: 1000;
     display: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    white-space: nowrap;
   }
   
   .back-button:hover {
-    transform: scale(1.1);
+    transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #0066cc, #4da6ff);
   }
   
   .back-button.visible {
@@ -663,20 +668,25 @@ const getEmbeddedCSSWithWriteup = () => `
     background: linear-gradient(135deg, #003366, #0066cc);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
+    border-radius: 25px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     transition: all 0.3s ease;
     z-index: 1000;
     display: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    white-space: nowrap;
   }
   
   .back-button:hover {
-    transform: scale(1.1);
+    transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #0066cc, #4da6ff);
   }
   
   .back-button.visible {
@@ -1437,7 +1447,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
 
         <!-- Floating Back Button -->
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
-            ↑
+            Back to Home page
         </button>
             </div>
 
@@ -1729,7 +1739,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
 
         <!-- Floating Back Button -->
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
-            ↑
+            Back to Home page
         </button>
     </div>
 

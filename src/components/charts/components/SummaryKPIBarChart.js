@@ -5,6 +5,7 @@ import ReactECharts from 'echarts-for-react';
 const KPI_ROWS = {
   TOTAL_EXPENSES: { label: 'Total Expenses', rowIndex: 28 },
   NET_PROFIT: { label: 'Net Profit', rowIndex: 29 },
+  EBIT: { label: 'EBIT', rowIndex: 'calculated', isEBIT: true },
   EBITDA: { label: 'EBITDA', rowIndex: 30 },
 };
 
@@ -46,8 +47,20 @@ const SummaryKPIBarChart = ({ tableData, selectedPeriods, computeCellValue, styl
   periodsToUse.forEach((period, periodIdx) => {
     const periodName = periodNames[periodIdx];
     kpiKeys.forEach(key => {
-      const rowIdx = KPI_ROWS[key].rowIndex;
-      const amount = computeCellValue(rowIdx, period);
+      const kpiConfig = KPI_ROWS[key];
+      let amount;
+      
+      if (kpiConfig.isEBIT) {
+        // Calculate EBIT as Net Profit + Bank Interest
+        // For SummaryKPIBarChart, Net Profit might be row 29, but we should use the same logic as in TableView
+        // Using rows 54 (Net Profit) and 42 (Bank Interest) to be consistent with table
+        const netProfit = computeCellValue(54, period);
+        const bankInterest = computeCellValue(42, period);
+        amount = (typeof netProfit === 'number' ? netProfit : 0) + (typeof bankInterest === 'number' ? bankInterest : 0);
+      } else {
+        amount = computeCellValue(kpiConfig.rowIndex, period);
+      }
+      
       const sales = computeCellValue(3, period);
       const salesVolume = computeCellValue(7, period);
       let percentOfSales = 0;

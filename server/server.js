@@ -6,16 +6,113 @@ const fs = require('fs');
 const app = express();
 const PORT = 3001;
 
+// Middleware
+app.use(express.json());
+
 // Enable CORS with specific options
 app.use(cors({
   origin: 'http://localhost:3000',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
+
+// File-based persistent storage for standard configurations
+const CONFIG_FILE_PATH = path.join(__dirname, 'data', 'standard-configs.json');
+
+// Ensure data directory exists
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// Load existing configurations from file
+let standardConfigs = new Map();
+function loadStandardConfigs() {
+  try {
+    if (fs.existsSync(CONFIG_FILE_PATH)) {
+      const data = fs.readFileSync(CONFIG_FILE_PATH, 'utf8');
+      const configs = JSON.parse(data);
+      standardConfigs = new Map(Object.entries(configs));
+      console.log(`Loaded ${standardConfigs.size} standard configurations from file`);
+    } else {
+      console.log('No existing standard configurations file found, starting fresh');
+    }
+  } catch (error) {
+    console.error('Error loading standard configurations:', error);
+    standardConfigs = new Map(); // Fallback to empty map
+  }
+}
+
+// Save configurations to file
+function saveStandardConfigs() {
+  try {
+    const configs = Object.fromEntries(standardConfigs);
+    fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(configs, null, 2));
+    console.log(`Saved ${standardConfigs.size} standard configurations to file`);
+  } catch (error) {
+    console.error('Error saving standard configurations:', error);
+  }
+}
+
+// Load configurations on startup
+loadStandardConfigs();
 
 // Root path handler with helpful message
 app.get('/', (req, res) => {
   res.send('This is the backend API server. Please access the React application at <a href="http://localhost:3000">http://localhost:3000</a>');
+});
+
+// API endpoints for standard configuration management
+app.post('/api/standard-config', (req, res) => {
+  try {
+    const { key, data } = req.body;
+    if (!key || !data) {
+      return res.status(400).json({ error: 'Key and data are required' });
+    }
+    
+    standardConfigs.set(key, data);
+    saveStandardConfigs(); // Save to file immediately
+    console.log(`Saved standard config for key: ${key}`);
+    res.json({ success: true, message: 'Standard configuration saved' });
+  } catch (error) {
+    console.error('Error saving standard config:', error);
+    res.status(500).json({ error: 'Failed to save standard configuration' });
+  }
+});
+
+app.get('/api/standard-config/:key', (req, res) => {
+  try {
+    const { key } = req.params;
+    const data = standardConfigs.get(key);
+    
+    if (data) {
+      console.log(`Retrieved standard config for key: ${key}`);
+      res.json({ success: true, data });
+    } else {
+      res.status(404).json({ success: false, message: 'Standard configuration not found' });
+    }
+  } catch (error) {
+    console.error('Error retrieving standard config:', error);
+    res.status(500).json({ error: 'Failed to retrieve standard configuration' });
+  }
+});
+
+app.delete('/api/standard-config/:key', (req, res) => {
+  try {
+    const { key } = req.params;
+    const deleted = standardConfigs.delete(key);
+    
+    if (deleted) {
+      saveStandardConfigs(); // Save to file immediately after deletion
+      console.log(`Deleted standard config for key: ${key}`);
+      res.json({ success: true, message: 'Standard configuration deleted' });
+    } else {
+      res.status(404).json({ success: false, message: 'Standard configuration not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting standard config:', error);
+    res.status(500).json({ error: 'Failed to delete standard configuration' });
+  }
 });
 
 // API endpoint to serve the Excel file

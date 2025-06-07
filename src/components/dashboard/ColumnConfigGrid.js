@@ -155,18 +155,34 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
   };
   
   // Handle saving as standard selection
-  const handleSaveAsStandard = () => {
-    if (saveAsStandardSelection()) {
-      setStandardSaved(true);
-      // Reset the saved state after 2 seconds
-      setTimeout(() => setStandardSaved(false), 2000);
+  const handleSaveAsStandard = async () => {
+    try {
+      const success = await saveAsStandardSelection();
+      if (success) {
+        setStandardSaved(true);
+        // Reset the saved state after 2 seconds
+        setTimeout(() => setStandardSaved(false), 2000);
+      } else {
+        alert('Failed to save standard configuration. Please check the backend connection.');
+      }
+    } catch (error) {
+      console.error('Error saving standard configuration:', error);
+      alert('Failed to save standard configuration. Please try again.');
     }
   };
 
   // Handle clearing standard selection
-  const handleClearStandard = () => {
-    if (clearStandardSelection()) {
-      setStandardSaved(false);
+  const handleClearStandard = async () => {
+    try {
+      const success = await clearStandardSelection();
+      if (success) {
+        setStandardSaved(false);
+      } else {
+        alert('Failed to clear standard configuration. Please check the backend connection.');
+      }
+    } catch (error) {
+      console.error('Error clearing standard configuration:', error);
+      alert('Failed to clear standard configuration. Please try again.');
     }
   };
   
@@ -248,7 +264,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
     <div className="column-config-container">
       <div className="column-config-header">
         <div className="header-title-actions">
-          <h3>Column Configuration</h3>
+          <h3>Period Configuration</h3>
           <div className="header-buttons-container">
             {columnOrder.length > 0 && (
               <>
@@ -390,17 +406,9 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
         )}
       </div>
       {/* Add Generate Complete Report buttons at the bottom */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: 24, marginBottom: 8 }}>
+      <div className="export-buttons-container">
         <button 
-          className="generate-btn" 
-          style={{ 
-            minWidth: 200, 
-            fontSize: 16, 
-            padding: '10px 24px',
-            background: 'linear-gradient(135deg, #FCA5A5, #DC2626)',
-            border: 'none',
-            color: 'white'
-          }} 
+          className="export-btn pdf-export" 
           onClick={exportPdfFunction}
           disabled={!exportPdfFunction || !dataGenerated}
           title={!dataGenerated ? "Please generate data first" : !exportPdfFunction ? "Charts are loading..." : "Export all charts to PDF"}
@@ -408,15 +416,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
           PDF Report
         </button>
         <button 
-          className="generate-btn" 
-          style={{ 
-            minWidth: 200, 
-            fontSize: 16, 
-            padding: '10px 24px',
-            background: 'linear-gradient(135deg, #FEF3C7, #FDE047)',
-            border: 'none',
-            color: 'black'
-          }} 
+          className="export-btn html-export" 
           onClick={handleHTMLExport}
           disabled={!dataGenerated}
           title={!dataGenerated ? "Please generate data first" : "Export interactive HTML report (charts + table only)"}
@@ -424,15 +424,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
           HTML Report
         </button>
         <button 
-          className="generate-btn" 
-          style={{ 
-            minWidth: 250, 
-            fontSize: 16, 
-            padding: '10px 24px',
-            background: 'linear-gradient(135deg, #7DD3FC, #0891B2)',
-            border: 'none',
-            color: 'white'
-          }} 
+          className="export-btn html-writeup-export" 
           onClick={handleHTMLExportWithWriteup}
           disabled={!dataGenerated}
           title={!dataGenerated ? "Please generate data first" : "Export HTML report with editable writeup section"}

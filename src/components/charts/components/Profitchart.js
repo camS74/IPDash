@@ -2,6 +2,7 @@ import React from 'react';
 
 const PROFIT_KPIS = [
   { label: 'Net Profit', rowIndex: 54 },
+  { label: 'EBIT', rowIndex: 'calculated', isEBIT: true },
   { label: 'EBITDA', rowIndex: 56 },
 ];
 const cardColors = ['#288cfa', '#2E865F', '#FF9800', '#003366', '#FFCC33'];
@@ -56,7 +57,16 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
       {PROFIT_KPIS.map((kpi, rowIdx) => {
         // Build cards for this KPI
         const cards = periodsToUse.map((period, idx) => {
-          const value = computeCellValue(kpi.rowIndex, period);
+          let value;
+          if (kpi.isEBIT) {
+            // Calculate EBIT as Net Profit + Bank Interest (Row 54 + Row 42)
+            const netProfit = computeCellValue(54, period);
+            const bankInterest = computeCellValue(42, period);
+            value = (typeof netProfit === 'number' ? netProfit : 0) + (typeof bankInterest === 'number' ? bankInterest : 0);
+          } else {
+            value = computeCellValue(kpi.rowIndex, period);
+          }
+          
           const sales = computeCellValue(3, period);
           const salesVolume = computeCellValue(7, period);
           const percentOfSales = (typeof sales === 'number' && sales !== 0) ? (value / sales) * 100 : 0;
@@ -76,7 +86,7 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
           return calcVariance(card.value, cards[idx - 1].value);
         });
         return (
-          <div key={kpi.label} style={{ marginBottom: rowIdx === 0 ? 40 : 0 }}>
+          <div key={kpi.label} style={{ marginBottom: rowIdx < PROFIT_KPIS.length - 1 ? 60 : 0 }}>
             <h2 className="modern-gauge-heading" style={{
               textAlign: 'center',
               fontSize: '18px',

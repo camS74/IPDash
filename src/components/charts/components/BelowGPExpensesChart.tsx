@@ -540,7 +540,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       backgroundColor: 'white',
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      padding: '20px',
+      padding: style?.padding || '20px', // Allow padding override for PDF export
       ...(style || {}) // Apply any style props passed from parent component
     }}>
       <h2 className="modern-gauge-heading" style={{

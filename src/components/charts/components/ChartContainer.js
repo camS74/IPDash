@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useFilter } from '../../../contexts/FilterContext';
 import { useExcelData } from '../../../contexts/ExcelDataContext';
 import BarChart from './BarChart';
@@ -61,6 +61,9 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
   const periods = columnOrder;
   const basePeriod = periods[basePeriodIndex];
   const visiblePeriods = periods.filter(p => isColumnVisibleInChart(p.id));
+  
+  // State to track PDF export mode for optimization
+  const [isPDFExporting, setIsPDFExporting] = useState(false);
 
   const chartData = {};
   const colsToIterate = visiblePeriods.length ? visiblePeriods : periods;
@@ -90,6 +93,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
    * EXPORT HANDLER – NEW IMPLEMENTATION
    * -------------------------------------------------- */
   const handleExportAllCharts = async () => {
+    setIsPDFExporting(true); // Enable PDF export mode
     try {
       // Division full names mapping
       const divisionNames = {
@@ -191,8 +195,16 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
       pdf.setFontSize(16);
       pdf.setTextColor(0, 51, 102); // Logo blue color instead of gray
       
+      // DEBUG: Log the base period information
+      console.log('PDF Export - Base Period Debug:', {
+        basePeriodIndex,
+        basePeriod,
+        periodsLength: periods?.length,
+        periods: periods
+      });
+      
       // Format base period text from the period object
-      if (basePeriod) {
+      if (basePeriod && basePeriodIndex !== null) {
         // Line 1: Year and Quarter/Month (handle custom ranges)
         let periodLine1 = '';
         if (basePeriod.isCustomRange) {
@@ -226,10 +238,10 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
         pdf.text(noBasePeriodText, noBasePeriodX, pageH / 2 + 20);
       }
 
-      /* 2 ► Set up dimensions for chart pages */
+      /* 2 ► Set up dimensions for chart pages - OPTIMIZED FOR MAXIMUM CHART SIZE */
       const landscapePageW = pageW; // 842 pt
       const landscapePageH = pageH; // 595 pt
-      const margin = 20;
+      const margin = 8; // Reduced from 20 to 8 for maximum chart space
       const contentW = landscapePageW - margin * 2;
       const contentH = landscapePageH - margin * 2;
 
@@ -246,6 +258,11 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
       let capturedCharts = 0;
       for (let i = 0; i < chartRefs.length; i++) {
         const { ref, selector, isManufacturing, isBelowGP, name } = chartRefs[i];
+        
+        // Determine if this chart should use reduced quality for smaller file size
+        const isLargeChart = name === 'Manufacturing Cost' || name === 'Below GP Expenses' || name === 'Combined Trends';
+        const quality = isLargeChart ? 0.4 : 0.85; // 40% quality for large charts, 85% for others
+        const scale = isLargeChart ? 0.8 : 1.5; // Much lower scale for large charts
         const containerNode = ref.current;
         
         // Add new page for first chart (after title page)
@@ -267,14 +284,67 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
 
         console.log(`Processing ${name}:`, { width: rect.width, height: rect.height });
 
+        // DEBUG: Add specific logging for Combined Trends
+        if (name === 'Combined Trends') {
+          console.log('Combined Trends Debug:', {
+            visiblePeriods: visiblePeriods,
+            selectedPeriods: selectedPeriods,
+            containerNode: !!containerNode,
+            children: containerNode?.children?.length
+          });
+        }
+
         // Hide any tooltips before capture
         const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');
         tooltips.forEach(tooltip => {
           if (tooltip) tooltip.style.display = 'none';
         });
 
-        // Wait for content to settle
+        // OPTIMIZE CHART FOR PDF - Remove padding/margins temporarily
+        const originalStyles = new Map();
+        
+        // Store original styles and apply PDF-optimized ones
+        const optimizeElementForPDF = (element, removeMargins = true) => {
+          if (!element) return;
+          
+          originalStyles.set(element, {
+            padding: element.style.padding,
+            margin: element.style.margin,
+            marginTop: element.style.marginTop,
+            marginBottom: element.style.marginBottom,
+            width: element.style.width,
+            minWidth: element.style.minWidth,
+            maxWidth: element.style.maxWidth
+          });
+          
+          if (removeMargins) {
+            element.style.padding = '10px'; // Minimal padding
+            element.style.margin = '0';
+            element.style.marginTop = '0';
+            element.style.marginBottom = '0';
+          }
+          
+          // Make charts use full available width
+          element.style.width = '100%';
+          element.style.minWidth = '100%';
+          element.style.maxWidth = 'none';
+        };
+
+        // Apply optimizations
+        optimizeElementForPDF(containerNode);
+        
+        // Also optimize child elements that might have excessive padding
+        const chartElements = containerNode.querySelectorAll('.modern-margin-gauge-panel, .echarts-for-react, .react_for_echarts');
+        chartElements.forEach(el => optimizeElementForPDF(el));
+
+        // Wait for content to settle with new styles
         await new Promise(r => setTimeout(r, 300));
+
+        // Special handling for Combined Trends - ensure components are fully rendered
+        if (name === 'Combined Trends') {
+          console.log('Giving Combined Trends extra time to render...');
+          await new Promise(r => setTimeout(r, 1000));
+        }
 
         let canvas;
         
@@ -294,7 +364,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
             /* Capture bitmap for ECharts */
             const chartElement = containerNode.querySelector(selector) || containerNode;
             canvas = await html2canvas(chartElement, {
-              scale: 2,
+              scale: scale, // Use dynamic scale based on chart type
               backgroundColor: '#ffffff',
               useCORS: true,
               allowTaint: true,
@@ -303,7 +373,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
               } else {
             /* For non-ECharts components - capture the entire container */
             canvas = await html2canvas(containerNode, {
-              scale: 2,
+              scale: scale, // Use dynamic scale based on chart type
               backgroundColor: '#ffffff',
               useCORS: true,
               allowTaint: true,
@@ -333,12 +403,18 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
           }
           
           if (!canvas || canvas.width === 0 || canvas.height === 0) {
-            console.error(`Failed to capture ${name} - invalid canvas`);
+            console.error(`Failed to capture ${name} - invalid canvas:`, {
+              canvas: !!canvas,
+              width: canvas?.width,
+              height: canvas?.height,
+              containerDimensions: { width: rect.width, height: rect.height }
+            });
           continue;
         }
 
-          // Create image data
-          const imgData = canvas.toDataURL('image/jpeg', 0.85);
+          // Create image data - Use JPEG for large charts to reduce file size, PNG for others
+          const format = isLargeChart ? 'image/jpeg' : 'image/png';
+          const imgData = canvas.toDataURL(format, quality);
 
           /* Calculate dimensions to fit on page */
           const imgRatio = canvas.width / canvas.height;
@@ -362,8 +438,9 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
           
           // Validate dimensions
           if (drawW > 0 && drawH > 0 && !isNaN(x) && !isNaN(y)) {
-            // Add image to PDF
-            pdf.addImage(imgData, 'JPEG', x, y, drawW, drawH);
+            // Add image to PDF with appropriate format
+            const pdfFormat = isLargeChart ? 'JPEG' : 'PNG';
+            pdf.addImage(imgData, pdfFormat, x, y, drawW, drawH);
             capturedCharts++;
             
             /* Add a new page for next chart (except last) */
@@ -376,6 +453,17 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
         } catch (err) {
           console.error(`Error capturing ${name}:`, err);
         }
+
+        // RESTORE ORIGINAL STYLES after capture
+        originalStyles.forEach((styles, element) => {
+          if (element && styles) {
+            Object.keys(styles).forEach(prop => {
+              if (styles[prop] !== undefined) {
+                element.style[prop] = styles[prop];
+              }
+            });
+          }
+        });
       }
 
       /* 5 ► Add table export after all charts */
@@ -414,7 +502,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
               // Simple approach first - try direct capture
               console.log('Attempting direct table capture...');
               const directCanvas = await html2canvas(financialTable, {
-                scale: 1.2,
+                scale: 0.9, // Reduced scale for table
                 backgroundColor: '#ffffff',
                 useCORS: true,
                 allowTaint: true,
@@ -433,7 +521,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
                 const a4ContentW = a4PageW - a4Margin * 2;
                 const a4ContentH = a4PageH - a4Margin * 2;
                 
-                const tableImgData = directCanvas.toDataURL('image/jpeg', 0.95);
+                const tableImgData = directCanvas.toDataURL('image/jpeg', 0.6); // Reduced table quality
                 const tableImgRatio = directCanvas.width / directCanvas.height;
                 const a4PageRatio = a4ContentW / a4ContentH;
                 
@@ -515,7 +603,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
                 // Capture the table with enhanced options
                 console.log('Starting table capture...');
                 const tableCanvas = await html2canvas(tableContainer, {
-                  scale: 1.0,
+                  scale: 0.8, // Reduced scale for backup table capture
                   backgroundColor: '#ffffff',
                   useCORS: true,
                   allowTaint: true,
@@ -537,7 +625,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
                 document.body.removeChild(tableContainer);
                 
                 if (tableCanvas && tableCanvas.width > 0 && tableCanvas.height > 0) {
-                  const tableImgData = tableCanvas.toDataURL('image/jpeg', 0.95);
+                  const tableImgData = tableCanvas.toDataURL('image/jpeg', 0.5); // Further reduced table quality
                   console.log('Table image data created, length:', tableImgData.length);
                   
                   // Calculate table dimensions to fit A4 page
@@ -588,7 +676,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
               console.log('Found alternative table, attempting capture...');
               // Try to capture the alternative table directly
               const altCanvas = await html2canvas(alternativeTable, {
-                scale: 1.0,
+                scale: 0.7, // Reduced scale for alternative table
                 backgroundColor: '#ffffff',
                 useCORS: true,
                 allowTaint: true,
@@ -597,7 +685,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
               
               if (altCanvas && altCanvas.width > 0 && altCanvas.height > 0) {
                 pdf.addPage('landscape', 'a4');
-                const altImgData = altCanvas.toDataURL('image/jpeg', 0.95);
+                const altImgData = altCanvas.toDataURL('image/jpeg', 0.4); // Much reduced alternative table quality
                 const a4PageW = pdf.internal.pageSize.getWidth();
                 const a4PageH = pdf.internal.pageSize.getHeight();
                 const a4Margin = 20;
@@ -638,6 +726,8 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
       // eslint-disable-next-line no-alert
       console.error('PDF export failed:', err);
       alert('Failed to export PDF – check console for details.');
+    } finally {
+      setIsPDFExporting(false); // Disable PDF export mode
     }
   };
 
@@ -674,11 +764,21 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
       </div>
 
       <div ref={manufacturingCostChartRef} style={{ marginTop: 40 }}>
-        <ManufacturingCostChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} />
+        <ManufacturingCostChart 
+          tableData={tableData} 
+          selectedPeriods={visiblePeriods} 
+          computeCellValue={computeCellValue}
+          style={isPDFExporting ? { padding: '8px', marginTop: '0' } : undefined}
+        />
       </div>
 
       <div ref={belowGPExpensesChartRef} style={{ marginTop: 40 }}>
-        <BelowGPExpensesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} />
+        <BelowGPExpensesChart 
+          tableData={tableData} 
+          selectedPeriods={visiblePeriods} 
+          computeCellValue={computeCellValue}
+          style={isPDFExporting ? { padding: '8px', marginTop: '0' } : undefined}
+        />
       </div>
 
       <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>

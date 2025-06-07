@@ -11,21 +11,38 @@
 }
 
 .tab-button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.3s ease;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #495057;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  margin-right: 2px;
 }
 
-.tab-button:hover {
-  background-color: #efefef;
+.tab-button:hover:not(.active) {
+  background: linear-gradient(135deg, #e9ecef, #dee2e6);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .tab-button.active {
-  border-bottom: 2px solid #007bff;
+  border-bottom: 3px solid #007bff;
   color: #007bff;
-  background-color: #fff;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  box-shadow: 
+    0 -2px 8px rgba(0, 123, 255, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
 }
 
 .tabs-content {

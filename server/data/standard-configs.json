@@ -1,0 +1,86 @@
+{
+  "chartVisibleColumns": [
+    "2022-CUSTOM_January_February_March_April-Actual",
+    "2023-CUSTOM_January_February_March_April-Actual",
+    "2024-CUSTOM_January_February_March_April-Actual",
+    "2025-CUSTOM_January_February_March_April-Actual",
+    "2025-CUSTOM_January_February_March_April-Budget"
+  ],
+  "standardColumnSelection": [
+    {
+      "year": "2022",
+      "month": "CUSTOM_January_February_March_April",
+      "type": "Actual",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April"
+      ],
+      "displayName": "Jan-Apr",
+      "isCustomRange": true,
+      "id": "2022-CUSTOM_January_February_March_April-Actual"
+    },
+    {
+      "year": "2023",
+      "month": "CUSTOM_January_February_March_April",
+      "type": "Actual",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April"
+      ],
+      "displayName": "Jan-Apr",
+      "isCustomRange": true,
+      "id": "2023-CUSTOM_January_February_March_April-Actual",
+      "customColor": "boldContrast"
+    },
+    {
+      "year": "2024",
+      "month": "CUSTOM_January_February_March_April",
+      "type": "Actual",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April"
+      ],
+      "displayName": "Jan-Apr",
+      "isCustomRange": true,
+      "id": "2024-CUSTOM_January_February_March_April-Actual",
+      "customColor": "orange"
+    },
+    {
+      "year": "2025",
+      "month": "CUSTOM_January_February_March_April",
+      "type": "Actual",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April"
+      ],
+      "displayName": "Jan-Apr",
+      "isCustomRange": true,
+      "id": "2025-CUSTOM_January_February_March_April-Actual",
+      "customColor": "green"
+    },
+    {
+      "year": "2025",
+      "month": "CUSTOM_January_February_March_April",
+      "type": "Budget",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April"
+      ],
+      "displayName": "Jan-Apr",
+      "isCustomRange": true,
+      "id": "2025-CUSTOM_January_February_March_April-Budget",
+      "customColor": "yellow"
+    }
+  ],
+  "basePeriodIndex": 3
+}
