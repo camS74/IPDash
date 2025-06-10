@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './TabsComponent.css';
 
-const TabsComponent = ({ children }) => {
+const TabsComponent = ({ children, variant = 'primary' }) => {
   const [activeTab, setActiveTab] = useState(0);
+  const [indicatorStyle, setIndicatorStyle] = useState({});
+  const tabRefs = useRef([]);
   
   // Extract tab labels from children
   const tabLabels = React.Children.map(children, child => child.props.label);
@@ -10,24 +12,45 @@ const TabsComponent = ({ children }) => {
   const handleTabClick = (index) => {
     setActiveTab(index);
   };
+
+  // Update indicator position when active tab changes
+  useEffect(() => {
+    const activeTabElement = tabRefs.current[activeTab];
+    if (activeTabElement) {
+      setIndicatorStyle({
+        left: activeTabElement.offsetLeft,
+        width: activeTabElement.offsetWidth,
+      });
+    }
+  }, [activeTab]);
   
   return (
-    <div className="tabs-container">
+    <div className={`tabs-container ${variant}`}>
       <div className="tabs-header">
-        {tabLabels.map((label, index) => (
+        <div className="tabs-nav">
+          {tabLabels.map((label, index) => (
+            <button 
+              key={index}
+              ref={el => tabRefs.current[index] = el}
+              className={`tab-button ${activeTab === index ? 'active' : ''}`}
+              onClick={() => handleTabClick(index)}
+            >
+              {label}
+            </button>
+          ))}
           <div 
-            key={index} 
-            className={`tab-button ${activeTab === index ? 'active' : ''}`}
-            onClick={() => handleTabClick(index)}
-          >
-            {label}
-          </div>
-        ))}
+            className="tab-indicator" 
+            style={indicatorStyle}
+          />
+        </div>
       </div>
       <div className="tabs-content">
         {React.Children.map(children, (child, index) => (
-          <div className={`tab-panel ${activeTab === index ? 'active' : ''}`}>
-            {child}
+          <div 
+            key={index}
+            className={`tab-panel ${activeTab === index ? 'active' : ''}`}
+          >
+            {activeTab === index && child}
           </div>
         ))}
       </div>

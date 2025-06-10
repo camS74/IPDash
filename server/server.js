@@ -346,6 +346,62 @@ function mergeMasterDataWithDynamicGroups(existingData, dynamicGroups) {
   return mergedData;
 }
 
+// API endpoint to get sales data for country reference
+app.get('/api/sales-data', (req, res) => {
+  try {
+    console.log('Received request for sales data');
+    const XLSX = require('xlsx');
+    const salesFilePath = path.join(__dirname, 'data', 'Sales.xlsx');
+    
+    if (!fs.existsSync(salesFilePath)) {
+      console.log('Sales.xlsx not found');
+      return res.json({ success: true, data: [] });
+    }
+
+    const workbook = XLSX.readFile(salesFilePath);
+    const salesData = [];
+    
+    // Process all sheets in the workbook
+    workbook.SheetNames.forEach(sheetName => {
+      console.log('Processing sheet:', sheetName);
+      
+      try {
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // For Countries sheets, also provide raw data to help with country extraction
+        let data, rawData;
+        
+        if (sheetName.includes('-Countries')) {
+          // Get both JSON and raw array data for Countries sheets
+          data = XLSX.utils.sheet_to_json(worksheet);
+          rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          console.log(`✓ Countries sheet ${sheetName}: ${data.length} rows, raw structure available`);
+        } else {
+          // Regular processing for other sheets
+          data = XLSX.utils.sheet_to_json(worksheet);
+        }
+        
+        salesData.push({
+          sheetName: sheetName,
+          data: data,
+          rawData: rawData // Available for Countries sheets
+        });
+        
+        console.log(`✓ Sheet ${sheetName}: ${data.length} rows`);
+      } catch (sheetError) {
+        console.error(`Error processing sheet ${sheetName}:`, sheetError);
+      }
+    });
+    
+    console.log(`Loaded ${salesData.length} sheets from Sales.xlsx`);
+    res.json({ success: true, data: salesData });
+    
+  } catch (error) {
+    console.error('Error retrieving sales data:', error);
+    res.status(500).json({ error: 'Failed to retrieve sales data' });
+  }
+});
+
 // API endpoint to get master data
 app.get('/api/master-data', (req, res) => {
   try {

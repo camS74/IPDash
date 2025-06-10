@@ -8,6 +8,9 @@ import ColumnConfigGrid from './ColumnConfigGrid';
 import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
 import ProductGroupTable from './ProductGroupTable';
+import SalesByCountryTable from './SalesByCountryTable';
+import SalesCountry2DMap from './SalesCountry2DMap';
+import SalesCountryGlobe from './SalesCountryGlobe';
 import ChartView from './ChartView';
 import WriteUpView from './WriteUpView';
 import MasterData from './MasterData';
@@ -103,11 +106,24 @@ const Dashboard = () => {
           <ColumnConfigGrid exportPdfFunction={chartExportFunction} />
           
           <TabsComponent>
-            <Tab label="Financial Table">
+                          <Tab label="P&L">
               <TableView />
             </Tab>
-            <Tab label="Product Group Table">
+                          <Tab label="Product Group">
               <ProductGroupTable />
+            </Tab>
+            <Tab label="Sales by Country">
+              <TabsComponent variant="secondary">
+                <Tab label="Table">
+                  <SalesByCountryTable />
+                </Tab>
+                <Tab label="Map 2D">
+                  <SalesCountry2DMap />
+                </Tab>
+                <Tab label="Map 3D">
+                  <SalesCountryGlobe />
+                </Tab>
+              </TabsComponent>
             </Tab>
             <Tab label="Charts">
               {dataGenerated ? (

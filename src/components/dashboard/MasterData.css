@@ -23,6 +23,78 @@
 
 .master-data-header p {
   color: #6c757d;
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Tab Navigation Styles */
+.tab-navigation {
+  display: flex;
+  gap: 15px;
+  margin: 30px 0;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  padding: 15px 25px;
+  border: 2px solid #288cfa;
+  border-radius: 25px;
+  background: white;
+  color: #288cfa;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tab-button:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(40, 140, 250, 0.2);
+}
+
+.tab-button.active {
+  background: #288cfa;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(40, 140, 250, 0.3);
+}
+
+.tab-content {
+  background: transparent;
+  border-radius: 8px;
+  min-height: 400px;
+}
+
+.materials-tab {
+  padding: 0;
+}
+
+.materials-header {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #28a745;
+}
+
+.materials-header h3 {
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.materials-header p {
+  color: #6c757d;
   margin: 0 0 16px 0;
   font-size: 1rem;
 }

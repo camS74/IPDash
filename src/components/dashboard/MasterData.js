@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import CountryReference from './CountryReference';
 import './MasterData.css';
 
 const MasterData = () => {
+  const [activeTab, setActiveTab] = useState('materials');
   const [masterData, setMasterData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,6 +36,8 @@ const MasterData = () => {
       setLoading(false);
     }
   };
+
+
 
   const saveMasterData = async () => {
     try {
@@ -159,105 +163,135 @@ const MasterData = () => {
   return (
     <div className="master-data-container">
       <div className="master-data-header">
-        <h2>Master Data - Material Percentages</h2>
-        <p>Configure material composition percentages for each product group by division</p>
-        <div className="master-data-actions">
-          <button 
-            onClick={saveMasterData} 
-            disabled={saving}
-            className="save-button"
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-          {saveMessage && <span className="save-message">{saveMessage}</span>}
-        </div>
+        <h2>Master Data Management</h2>
+        <p>Configure material percentages and manage country reference data</p>
       </div>
 
-      {Object.keys(masterData).map(division => (
-        <div key={division} className="division-section">
-          <h3 className="division-title">{division} Division</h3>
-          
-          <div className="table-container">
-            <table className="master-data-table">
-              <thead>
-                <tr>
-                  <th className="product-group-header">Product Groups</th>
-                  {materialColumns.map(material => (
-                    <th key={material} className="material-header">{material}</th>
-                  ))}
-                  <th className="total-header">Total</th>
-                  <th className="actions-header">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(masterData[division]).map(productGroup => (
-                  <tr key={productGroup} className="product-row">
-                    <td className="product-group-cell">{productGroup}</td>
-                    {materialColumns.map(material => {
-                      const value = masterData[division][productGroup][material] || 0;
-                      return (
-                        <td key={material} className="material-cell">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={value}
-                            onChange={(e) => handlePercentageChange(division, productGroup, material, e.target.value)}
-                            className="percentage-input"
-                          />
-                          <span className="percentage-symbol">%</span>
-                        </td>
-                      );
-                    })}
-                    <td className={`total-cell ${calculateRowTotal(division, productGroup) === 100 ? 'total-correct' : 'total-incorrect'}`}>
-                      {calculateRowTotal(division, productGroup).toFixed(1)}%
-                    </td>
-                    <td className="actions-cell">
-                      <button 
-                        onClick={() => resetRow(division, productGroup)}
-                        className="reset-button"
-                        title="Reset to 0%"
-                      >
-                        Reset
-                      </button>
-                      <button 
-                        onClick={() => normalizeRow(division, productGroup)}
-                        className="normalize-button"
-                        title="Normalize to 100%"
-                      >
-                        Normalize
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="totals-row">
-                  <td className="footer-label">Averages</td>
-                  {materialColumns.map(material => (
-                    <td key={material} className="footer-total">
-                      {calculateColumnTotal(material)}%
-                    </td>
-                  ))}
-                  <td className="footer-total">-</td>
-                  <td className="footer-actions">-</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      ))}
+      <div className="tab-navigation">
+        <button 
+          className={`tab-button ${activeTab === 'materials' ? 'active' : ''}`}
+          onClick={() => setActiveTab('materials')}
+        >
+          📊 Material Percentages
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'countries' ? 'active' : ''}`}
+          onClick={() => setActiveTab('countries')}
+        >
+          🌍 Country Reference
+        </button>
+      </div>
 
-      <div className="master-data-notes">
-        <h4>Usage Notes:</h4>
-        <ul>
-          <li>Each row should total 100% for accurate material composition</li>
-          <li>Use "Reset" to clear all percentages in a row to 0%</li>
-          <li>Use "Normalize" to proportionally adjust percentages to total 100%</li>
-          <li>Changes are saved automatically when you click "Save Changes"</li>
-          <li>Red totals indicate rows that don't sum to 100%</li>
-        </ul>
+      <div className="tab-content">
+        {activeTab === 'materials' && (
+          <div className="materials-tab">
+            <div className="materials-header">
+              <h3>Material Composition Percentages</h3>
+              <p>Configure material composition percentages for each product group by division</p>
+              <div className="master-data-actions">
+                <button 
+                  onClick={saveMasterData} 
+                  disabled={saving}
+                  className="save-button"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+                {saveMessage && <span className="save-message">{saveMessage}</span>}
+              </div>
+            </div>
+
+            {Object.keys(masterData).map(division => (
+              <div key={division} className="division-section">
+                <h4 className="division-title">{division} Division</h4>
+                
+                <div className="table-container">
+                  <table className="master-data-table">
+                    <thead>
+                      <tr>
+                        <th className="product-group-header">Product Groups</th>
+                        {materialColumns.map(material => (
+                          <th key={material} className="material-header">{material}</th>
+                        ))}
+                        <th className="total-header">Total</th>
+                        <th className="actions-header">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(masterData[division]).map(productGroup => (
+                        <tr key={productGroup} className="product-row">
+                          <td className="product-group-cell">{productGroup}</td>
+                          {materialColumns.map(material => {
+                            const value = masterData[division][productGroup][material] || 0;
+                            return (
+                              <td key={material} className="material-cell">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.1"
+                                  value={value}
+                                  onChange={(e) => handlePercentageChange(division, productGroup, material, e.target.value)}
+                                  className="percentage-input"
+                                />
+                                <span className="percentage-symbol">%</span>
+                              </td>
+                            );
+                          })}
+                          <td className={`total-cell ${calculateRowTotal(division, productGroup) === 100 ? 'total-correct' : 'total-incorrect'}`}>
+                            {calculateRowTotal(division, productGroup).toFixed(1)}%
+                          </td>
+                          <td className="actions-cell">
+                            <button 
+                              onClick={() => resetRow(division, productGroup)}
+                              className="reset-button"
+                              title="Reset to 0%"
+                            >
+                              Reset
+                            </button>
+                            <button 
+                              onClick={() => normalizeRow(division, productGroup)}
+                              className="normalize-button"
+                              title="Normalize to 100%"
+                            >
+                              Normalize
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="totals-row">
+                        <td className="footer-label">Averages</td>
+                        {materialColumns.map(material => (
+                          <td key={material} className="footer-total">
+                            {calculateColumnTotal(material)}%
+                          </td>
+                        ))}
+                        <td className="footer-total">-</td>
+                        <td className="footer-actions">-</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            ))}
+
+            <div className="master-data-notes">
+              <h4>Usage Notes:</h4>
+              <ul>
+                <li>Each row should total 100% for accurate material composition</li>
+                <li>Use "Reset" to clear all percentages in a row to 0%</li>
+                <li>Use "Normalize" to proportionally adjust percentages to total 100%</li>
+                <li>Changes are saved automatically when you click "Save Changes"</li>
+                <li>Red totals indicate rows that don't sum to 100%</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'countries' && (
+                        <CountryReference />
+        )}
       </div>
     </div>
   );
