@@ -8,19 +8,24 @@ const SalesByCountryTable = () => {
   const { columnOrder, basePeriodIndex, dataGenerated } = useFilter();
   const tableRef = useRef(null);
 
-  // Create extended columns with delta columns
+  // Create extended columns with delta columns, filtering out Budget/Forecast
   const createExtendedColumns = () => {
+    // First filter out Budget and Forecast columns
+    const filteredColumns = columnOrder.filter(col => 
+      col.type !== 'Budget' && col.type !== 'Forecast'
+    );
+    
     const extendedColumns = [];
     
-    columnOrder.forEach((col, index) => {
+    filteredColumns.forEach((col, index) => {
       extendedColumns.push(col);
       
       // Add delta column after each period (except the last one)
-      if (index < columnOrder.length - 1) {
+      if (index < filteredColumns.length - 1) {
         extendedColumns.push({
           columnType: 'delta',
           fromColumn: col,
-          toColumn: columnOrder[index + 1]
+          toColumn: filteredColumns[index + 1]
         });
       }
     });
@@ -310,11 +315,24 @@ const SalesByCountryTable = () => {
 
   // Sort countries by base period percentage (highest to lowest)
   const sortedCountries = [...countries].sort((a, b) => {
-    if (columnOrder.length === 0) return 0;
+    const filteredColumns = columnOrder.filter(col => 
+      col.type !== 'Budget' && col.type !== 'Forecast'
+    );
     
-    const baseColumn = basePeriodIndex >= 0 && basePeriodIndex < columnOrder.length 
-      ? columnOrder[basePeriodIndex] 
-      : columnOrder[0];
+    if (filteredColumns.length === 0) return 0;
+    
+    // Use base period if it's not Budget/Forecast, otherwise use first filtered column
+    let baseColumn;
+    if (basePeriodIndex >= 0 && basePeriodIndex < columnOrder.length) {
+      const originalBaseColumn = columnOrder[basePeriodIndex];
+      if (originalBaseColumn.type !== 'Budget' && originalBaseColumn.type !== 'Forecast') {
+        baseColumn = originalBaseColumn;
+      } else {
+        baseColumn = filteredColumns[0];
+      }
+    } else {
+      baseColumn = filteredColumns[0];
+    }
     
     const percentageA = getCountryPercentage(a, baseColumn);
     const percentageB = getCountryPercentage(b, baseColumn);
@@ -324,52 +342,76 @@ const SalesByCountryTable = () => {
 
   return (
     <div className="table-view">
-      <h3>Sales by Country Table</h3>
-      
-      <div className="table-container" ref={tableRef}>
-        <table className="financial-table product-group-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-          {/* Column Groups for width control */}
-          <colgroup>
-            <col style={{ width: '20%' }}/>
-          </colgroup>
-          {extendedColumns.map((col, index) => (
-            <colgroup key={`colgroup-${index}`}>
-              <col style={{ width: col.columnType === 'delta' ? '5.15%' : `${74.85 / columnOrder.length}%` }}/>
+      <div className="table-centered-block">
+        <div className="table-container" ref={tableRef}>
+          <div className="table-header">
+            <div className="header-left"></div>
+            <div className="header-center">
+              <h3 className="table-title">Sales by Country Table</h3>
+            </div>
+            <div className="header-right"></div>
+          </div>
+          <table className="financial-table product-group-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+            {/* Column Groups for width control */}
+            <colgroup>
+              <col style={{ width: '20%' }}/>
             </colgroup>
-          ))}
-          
-          <thead>
-            {/* Year Row */}
-            <tr>
-              <th className="empty-header" rowSpan="3"></th>
-              {extendedColumns.map((col, index) => (
-                col.columnType === 'delta' ? (
-                  <th
-                    key={`delta-${index}`}
-                    rowSpan="3"
-                    style={{ 
-                      backgroundColor: '#f8f9fa', 
-                      color: '#000000', 
-                      fontWeight: 'bold', 
-                      fontSize: '18px',
-                      textAlign: 'center',
-                      verticalAlign: 'middle',
-                      padding: '8px 4px'
-                    }}
-                  >
-                    <div style={{ lineHeight: '1.1' }}>
-                      <div style={{ fontSize: '18px' }}>Δ</div>
-                      <div style={{ fontSize: '14px' }}>%</div>
-                    </div>
-                  </th>
-                ) : (
-                  <th
-                    key={`year-${index}`}
-                    style={getColumnHeaderStyle(col)}
-                  >
+            {extendedColumns.map((col, index) => {
+              const filteredDataColumns = extendedColumns.filter(c => c.columnType !== 'delta').length;
+              return (
+                <colgroup key={`colgroup-${index}`}>
+                  <col style={{ width: col.columnType === 'delta' ? '5.15%' : `${74.85 / filteredDataColumns}%` }}/>
+                </colgroup>
+              );
+            })}
+            
+            <thead>
+              {/* Year Row */}
+              <tr>
+                <th className="empty-header" rowSpan="3"></th>
+                {extendedColumns.map((col, index) => (
+                  col.columnType === 'delta' ? (
+                    <th
+                      key={`delta-${index}`}
+                      rowSpan="3"
+                      style={{ 
+                        backgroundColor: '#f8f9fa', 
+                        color: '#000000', 
+                        fontWeight: 'bold', 
+                        fontSize: '18px',
+                        textAlign: 'center',
+                        verticalAlign: 'middle',
+                        padding: '8px 4px'
+                      }}
+                    >
+                      <div style={{ lineHeight: '1.1' }}>
+                        <div style={{ fontSize: '18px' }}>Δ</div>
+                        <div style={{ fontSize: '14px' }}>%</div>
+                      </div>
+                    </th>
+                  ) : (
+                    <th
+                      key={`year-${index}`}
+                      style={getColumnHeaderStyle(col)}
+                    >
                                          {(() => {
+                       // Find the filtered column index for this extended column
+                       const filteredColumns = columnOrder.filter(col => 
+                         col.type !== 'Budget' && col.type !== 'Forecast'
+                       );
                        const dataColumnIndex = extendedColumns.slice(0, index + 1).filter(c => c.columnType !== 'delta').length - 1;
-                       return basePeriodIndex === dataColumnIndex && <span style={{ color: '#28a745' }}>★ </span>;
+                       
+                       // Check if the original base period column is in our filtered columns
+                       if (basePeriodIndex >= 0 && basePeriodIndex < columnOrder.length) {
+                         const basePeriodColumn = columnOrder[basePeriodIndex];
+                         const basePeriodFilteredIndex = filteredColumns.findIndex(col => 
+                           col.year === basePeriodColumn.year && 
+                           col.month === basePeriodColumn.month && 
+                           col.type === basePeriodColumn.type
+                         );
+                         return basePeriodFilteredIndex === dataColumnIndex && <span style={{ color: '#28a745' }}>★ </span>;
+                       }
+                       return false;
                      })()} 
                     {col.year}
                   </th>

@@ -359,21 +359,21 @@ const TableView = () => {
   };
 
   return (
-    <div className="table-view">
-      <div className="table-header">
-        <div className="table-title">
-          <h3>Financials - {selectedDivision}</h3>
-          <div className="table-subtitle">(AED)</div>
+    <div className="table-view" ref={tableRef}>
+      <div className="table-centered-block">
+        <div className="table-header">
+          <div className="header-left"></div>
+          <div className="header-center">
+            <h3 className="table-title">{selectedDivision} Financials</h3>
+            <div className="table-subtitle">(AED)</div>
+          </div>
+          <div className="header-right">
+            <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
+          </div>
         </div>
-        <PDFExport 
-          tableRef={tableRef} 
-          selectedDivision={selectedDivision}
-        />
-      </div>
-      <div className="table-container" ref={tableRef}>
         <table className="financial-table">
           <colgroup>
-            <col style={{ width: '302px' }}/>
+            <col style={{ width: '192px' }}/>
           </colgroup>
           {columnOrder.map((_, index) => (
             <colgroup key={`colgroup-${index}`} className="period-column-group">

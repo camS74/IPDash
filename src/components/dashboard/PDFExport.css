@@ -38,3 +38,12 @@
   border: 1px solid #f5c6cb;
   border-radius: 4px;
 }
+
+/* PDF Export specific styles for centering */
+@media print {
+  .financial-table {
+    margin: 0 auto !important;
+    display: table !important;
+    page-break-inside: avoid !important;
+  }
+}
