@@ -346,7 +346,8 @@ const SalesByCountryTable = () => {
         <div className="table-header">
           <div className="header-left"></div>
           <div className="header-center">
-            <h3 className="table-title">Sales by Country Table</h3>
+            <h3 className="table-title">Sales by Country</h3>
+            <div className="table-subtitle">(%)</div>
           </div>
           <div className="header-right"></div>
         </div>

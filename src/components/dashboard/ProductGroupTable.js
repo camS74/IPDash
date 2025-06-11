@@ -532,15 +532,13 @@ const ProductGroupTable = () => {
     return 0;
   };
 
-
-
-  return (
-    <div className="table-view">
-      <div className="table-container" ref={tableRef}>
+      return (
+      <div className="table-view">
+        <div className="table-container" ref={tableRef}>
         <div className="table-header">
           <div className="header-left"></div>
           <div className="header-center">
-            <h3 className="table-title">Product Group - {selectedDivision.split('-')[0]}</h3>
+            <h3 className="table-title">Product Group</h3>
             <div className="table-subtitle">(AED)</div>
           </div>
           <div className="header-right"></div>

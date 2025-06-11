@@ -367,9 +367,7 @@ const TableView = () => {
             <h3 className="table-title">{selectedDivision} Financials</h3>
             <div className="table-subtitle">(AED)</div>
           </div>
-          <div className="header-right">
-            <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
-          </div>
+          <div className="header-right"></div>
         </div>
         <table className="financial-table">
           <colgroup>
@@ -912,6 +910,7 @@ const TableView = () => {
             })}
           </tbody>
         </table>
+        <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
       </div>
     </div>
   );

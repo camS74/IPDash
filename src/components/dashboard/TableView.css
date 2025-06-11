@@ -33,11 +33,16 @@
 
 .header-left {
   flex: 1;
+  min-width: 0;
 }
 
 .header-center {
-  flex: 2;
+  flex: 1;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-right {
@@ -45,17 +50,15 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  min-width: 0;
 }
 
 .table-title {
-  text-align: center;
-}
-
-.table-title h3 {
   margin: 0;
   font-size: 1.5rem;
   color: #333;
   text-align: center;
+  font-weight: bold;
 }
 
 .table-subtitle {
@@ -235,17 +238,9 @@
   color: #666;
 }
 
-/* Add styles for PDF export button positioning */
-.table-header > :last-child {
-  position: absolute;
-  left: 0;
-}
-
 /* Floating PDF export button styles */
 .pdf-export-button {
   position: static;
-  margin-left: auto;
-  margin-right: 0;
   background-color: #1D6F42;
   color: white;
   border: none;
@@ -278,32 +273,6 @@
 }
 
 /* Product Group Table Specific Styles */
-.table-title-over-table {
-  text-align: center;
-  margin: 0 auto 20px auto;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.table-title-over-table h3 {
-  margin: 0 0 5px 0;
-  font-size: 1.5rem;
-  color: #333;
-  text-align: center;
-}
-
-.table-title-over-table .table-subtitle {
-  font-style: italic;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 5px;
-  color: #000000;
-  font-size: 1.1rem;
-}
-
 .product-header-row {
   background-color: #f0f8ff !important;
 }

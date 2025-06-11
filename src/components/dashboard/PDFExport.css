@@ -1,46 +1,66 @@
-/* PDF Export Controls Styling */
+/* PDF Export Controls Styling - Left Side Within Container */
 .pdf-export-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
   display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-top: 15px;
-  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .export-pdf-btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   background-color: #28a745;
   color: white;
-  border: 1px solid #28a745;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  min-width: 100px;
+  text-align: center;
 }
 
 .export-pdf-btn:hover:not(:disabled) {
   background-color: #218838;
-  border-color: #1e7e34;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.export-pdf-btn:active {
+  background-color: #1e7e34;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .export-pdf-btn:disabled {
   background-color: #6c757d;
-  border-color: #6c757d;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .export-error {
   color: #dc3545;
-  font-size: 14px;
-  padding: 8px 12px;
+  font-size: 11px;
+  padding: 6px 10px;
   background-color: #f8d7da;
   border: 1px solid #f5c6cb;
   border-radius: 4px;
+  max-width: 180px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* PDF Export specific styles for centering */
+/* Hide PDF export button in print/export */
 @media print {
+  .pdf-export-controls {
+    display: none;
+  }
+  
   .financial-table {
     margin: 0 auto !important;
     display: table !important;
