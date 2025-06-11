@@ -360,7 +360,7 @@ const TableView = () => {
 
   return (
     <div className="table-view" ref={tableRef}>
-      <div className="table-centered-block">
+      <div className="table-container">
         <div className="table-header">
           <div className="header-left"></div>
           <div className="header-center">

@@ -342,58 +342,57 @@ const SalesByCountryTable = () => {
 
   return (
     <div className="table-view">
-      <div className="table-centered-block">
-        <div className="table-container" ref={tableRef}>
-          <div className="table-header">
-            <div className="header-left"></div>
-            <div className="header-center">
-              <h3 className="table-title">Sales by Country Table</h3>
-            </div>
-            <div className="header-right"></div>
+      <div className="table-container" ref={tableRef}>
+        <div className="table-header">
+          <div className="header-left"></div>
+          <div className="header-center">
+            <h3 className="table-title">Sales by Country Table</h3>
           </div>
-          <table className="financial-table product-group-table" style={{ tableLayout: 'fixed', width: '100%' }}>
-            {/* Column Groups for width control */}
-            <colgroup>
-              <col style={{ width: '20%' }}/>
-            </colgroup>
-            {extendedColumns.map((col, index) => {
-              const filteredDataColumns = extendedColumns.filter(c => c.columnType !== 'delta').length;
-              return (
-                <colgroup key={`colgroup-${index}`}>
-                  <col style={{ width: col.columnType === 'delta' ? '5.15%' : `${74.85 / filteredDataColumns}%` }}/>
-                </colgroup>
-              );
-            })}
-            
-            <thead>
-              {/* Year Row */}
-              <tr>
-                <th className="empty-header" rowSpan="3"></th>
-                {extendedColumns.map((col, index) => (
-                  col.columnType === 'delta' ? (
-                    <th
-                      key={`delta-${index}`}
-                      rowSpan="3"
-                      style={{ 
-                        backgroundColor: '#f8f9fa', 
-                        color: '#000000', 
-                        fontWeight: 'bold', 
-                        fontSize: '18px',
-                        textAlign: 'center',
-                        verticalAlign: 'middle',
-                        padding: '8px 4px'
-                      }}
-                    >
-                      <div style={{ lineHeight: '1.1' }}>
-                        <div style={{ fontSize: '18px' }}>Δ</div>
-                        <div style={{ fontSize: '14px' }}>%</div>
-                      </div>
-                    </th>
-                  ) : (
-                    <th
-                      key={`year-${index}`}
-                      style={getColumnHeaderStyle(col)}
-                    >
+          <div className="header-right"></div>
+        </div>
+        <table className="financial-table product-group-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+          {/* Column Groups for width control */}
+          <colgroup>
+            <col style={{ width: '20%' }}/>
+          </colgroup>
+          {extendedColumns.map((col, index) => {
+            const filteredDataColumns = extendedColumns.filter(c => c.columnType !== 'delta').length;
+            return (
+              <colgroup key={`colgroup-${index}`}>
+                <col style={{ width: col.columnType === 'delta' ? '5.15%' : `${74.85 / filteredDataColumns}%` }}/>
+              </colgroup>
+            );
+          })}
+          
+          <thead>
+            {/* Year Row */}
+            <tr>
+              <th className="empty-header" rowSpan="3"></th>
+              {extendedColumns.map((col, index) => (
+                col.columnType === 'delta' ? (
+                  <th
+                    key={`delta-${index}`}
+                    rowSpan="3"
+                    style={{ 
+                      backgroundColor: '#f8f9fa', 
+                      color: '#000000', 
+                      fontWeight: 'bold', 
+                      fontSize: '18px',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      padding: '8px 4px'
+                    }}
+                  >
+                    <div style={{ lineHeight: '1.1' }}>
+                      <div style={{ fontSize: '18px' }}>Δ</div>
+                      <div style={{ fontSize: '14px' }}>%</div>
+                    </div>
+                  </th>
+                ) : (
+                  <th
+                    key={`year-${index}`}
+                    style={getColumnHeaderStyle(col)}
+                  >
                                          {(() => {
                        // Find the filtered column index for this extended column
                        const filteredColumns = columnOrder.filter(col => 
