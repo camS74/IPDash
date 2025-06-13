@@ -344,12 +344,12 @@ const SalesByCountryTable = () => {
   return (
     <div className="table-view">
       <SalesCountryPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
-      <div className="table-header">
-        <div className="header-center">
-          <h3 className="table-title">Sales by Country</h3>
-          <div className="table-subtitle">(%)</div>
+        <div className="table-header">
+          <div className="header-center">
+            <h3 className="table-title">Sales by Country</h3>
+            <div className="table-subtitle">(%)</div>
+          </div>
         </div>
-      </div>
       <div className="table-container" ref={tableRef}>
         <table className="financial-table sales-country-table" style={{ tableLayout: 'fixed', width: '100%' }}>
           {/* Column Groups for width control */}

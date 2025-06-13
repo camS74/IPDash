@@ -361,12 +361,12 @@ const TableView = () => {
   return (
     <div className="table-view" ref={tableRef}>
       <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
-      <div className="table-header">
-        <div className="header-center">
-          <h3 className="table-title">{selectedDivision} Financials</h3>
-          <div className="table-subtitle">(AED)</div>
+        <div className="table-header">
+          <div className="header-center">
+            <h3 className="table-title">{selectedDivision} Financials</h3>
+            <div className="table-subtitle">(AED)</div>
+          </div>
         </div>
-      </div>
       <div className="table-container">
         <table className="financial-table">
           <colgroup>

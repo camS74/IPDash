@@ -5,7 +5,7 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   margin: 20px 0;
-  box-sizing: border-box; /* FIX: Include padding within width */
+  box-sizing: border-box;
 }
 
 .empty-state, .loading-state {
@@ -111,7 +111,6 @@
   background: #fafbfc;
 }
 
-/* Chart layout specific styles */
 .sales-country-map-container .chart-layout {
   display: flex;
   gap: 20px;
@@ -122,8 +121,8 @@
 
 .sales-country-map-container .chart-main {
   flex: 1;
-  min-width: 0; /* Prevents flex item from overflowing */
-  max-width: calc(100% - 320px); /* Account for right panel width + gap */
+  min-width: 0;
+  max-width: calc(100% - 320px);
 }
 
 .sales-country-map-container .chart-panels {
@@ -134,7 +133,6 @@
   gap: 20px;
 }
 
-/* Responsive design */
 @media (max-width: 1200px) {
   .sales-country-map-container .chart-layout {
     flex-direction: column;
@@ -213,7 +211,6 @@
   }
 }
 
-/* Loading animation */
 .loading-state::after {
   content: '';
   width: 40px;
