@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
+import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import SalesCountryPDFExport from './SalesCountryPDFExport';
 import './SalesByCountryTable.css';
 
 const SalesByCountryTable = () => {
-  const { salesData, selectedDivision } = useSalesData();
+  const { salesData } = useSalesData();
+  const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const { columnOrder, basePeriodIndex, dataGenerated } = useFilter();
   const tableRef = useRef(null);
 
@@ -38,8 +40,8 @@ const SalesByCountryTable = () => {
 
   // Get unique countries from the data
   const getCountries = () => {
-    const divisionCode = selectedDivision ? selectedDivision.split('-')[0] : '';
-    const countriesSheetName = `${divisionCode}-Countries`;
+    const divisionName = selectedDivision; // selectedDivision from ExcelData is already just the division name (e.g., "FP")
+    const countriesSheetName = `${divisionName}-Countries`;
     const countriesData = salesData[countriesSheetName] || [];
     
     if (!countriesData.length) return [];
@@ -56,8 +58,8 @@ const SalesByCountryTable = () => {
 
   // Helper function to get country sales amount for a specific period
   const getCountrySalesAmount = (countryName, column) => {
-    const divisionCode = selectedDivision ? selectedDivision.split('-')[0] : '';
-    const countriesSheetName = `${divisionCode}-Countries`;
+    const divisionName = selectedDivision; // selectedDivision from ExcelData is already just the division name (e.g., "FP")
+    const countriesSheetName = `${divisionName}-Countries`;
     const countriesData = salesData[countriesSheetName] || [];
 
     if (!countriesData.length) return 0;
@@ -341,12 +343,23 @@ const SalesByCountryTable = () => {
     return percentageB - percentageA;
   });
 
+  // Get division display name
+  const getDivisionDisplayName = () => {
+    const divisionNames = {
+      'FP': 'Flexible Packaging',
+      'SB': 'Shopping Bags', 
+      'TF': 'Thermoforming Products',
+      'HCM': 'Preforms and Closures'
+    };
+    return divisionNames[selectedDivision] || selectedDivision;
+  };
+
   return (
     <div className="table-view">
       <SalesCountryPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
         <div className="table-header">
           <div className="header-center">
-            <h3 className="table-title">Sales by Country</h3>
+            <h3 className="table-title">Sales by Country - {getDivisionDisplayName()}</h3>
             <div className="table-subtitle">(%)</div>
           </div>
         </div>
@@ -360,12 +373,56 @@ const SalesByCountryTable = () => {
             const filteredDataColumns = extendedColumns.filter(c => c.columnType !== 'delta').length;
             return (
               <colgroup key={`colgroup-${index}`}>
-                <col style={{ width: col.columnType === 'delta' ? `${5.15 * 0.45}%` : `${(82.85 / filteredDataColumns) * 0.55}%` }}/>
+                <col style={{ width: col.columnType === 'delta' ? `${5.15 * 0.54}%` : `${(82.85 / filteredDataColumns) * 0.33}%` }}/>
               </colgroup>
             );
           })}
           
           <thead>
+            {/* Star Indicator Row */}
+            <tr>
+              <th className="empty-header"></th>
+              {extendedColumns.map((col, index) => {
+                if (col.columnType === 'delta') {
+                  return <th key={`star-delta-${index}`} style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>;
+                }
+                
+                // Find the filtered column index for this extended column
+                const filteredColumns = columnOrder.filter(col => 
+                  col.type !== 'Budget' && col.type !== 'Forecast'
+                );
+                const dataColumnIndex = extendedColumns.slice(0, index + 1).filter(c => c.columnType !== 'delta').length - 1;
+                
+                // Check if this is the base period column
+                let isBasePeriod = false;
+                if (basePeriodIndex >= 0 && basePeriodIndex < columnOrder.length) {
+                  const basePeriodColumn = columnOrder[basePeriodIndex];
+                  const basePeriodFilteredIndex = filteredColumns.findIndex(col => 
+                    col.year === basePeriodColumn.year && 
+                    col.month === basePeriodColumn.month && 
+                    col.type === basePeriodColumn.type
+                  );
+                  isBasePeriod = basePeriodFilteredIndex === dataColumnIndex;
+                }
+                
+                return (
+                  <th 
+                    key={`star-${index}`} 
+                    style={{ 
+                      backgroundColor: '#ffffff', 
+                      border: 'none', 
+                      textAlign: 'center', 
+                      padding: '4px',
+                      fontSize: '32px',
+                      color: '#FFD700'
+                    }}
+                  >
+                    {isBasePeriod ? '★' : ''}
+                  </th>
+                );
+              })}
+            </tr>
+            
             {/* Year Row */}
             <tr>
               <th className="empty-header" rowSpan="3"></th>
@@ -393,25 +450,6 @@ const SalesByCountryTable = () => {
                     key={`year-${index}`}
                     style={getColumnHeaderStyle(col)}
                   >
-                                         {(() => {
-                       // Find the filtered column index for this extended column
-                       const filteredColumns = columnOrder.filter(col => 
-                         col.type !== 'Budget' && col.type !== 'Forecast'
-                       );
-                       const dataColumnIndex = extendedColumns.slice(0, index + 1).filter(c => c.columnType !== 'delta').length - 1;
-                       
-                       // Check if the original base period column is in our filtered columns
-                       if (basePeriodIndex >= 0 && basePeriodIndex < columnOrder.length) {
-                         const basePeriodColumn = columnOrder[basePeriodIndex];
-                         const basePeriodFilteredIndex = filteredColumns.findIndex(col => 
-                           col.year === basePeriodColumn.year && 
-                           col.month === basePeriodColumn.month && 
-                           col.type === basePeriodColumn.type
-                         );
-                         return basePeriodFilteredIndex === dataColumnIndex && <span style={{ color: '#28a745' }}>★ </span>;
-                       }
-                       return false;
-                     })()} 
                     {col.year}
                   </th>
                 )

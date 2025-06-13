@@ -203,6 +203,10 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
       backgroundColor: 'white',
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+      width: '95%',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      boxSizing: 'border-box',
       ...(style || {}) // Apply any style props passed from parent component
     }}>
       <h2 className="modern-gauge-heading">Margin over Material</h2>

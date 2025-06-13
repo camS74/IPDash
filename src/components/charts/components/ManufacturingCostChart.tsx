@@ -576,6 +576,10 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
       padding: style?.padding || '20px', // Allow padding override for PDF export
+      width: '95%',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      boxSizing: 'border-box',
       ...(style || {}) // Apply any style props passed from parent component
     }}>
       <h2 className="modern-gauge-heading" style={{
@@ -592,7 +596,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
         <>
           <ReactECharts 
             option={option} 
-            style={{ height: 600 }} // Further increased height to 600px to ensure enough space
+            style={{ height: 600, width: '100%' }} // Use full panel width
             notMerge={true}
             opts={{ renderer: 'svg' }}
           />

@@ -759,32 +759,36 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
         <BarChart data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} />
       </div>
 
-      <div ref={modernMarginGaugeRef} style={{ marginTop: 40 }}>
-        <ModernMarginGauge data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} />
+      <div ref={modernMarginGaugeRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
+        <ModernMarginGauge data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
       </div>
 
-      <div ref={manufacturingCostChartRef} style={{ marginTop: 40 }}>
+      <div ref={manufacturingCostChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
         <ManufacturingCostChart 
           tableData={tableData} 
           selectedPeriods={visiblePeriods} 
           computeCellValue={computeCellValue}
-          style={isPDFExporting ? { padding: '8px', marginTop: '0' } : undefined}
+          style={isPDFExporting ? { padding: '8px', marginTop: '0', margin: 0, backgroundColor: 'transparent', boxShadow: 'none' } : { margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
         />
       </div>
 
-      <div ref={belowGPExpensesChartRef} style={{ marginTop: 40 }}>
+      <div ref={belowGPExpensesChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
         <BelowGPExpensesChart 
           tableData={tableData} 
           selectedPeriods={visiblePeriods} 
           computeCellValue={computeCellValue}
-          style={isPDFExporting ? { padding: '8px', marginTop: '0' } : undefined}
+          style={isPDFExporting ? { padding: '8px', marginTop: '0', margin: 0, backgroundColor: 'transparent', boxShadow: 'none' } : { margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
         />
       </div>
 
       <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 60 }}>
-          <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} />
-          <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} />
+          <div className="modern-margin-gauge-panel">
+            <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
+          </div>
+          <div className="modern-margin-gauge-panel">
+            <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
+          </div>
         </div>
       </div>
     </div>

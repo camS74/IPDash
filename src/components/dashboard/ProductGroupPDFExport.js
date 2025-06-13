@@ -154,6 +154,82 @@ const processDeltaContent = (element) => {
   return cleanText;
 };
 
+// Function to count rows for each product group
+const analyzeProductGroupStructure = (tableBody) => {
+  const rows = Array.from(tableBody.querySelectorAll('tr'));
+  const productGroups = [];
+  let currentGroup = null;
+  
+  rows.forEach((row, index) => {
+    const firstCell = row.querySelector('td:first-child, th:first-child');
+    if (!firstCell) return;
+    
+    const cellText = firstCell.textContent.trim();
+    const hasHeaderClass = firstCell.classList.contains('product-header') || 
+                          firstCell.classList.contains('row-label') ||
+                          row.classList.contains('product-header-row');
+    
+    // Enhanced detection for product group headers
+    const sectionHeaders = [
+      'Commercial Items Plain',
+      'Commercial Items Printed', 
+      'Industrial Items Plain',
+      'Industrial Items Printed',
+      'Laminates',
+      'Mono Layer Printed',
+      'Supplies/Raw',
+      'UnPrinted',
+      'Printed',
+      'Films',
+      'Bags',
+      'Shopping Bags',
+      'Flexible Packaging',
+      'Thermoforming',
+      'Preforms',
+      'Closures'
+    ];
+    
+    const isProductGroupHeader = hasHeaderClass || 
+      sectionHeaders.some(header => 
+        cellText.includes(header) || 
+        cellText.toLowerCase().includes(header.toLowerCase())
+      );
+    
+    if (isProductGroupHeader) {
+      // If we have a current group, save it
+      if (currentGroup) {
+        currentGroup.endIndex = index - 1;
+        currentGroup.rowCount = currentGroup.endIndex - currentGroup.startIndex + 1;
+        productGroups.push(currentGroup);
+      }
+      
+      // Start new group
+      currentGroup = {
+        name: cellText,
+        startIndex: index,
+        endIndex: null,
+        rowCount: 0
+      };
+      
+      console.log(`[Product Group Structure] Found group header: "${cellText}" at row ${index}`);
+    }
+  });
+  
+  // Don't forget the last group
+  if (currentGroup) {
+    currentGroup.endIndex = rows.length - 1;
+    currentGroup.rowCount = currentGroup.endIndex - currentGroup.startIndex + 1;
+    productGroups.push(currentGroup);
+  }
+  
+  console.log(`[Product Group Structure] Analyzed ${productGroups.length} product groups:`);
+  productGroups.forEach(group => {
+    console.log(`  - "${group.name}": rows ${group.startIndex}-${group.endIndex} (${group.rowCount} rows)`);
+  });
+  
+  return productGroups;
+};
+
 // Intelligent separator detection for page breaks
 const findSeparatorRows = (tableBody) => {
   const rows = Array.from(tableBody.querySelectorAll('tr'));
@@ -170,7 +246,8 @@ const findSeparatorRows = (tableBody) => {
     const firstCell = row.querySelector('td:first-child, th:first-child');
     if (firstCell) {
       const cellText = firstCell.textContent.trim();
-      // Major section headers that should allow page breaks
+      
+      // Enhanced section headers detection including all possible product group categories
       const sectionHeaders = [
         'Commercial Items Plain',
         'Commercial Items Printed', 
@@ -179,15 +256,51 @@ const findSeparatorRows = (tableBody) => {
         'Laminates',
         'Mono Layer Printed',
         'Supplies/Raw',
-        'Total'
+        'Total',
+        // Additional common product group headers
+        'UnPrinted',
+        'Printed',
+        'Films',
+        'Bags',
+        'Shopping Bags',
+        'Flexible Packaging',
+        'Thermoforming',
+        'Preforms',
+        'Closures'
       ];
       
-      if (sectionHeaders.some(header => cellText.includes(header))) {
+      // Check for exact matches or partial matches for flexibility
+      const isHeaderRow = sectionHeaders.some(header => 
+        cellText.includes(header) || 
+        cellText.toLowerCase().includes(header.toLowerCase())
+      );
+      
+      // Also check for product-header class or row-label class
+      const hasHeaderClass = firstCell.classList.contains('product-header') || 
+                            firstCell.classList.contains('row-label') ||
+                            firstCell.classList.contains('category-header') ||
+                            row.classList.contains('product-header-row');
+      
+      if (isHeaderRow || hasHeaderClass) {
         separatorIndices.push(index);
+        console.log(`[Product Group PDF] Found separator at row ${index}: "${cellText}"`);
       }
+    }
+    
+    // Also check for rows that might be logical section breaks (empty or minimal content)
+    const cells = Array.from(row.querySelectorAll('td, th'));
+    const hasMinimalContent = cells.length > 0 && cells.every(cell => {
+      const text = cell.textContent.trim();
+      return text === '' || text === '-' || text === '0' || text === '0.00';
+    });
+    
+    if (hasMinimalContent && !separatorIndices.includes(index)) {
+      separatorIndices.push(index);
+      console.log(`[Product Group PDF] Found empty separator at row ${index}`);
     }
   });
   
+  console.log(`[Product Group PDF] Total separator points found: ${separatorIndices.length}`);
   return separatorIndices;
 };
 
@@ -384,9 +497,15 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
       doc.setFontSize(10);
       doc.text(subtitle, doc.internal.pageSize.getWidth() / 2, 17, { align: 'center' });
 
-      // Find separator rows for intelligent page breaks
-      const separatorRows = findSeparatorRows(table.querySelector('tbody'));
-      console.log(`[Product Group PDF] Found ${separatorRows.length} separator points for page breaks`);
+      // Analyze product group structure to prevent splitting
+      const tableBody = table.querySelector('tbody');
+      console.log(`[Product Group PDF] Starting analysis - tableBody found: ${!!tableBody}`);
+      const productGroups = analyzeProductGroupStructure(tableBody);
+      const separatorRows = findSeparatorRows(tableBody);
+      console.log(`[Product Group PDF] Analysis complete - ${productGroups.length} groups, ${separatorRows.length} separator points`);
+      
+      // Debug: Log the productGroups array to see if it's being populated
+      console.log('[Product Group PDF] Product Groups Array:', productGroups);
 
       autoTable(doc, {
         html: table,
@@ -444,29 +563,103 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
           processProductGroupCell(data, scaleFactor);
         },
         
-        // Smart page break handling - LIMIT 5 PRODUCT GROUPS PER PAGE
-        didDrawRow: function(data) {
+        // Check for page breaks BEFORE drawing the row
+        willDrawRow: function(data) {
           const rowIndex = data.row.index;
-          const rowElement = table.querySelector('tbody').children[rowIndex];
           
-          if (rowElement && rowElement.classList.contains('product-header-row')) {
-            // Count how many product group headers we've seen
-            this.productGroupCount = (this.productGroupCount || 0) + 1;
-            
-            // Force page break BEFORE the 6th product group (groups 6, 11, 16, etc.)
-            if (this.productGroupCount === 6 || (this.productGroupCount > 6 && (this.productGroupCount - 1) % 5 === 0)) {
-              console.log(`[Product Group PDF] Forcing page break BEFORE product group ${this.productGroupCount} to keep it intact`);
-              data.addPageBreak = true;
-            }
-          }
+          console.log(`[willDrawRow DEBUG] About to draw row ${rowIndex}`);
           
-          // Also handle normal page breaks at separators when approaching page end
+          // Current position and available space
           const currentY = data.cursor.y;
           const pageHeight = doc.internal.pageSize.getHeight();
           const remainingSpace = pageHeight - currentY - pageMargins.bottom;
           
-          if (remainingSpace < 40 && separatorRows.includes(rowIndex)) {
-            console.log(`[Product Group PDF] Natural page break at separator row ${rowIndex}`);
+          // Check if current row is the start of a product group
+          const currentProductGroup = productGroups.find(group => group.startIndex === rowIndex);
+          
+          if (currentProductGroup) {
+            // Calculate estimated height needed for this entire product group
+            const estimatedRowHeight = 11; // mm per row (approximate)
+            const groupHeight = currentProductGroup.rowCount * estimatedRowHeight;
+            const bufferSpace = 10; // mm buffer for safety
+            const totalNeededSpace = groupHeight + bufferSpace;
+            
+            console.log(`[willDrawRow] Product group "${currentProductGroup.name}" needs ${totalNeededSpace}mm (${currentProductGroup.rowCount} rows)`);
+            console.log(`[willDrawRow] Available space: ${remainingSpace}mm`);
+            
+            // If not enough space, force page break before this group
+            if (remainingSpace < totalNeededSpace) {
+              console.log(`[willDrawRow] ✅ ADDING PAGE BREAK before "${currentProductGroup.name}"`);
+              doc.addPage();
+              return true; // Continue processing
+            }
+          }
+          
+          return true; // Continue processing row
+        },
+        
+        // Smart page break handling - Prevent product group splitting
+        didDrawRow: function(data) {
+          const rowIndex = data.row.index;
+          const rowElement = tableBody.children[rowIndex];
+          
+          console.log(`[didDrawRow DEBUG] Processing row ${rowIndex}, productGroups length: ${productGroups.length}`);
+          
+          // Current position and available space
+          const currentY = data.cursor.y;
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const remainingSpace = pageHeight - currentY - pageMargins.bottom;
+          
+          // Check if current row is the start of a product group
+          const currentProductGroup = productGroups.find(group => group.startIndex === rowIndex);
+          console.log(`[didDrawRow DEBUG] Current product group found: ${!!currentProductGroup}`);
+          
+          if (currentProductGroup) {
+            // Calculate estimated height needed for this entire product group
+            const estimatedRowHeight = 11; // mm per row (approximate)
+            const groupHeight = currentProductGroup.rowCount * estimatedRowHeight;
+            const bufferSpace = 10; // mm buffer for safety
+            const totalNeededSpace = groupHeight + bufferSpace;
+            
+            console.log(`[Product Group PDF] Product group "${currentProductGroup.name}" needs ${totalNeededSpace}mm (${currentProductGroup.rowCount} rows)`);
+            console.log(`[Product Group PDF] Available space: ${remainingSpace}mm`);
+            
+            // If not enough space, force page break before this group
+            if (remainingSpace < totalNeededSpace) {
+              console.log(`[Product Group PDF] ✅ FORCING PAGE BREAK before "${currentProductGroup.name}" to keep group intact`);
+              // Try multiple methods to trigger page break
+              data.addPageBreak = true;
+              doc.addPage();
+              return false; // Some versions use return false
+            } else {
+              console.log(`[Product Group PDF] ✅ Group "${currentProductGroup.name}" fits in remaining space`);
+            }
+          }
+          
+          // Alternative approach: Check for product header rows using DOM classes
+          if (rowElement && (
+              rowElement.classList.contains('product-header-row') ||
+              rowElement.querySelector('.product-header') ||
+              rowElement.querySelector('.row-label')
+            )) {
+            console.log(`[didDrawRow DEBUG] Found product header row at ${rowIndex}`);
+            
+            // Estimate that a typical product group needs ~80-100mm of space
+            const estimatedGroupSpace = 80; // mm
+            
+            if (remainingSpace < estimatedGroupSpace) {
+              console.log(`[Product Group PDF] ✅ FORCING PAGE BREAK at product header row ${rowIndex} (${remainingSpace}mm < ${estimatedGroupSpace}mm)`);
+              // Try multiple methods to trigger page break
+              data.addPageBreak = true;
+              doc.addPage();
+              return false; // Some versions use return false
+            }
+          }
+          
+          // Fallback: Insert page break at separators when space is very limited
+          if (remainingSpace < 30 && separatorRows.includes(rowIndex)) {
+            console.log(`[Product Group PDF] Emergency page break at separator row ${rowIndex}, remaining space: ${remainingSpace}mm`);
+            data.addPageBreak = true;
           }
         }
       });

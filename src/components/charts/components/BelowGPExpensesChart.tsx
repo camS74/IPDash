@@ -422,14 +422,13 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       <div style={{ 
         display: 'flex', 
         flexWrap: 'nowrap', 
-        justifyContent: 'center', 
+        justifyContent: 'space-around', 
         alignItems: 'flex-end', 
-        gap: '4px', 
+        gap: '5px', 
         marginTop: 20,
         marginBottom: 0,
         width: '100%',
-        overflowX: 'auto',
-        padding: '0 16px',
+        padding: '0 24px',
       }}>
         {periodsToUse.map((period, idx) => {
           // Move all variable declarations here for each card
@@ -460,10 +459,9 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
                 backgroundColor: color,
               border: `1px solid ${color}`,
               boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
-                minWidth: '180px',
+                minWidth: '150px',
                 maxWidth: '180px',
-                width: '180px',
-              flex: '1',
+                flex: '1',
               textAlign: 'center',
               position: 'relative',
                 overflow: 'hidden',
@@ -541,6 +539,10 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
       padding: style?.padding || '20px', // Allow padding override for PDF export
+      width: '95%',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      boxSizing: 'border-box',
       ...(style || {}) // Apply any style props passed from parent component
     }}>
       <h2 className="modern-gauge-heading" style={{
@@ -557,7 +559,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
         <>
           <ReactECharts 
             option={option} 
-            style={{ height: 600 }} // Height of 600px for consistency with other charts
+            style={{ height: 600, width: '100%' }} // Use full panel width
             notMerge={true}
             opts={{ renderer: 'svg' }}
           />

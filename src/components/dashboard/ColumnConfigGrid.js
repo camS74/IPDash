@@ -419,7 +419,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
           className="export-btn html-export" 
           onClick={handleHTMLExport}
           disabled={!dataGenerated}
-          title={!dataGenerated ? "Please generate data first" : "Export interactive HTML report (charts + table only)"}
+          title={!dataGenerated ? "Please generate data first" : "Export interactive HTML report (charts + all tables: P&L, Product Group, Sales by Country)"}
         >
           HTML Report
         </button>
@@ -427,7 +427,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
           className="export-btn html-writeup-export" 
           onClick={handleHTMLExportWithWriteup}
           disabled={!dataGenerated}
-          title={!dataGenerated ? "Please generate data first" : "Export HTML report with editable writeup section"}
+          title={!dataGenerated ? "Please generate data first" : "Export HTML report with editable writeup section (includes all charts and tables)"}
         >
           HTML Report with Writeup
         </button>

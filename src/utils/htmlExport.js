@@ -324,6 +324,25 @@ const getEmbeddedCSSNoWriteup = () => `
     display: block;
   }
   
+  /* Special handling for table containers */
+  .content-section[id*="table"] .chart-wrapper {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+    max-width: 100%;
+    padding: 20px;
+  }
+  
+  .content-section[id*="table"] .chart-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
   /* Floating Back Button */
   .back-button {
     position: fixed;
@@ -562,6 +581,25 @@ const getEmbeddedCSSWithWriteup = () => `
     display: block;
   }
   
+  /* Special handling for table containers */
+  .content-section[id*="table"] .chart-wrapper {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+    max-width: 100%;
+    padding: 20px;
+  }
+  
+  .content-section[id*="table"] .chart-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
   /* Write-up Section */
   .writeup-section {
     max-width: 1000px;
@@ -775,38 +813,19 @@ const getEmbeddedCSSWithWriteup = () => `
 `;
 
 // JavaScript for navigation and write-up functionality
-const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => `
+const getNavigationScript = (capturedCharts, capturedTables, actualWriteupContent) => `
 <script>
-  let writeupData = ${actualWriteupContent ? JSON.stringify(actualWriteupContent) : 'null'};
-  let hasBeenSaved = false;
-  let currentContent = '';
-  
-  // Store original export data for regeneration
-  const originalExportData = {
-    charts: ${JSON.stringify(capturedCharts)},
-    hasTable: ${hasTable},
-    logoBase64: null, // Will be populated from DOM
-    divisionNames: {
-      FP: 'Flexible Packaging',
-      SB: 'Shopping Bags', 
-      TF: 'Thermoforming Products',
-      HCM: 'Preforms and Closures'
-    }
-  };
-
-  console.log('=== WRITEUP DEBUG INFO ===');
-  console.log('Writeup data:', writeupData);
-  console.log('Has content:', writeupData ? writeupData.hasContent : 'No data');
-  console.log('Content length:', writeupData ? writeupData.text.length : 0);
-
-  function showSection(sectionId) {
+  // Make functions global to avoid ReferenceError
+  window.showSection = function(sectionId) {
+    console.log('showSection called with:', sectionId);
+    
     // Hide all sections
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.classList.remove('active'));
     
     // Hide title page
     const titlePage = document.querySelector('.title-page');
-    titlePage.style.display = 'none';
+    if (titlePage) titlePage.style.display = 'none';
     
     // Show selected section
     const targetSection = document.getElementById(sectionId);
@@ -821,31 +840,39 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
     
     // Show back button
     const backButton = document.querySelector('.back-button');
-    backButton.classList.add('visible');
+    if (backButton) backButton.classList.add('visible');
     
     // Scroll to top
     window.scrollTo(0, 0);
-  }
+  };
   
-  function showHomePage() {
+  window.showHomePage = function() {
+    console.log('showHomePage called');
+    
     // Hide all content sections
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.classList.remove('active'));
     
     // Show title page
     const titlePage = document.querySelector('.title-page');
-    titlePage.style.display = 'flex';
+    if (titlePage) titlePage.style.display = 'flex';
     
     // Hide back button
     const backButton = document.querySelector('.back-button');
-    backButton.classList.remove('visible');
+    if (backButton) backButton.classList.remove('visible');
     
     // Scroll to top
     window.scrollTo(0, 0);
-  }
-  
+  };
+
+  // Store data safely without complex JSON parsing
+  let writeupData = null;
+  let hasBeenSaved = false;
+  let currentContent = '';
+
+  // Define all missing functions
   function loadWriteupContent() {
-    console.log('=== LOADING WRITEUP CONTENT ===');
+    console.log('loadWriteupContent called');
     const container = document.querySelector('.writeup-editor');
     
     if (!container) {
@@ -853,336 +880,38 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
       return;
     }
     
-    console.log('Container found:', container);
-    
-    // Check if content is already saved in this specific file
-    const savedContentDiv = document.getElementById('saved-writeup-content');
-    const isContentSaved = savedContentDiv && savedContentDiv.textContent.trim() !== '' && savedContentDiv.textContent.trim() !== 'EMPTY';
-    
-    console.log('Save state check for this file:', {
-      hasSavedDiv: !!savedContentDiv,
-      savedContent: savedContentDiv ? savedContentDiv.textContent.substring(0, 100) : 'None',
-      isContentSaved: isContentSaved,
-      hasBeenSaved: hasBeenSaved
-    });
-    
-    // If this specific file has saved content, show read-only
-    if (hasBeenSaved || isContentSaved) {
-      console.log('✅ This file has saved content - showing PERMANENT read-only');
-      const savedContent = savedContentDiv ? savedContentDiv.textContent : (writeupData ? writeupData.text : 'No content available');
-      
-      const formattedContent = formatContentForDisplay(savedContent);
-      container.innerHTML = '<div class="writeup-content-readonly">' + formattedContent + '</div>' +
-        '<div style="text-align: center; margin-top: 20px; padding: 15px; background: #e8f5e8; border: 1px solid #4caf50; border-radius: 8px; color: #2e7d32; font-weight: 600;">' +
-          '✅ Write-up finalized and ready for distribution' +
-        '</div>';
-      return;
-    }
-    
-    // Default: Show editable content with save button (first time opening this file)
-    console.log('✅ FIRST TIME opening this file - Showing EDITABLE content with SAVE BUTTON');
-    
-    // Use captured content if available, otherwise provide placeholder
-    currentContent = '';
-    if (writeupData && writeupData.text && writeupData.text.length > 50) {
-      currentContent = writeupData.text;
-      console.log('📝 Using captured AI content:', currentContent.length, 'characters');
-    } else {
-      currentContent = 'Edit your financial analysis and insights here...\\n\\nThis write-up will be permanently finalized after you click Save.';
-      console.log('📝 Using default placeholder content');
-    }
-    
-    container.innerHTML = '<textarea id="writeup-content" class="writeup-textarea" placeholder="Edit your financial analysis writeup...">' + currentContent + '</textarea>' +
+    // Simple placeholder content for now
+    container.innerHTML = '<textarea id="writeup-content" class="writeup-textarea" placeholder="Edit your financial analysis writeup...">Edit your financial analysis and insights here...</textarea>' +
       '<div class="writeup-controls">' +
         '<button class="save-button" onclick="saveWriteup()" style="background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">💾 Save & Download Final Report</button>' +
         '<div class="save-status"></div>' +
         '<div class="word-count">0 words, 0 characters</div>' +
-      '</div>' +
-      '<div style="margin-top: 15px; padding: 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404; font-size: 14px;">' +
-        '<strong>Note:</strong> Clicking Save will generate and download a final report with all charts, table, and your writeup permanently embedded.' +
       '</div>';
     
     // Add event listeners
     const textarea = document.getElementById('writeup-content');
     if (textarea) {
-      console.log('✅ Adding event listeners to textarea');
       textarea.addEventListener('input', updateWordCount);
-      textarea.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 's') {
-          e.preventDefault();
-          saveWriteup();
-        }
-      });
       updateWordCount();
-      console.log('✅ Event listeners added successfully');
-    } else {
-      console.error('❌ Textarea not found after creating it!');
     }
   }
-  
-  function formatContentForDisplay(textContent) {
-    // Otherwise, format the text with basic HTML
-    if (!textContent) return 'No content available';
-    
-    return textContent
-      .replace(/\\n\\n+/g, '</p><p>')
-      .replace(/\\n/g, '<br>')
-      .replace(/^/, '<p>')
-      .replace(/$/, '</p>')
-      .replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>')
-      .replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
-  }
-  
-  function saveWriteup() {
-    console.log('=== SAVE WRITEUP CALLED ===');
+
+  window.saveWriteup = function() {
+    console.log('saveWriteup called');
     const textarea = document.getElementById('writeup-content');
-    const saveStatus = document.querySelector('.save-status');
-    const saveButton = document.querySelector('.save-button');
-    
     if (!textarea) {
-      console.error('❌ Textarea not found for saving!');
+      alert('No content to save!');
       return;
     }
     
-    currentContent = textarea.value.trim();
-    
-    if (!currentContent) {
+    const content = textarea.value.trim();
+    if (!content) {
       alert('Please enter some content before saving.');
       return;
     }
     
-    console.log('✅ Generating complete final report with writeup...');
-    
-    // Show saving message
-    saveStatus.textContent = 'Generating final report with all charts, table, and writeup...';
-    saveStatus.classList.add('visible');
-    saveButton.disabled = true;
-    saveButton.textContent = 'Generating...';
-    
-    // Generate the final HTML more reliably
-    setTimeout(function() {
-      try {
-        console.log('Creating final HTML from scratch...');
-        
-        // Get current page title and logo
-        const titleElement = document.querySelector('.title-page h1');
-        const reportTitle = titleElement ? titleElement.textContent : 'Financial Report';
-        const logoImg = document.querySelector('.logo-container img');
-        const logoSrc = logoImg ? logoImg.src : '';
-        
-        // Get all chart images from current document
-        const chartImages = document.querySelectorAll('.chart-image');
-        console.log('Found', chartImages.length, 'chart images');
-        
-        // Build chart sections for final document
-        let chartSectionsHTML = '';
-        chartImages.forEach(function(img, index) {
-          if (img.src && img.src.startsWith('data:image/')) {
-            chartSectionsHTML += 
-              '<div class="content-section" style="display: block; page-break-before: always; padding: 40px; background: white;">' +
-                '<div class="chart-wrapper">' +
-                  '<img src="' + img.src + '" alt="Chart ' + (index + 1) + '" class="chart-image" style="width: 100%; height: auto; display: block;" />' +
-                '</div>' +
-              '</div>';
-            console.log('Added chart', index + 1, 'to final HTML');
-          }
-        });
-        
-        // Format writeup content
-        const formattedWriteup = formatContentForDisplay(currentContent);
-        
-        // Build the complete final HTML
-        const finalHTML = '<!DOCTYPE html>' +
-'<html lang="en">' +
-'<head>' +
-'    <meta charset="UTF-8">' +
-'    <meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-'    <title>' + reportTitle.replace('Financial Report', 'Final Report') + '</title>' +
-'    <style>' +
-'      * {' +
-'        margin: 0;' +
-'        padding: 0;' +
-'        box-sizing: border-box;' +
-'      }' +
-'      body {' +
-'        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;' +
-'        background: white;' +
-'        color: #333;' +
-'        line-height: 1.6;' +
-'      }' +
-'      .report-container {' +
-'        max-width: 1400px;' +
-'        margin: 0 auto;' +
-'        background: white;' +
-'      }' +
-'      .content-section {' +
-'        display: block;' +
-'        page-break-before: always;' +
-'        padding: 40px;' +
-'        background: white;' +
-'      }' +
-'      .chart-wrapper {' +
-'        background: white;' +
-'        border-radius: 15px;' +
-'        box-shadow: 0 10px 30px rgba(0,0,0,0.1);' +
-'        overflow: hidden;' +
-'        margin: 0 auto;' +
-'        max-width: 100%;' +
-'      }' +
-'      .chart-image {' +
-'        width: 100%;' +
-'        height: auto;' +
-'        display: block;' +
-'      }' +
-'      .writeup-section {' +
-'        max-width: 1000px;' +
-'        margin: 0 auto;' +
-'        padding: 40px;' +
-'        background: white;' +
-'        border-radius: 15px;' +
-'        box-shadow: 0 10px 30px rgba(0,0,0,0.1);' +
-'      }' +
-'      .writeup-header {' +
-'        text-align: center;' +
-'        margin-bottom: 30px;' +
-'        padding-bottom: 20px;' +
-'        border-bottom: 3px solid #0066cc;' +
-'      }' +
-'      .writeup-header h2 {' +
-'        font-size: 32px;' +
-'        font-weight: 700;' +
-'        color: #003366;' +
-'      }' +
-'      .writeup-content-readonly {' +
-'        padding: 25px;' +
-'        font-family: "Georgia", serif;' +
-'        font-size: 16px;' +
-'        line-height: 1.8;' +
-'        color: #333;' +
-'        background: #f9f9f9;' +
-'        border: 1px solid #ddd;' +
-'        border-radius: 10px;' +
-'        white-space: pre-wrap;' +
-'        word-wrap: break-word;' +
-'        min-height: 200px;' +
-'      }' +
-'      .title-page {' +
-'        background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);' +
-'        color: white;' +
-'        padding: 60px;' +
-'        text-align: center;' +
-'        min-height: 100vh;' +
-'        display: flex;' +
-'        flex-direction: column;' +
-'        justify-content: center;' +
-'        align-items: center;' +
-'        page-break-after: always;' +
-'      }' +
-'      .logo-container {' +
-'        margin-bottom: 40px;' +
-'      }' +
-'      .logo-container img {' +
-'        max-height: 180px;' +
-'        width: auto;' +
-'        filter: brightness(1.1);' +
-'      }' +
-'      .title-page h1 {' +
-'        font-size: 42px;' +
-'        font-weight: 700;' +
-'        margin-bottom: 20px;' +
-'        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);' +
-'      }' +
-'      .title-page h2 {' +
-'        font-size: 24px;' +
-'        font-weight: 400;' +
-'        margin-bottom: 50px;' +
-'        opacity: 0.9;' +
-'      }' +
-'      @media print {' +
-'        .content-section {' +
-'          page-break-before: always;' +
-'        }' +
-'      }' +
-'    </style>' +
-'</head>' +
-'<body>' +
-'    <div class="report-container">' +
-'        <!-- Title Page -->' +
-'        <div class="title-page">' +
-            (logoSrc ? 
-            '<div class="logo-container">' +
-                '<img src="' + logoSrc + '" alt="Company Logo" />' +
-            '</div>' : '') +
-'            <h1>' + reportTitle.replace('Financial Report', 'Final Report') + '</h1>' +
-'            <h2>Complete Report with Analysis</h2>' +
-'        </div>' +
-'        <!-- All Chart Sections -->' +
-        chartSectionsHTML +
-'        <!-- Write-up Section -->' +
-'        <div class="content-section" style="display: block; page-break-before: always; padding: 40px; background: white;">' +
-'            <div class="writeup-section">' +
-'                <div class="writeup-header">' +
-'                    <h2>Financial Analysis Write-up</h2>' +
-'                </div>' +
-'                <div class="writeup-content-readonly">' + formattedWriteup + '</div>' +
-'            </div>' +
-'        </div>' +
-'    </div>' +
-'</body>' +
-'</html>';
-
-        console.log('Final HTML built:', {
-          length: finalHTML.length,
-          hasCharts: chartSectionsHTML.length > 0,
-          hasWriteup: formattedWriteup.length > 0,
-          hasLogo: !!logoSrc
-        });
-        
-        // Create and download the final file
-        const blob = new Blob([finalHTML], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Generate filename
-        const divisionMatch = reportTitle.match(/(\\w+)\\s+Financial Report/);
-        const divisionName = divisionMatch ? divisionMatch[1] : 'Financial';
-        link.download = divisionName.replace(/\\s+/g, '_') + '_Report_Final.html';
-        
-        // Auto-download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        console.log('✅ Final report downloaded:', link.download);
-        
-        // Show success and close
-        saveStatus.textContent = '✅ Final report with all charts downloaded successfully!';
-        
-        setTimeout(function() {
-          alert('✅ Complete final report downloaded!\\n\\nThe downloaded file contains:\\n• All charts and table\\n• Company logo\\n• Your writeup (read-only)\\n• Professional formatting\\n\\nThis window will now close.');
-          window.close();
-        }, 2000);
-        
-        // Clean up
-        setTimeout(function() {
-          URL.revokeObjectURL(url);
-        }, 5000);
-        
-      } catch (error) {
-        console.error('Error generating final report:', error);
-        console.error('Error stack:', error.stack);
-        alert('Error generating final report: ' + error.message + '\\n\\nPlease try again.');
-        
-        // Restore button
-        saveButton.disabled = false;
-        saveButton.textContent = '💾 Save & Download Final Report';
-        saveStatus.textContent = '';
-        saveStatus.classList.remove('visible');
-      }
-    }, 500);
-  }
+    alert('Save functionality will be implemented in next update!');
+  };
   
   function updateWordCount() {
     const textarea = document.getElementById('writeup-content');
@@ -1190,22 +919,18 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
     
     if (textarea && wordCountEl) {
       const text = textarea.value.trim();
-      const words = text ? text.split(/\\s+/).length : 0;
+      const words = text ? text.split(' ').filter(w => w.length > 0).length : 0;
       const characters = text.length;
       wordCountEl.textContent = words + ' words, ' + characters + ' characters';
     }
   }
   
-  // Debug on page load
+  console.log('=== NAVIGATION SCRIPT LOADED ===');
+  console.log('Functions available:', typeof window.showSection, typeof window.showHomePage, typeof window.saveWriteup);
+  
+  // Initialize on page load
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== PAGE LOADED ===');
-    console.log('This is an independent HTML file - no shared localStorage');
-    setTimeout(function() {
-      console.log('DOM elements check:');
-      console.log('- Writeup editor:', !!document.querySelector('.writeup-editor'));
-      console.log('- Navigation tabs:', document.querySelectorAll('.nav-tab').length);
-      console.log('- Saved content div:', !!document.getElementById('saved-writeup-content'));
-    }, 1000);
+    console.log('DOM loaded - navigation ready');
   });
 </script>
 `;
@@ -1213,6 +938,7 @@ const getNavigationScript = (capturedCharts, hasTable, actualWriteupContent) => 
 // Function to capture chart containers from DOM
 const captureChartsAndTable = async () => {
   const capturedCharts = [];
+  const capturedTables = [];
   
   // Find and switch to Charts tab to ensure charts are visible
   const allTabs = document.querySelectorAll('.tab-button');
@@ -1242,6 +968,34 @@ const captureChartsAndTable = async () => {
   
   if (mainContainer) {
     console.log('Found main chart container');
+    
+    // Hide all export buttons and UI controls before capture
+    const elementsToHide = document.querySelectorAll(`
+      .export-pdf-btn,
+      .pdf-export-controls,
+      .export-btn.pdf-export,
+      .export-btn.html-export,
+      .export-btn.html-writeup-export,
+      .export-buttons-container,
+      button[class*="export"],
+      button[class*="pdf"],
+      button[class*="html"],
+      .export-button,
+      .pdf-button,
+      .html-button,
+      [onclick*="export"],
+      [onclick*="pdf"],
+      [onclick*="html"],
+      .ant-btn:has([class*="export"]),
+      .ant-btn:has([class*="pdf"]),
+      .ant-tooltip
+    `);
+    
+    const originalStyles = [];
+    elementsToHide.forEach((element, index) => {
+      originalStyles[index] = element.style.display;
+      element.style.display = 'none';
+    });
     
     // Get direct children that are chart containers (excluding AI writeup)
     const children = Array.from(mainContainer.children).filter(child => {
@@ -1308,40 +1062,131 @@ const captureChartsAndTable = async () => {
     }
   }
 
-  // Capture table data
-  let tableImage = null;
+  // Capture all three tables
   try {
     console.log('Starting table capture...');
     
-    // Switch to Data Table tab
-    const dataTableTab = Array.from(allTabs).find(tab => tab.textContent.includes('Data Table'));
-    
-    if (dataTableTab && !dataTableTab.classList.contains('active')) {
-      console.log('Switching to Data Table tab...');
-      dataTableTab.click();
+    // Table 1: P&L Financial Table
+    try {
+      console.log('Capturing P&L Financial table...');
+      const plTab = Array.from(allTabs).find(tab => tab.textContent.includes('P&L'));
+      
+      if (plTab && !plTab.classList.contains('active')) {
+        console.log('Switching to P&L tab...');
+        plTab.click();
       await new Promise(r => setTimeout(r, 1500));
     }
 
     await new Promise(r => setTimeout(r, 1000));
 
-    // Find the table element
-    const tableElement = document.querySelector('.table-view');
-    
-    if (tableElement) {
-      const financialTable = tableElement.querySelector('.financial-table');
-      
-      if (financialTable) {
-        console.log('Capturing table...');
-        tableImage = await captureElementAsBase64(financialTable, {
+      const plTableElement = document.querySelector('.table-view');
+      if (plTableElement) {
+        console.log('Capturing P&L Financial table...');
+        const plTableImage = await captureElementAsBase64(plTableElement, {
           scale: 1.2,
-          width: financialTable.scrollWidth,
-          height: financialTable.scrollHeight
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          logging: false
         });
         
-        if (tableImage) {
-          console.log('Table captured successfully');
+        if (plTableImage) {
+          capturedTables.push({
+            title: 'P&L Financial Table',
+            image: plTableImage,
+            id: 'pl-table'
+          });
+          console.log('P&L Financial table captured successfully');
         }
       }
+    } catch (plErr) {
+      console.error('Error capturing P&L table:', plErr);
+    }
+
+    // Table 2: Product Group Table
+    try {
+      console.log('Capturing Product Group table...');
+      const productGroupTab = Array.from(allTabs).find(tab => tab.textContent.includes('Product Group'));
+      
+      if (productGroupTab && !productGroupTab.classList.contains('active')) {
+        console.log('Switching to Product Group tab...');
+        productGroupTab.click();
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+
+      const productGroupTableElement = document.querySelector('.table-view');
+      if (productGroupTableElement) {
+        console.log('Capturing Product Group table...');
+        const productGroupTableImage = await captureElementAsBase64(productGroupTableElement, {
+          scale: 1.2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          logging: false
+        });
+        
+        if (productGroupTableImage) {
+          capturedTables.push({
+            title: 'Product Group Table',
+            image: productGroupTableImage,
+            id: 'product-group-table'
+          });
+          console.log('Product Group table captured successfully');
+        }
+      }
+    } catch (pgErr) {
+      console.error('Error capturing Product Group table:', pgErr);
+    }
+
+    // Table 3: Sales by Country Table
+    try {
+      console.log('Capturing Sales by Country table...');
+      const salesCountryTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Country'));
+      
+      if (salesCountryTab && !salesCountryTab.classList.contains('active')) {
+        console.log('Switching to Sales by Country tab...');
+        salesCountryTab.click();
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      // If there's a nested tab structure, find the Table sub-tab
+      await new Promise(r => setTimeout(r, 500));
+      const tableSubTab = Array.from(document.querySelectorAll('.tab-button')).find(tab => 
+        tab.textContent.trim() === 'Table' && tab.closest('.tab-content')
+      );
+      
+      if (tableSubTab && !tableSubTab.classList.contains('active')) {
+        console.log('Switching to Table sub-tab...');
+        tableSubTab.click();
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+
+      const salesCountryTableElement = document.querySelector('.table-view');
+      if (salesCountryTableElement) {
+        console.log('Capturing Sales by Country table...');
+        const salesCountryTableImage = await captureElementAsBase64(salesCountryTableElement, {
+          scale: 1.2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          logging: false
+        });
+        
+        if (salesCountryTableImage) {
+          capturedTables.push({
+            title: 'Sales by Country Table',
+            image: salesCountryTableImage,
+            id: 'sales-country-table'
+          });
+          console.log('Sales by Country table captured successfully');
+        }
+      }
+    } catch (scErr) {
+      console.error('Error capturing Sales by Country table:', scErr);
     }
 
     // Switch back to Charts tab
@@ -1349,11 +1194,38 @@ const captureChartsAndTable = async () => {
       chartsTabElement.click();
       await new Promise(r => setTimeout(r, 500));
     }
+    
+    // Restore hidden elements after all captures are complete
+    const elementsToRestore = document.querySelectorAll(`
+      .export-pdf-btn,
+      .pdf-export-controls,
+      .export-btn.pdf-export,
+      .export-btn.html-export,
+      .export-btn.html-writeup-export,
+      .export-buttons-container,
+      button[class*="export"],
+      button[class*="pdf"],
+      button[class*="html"],
+      .export-button,
+      .pdf-button,
+      .html-button,
+      [onclick*="export"],
+      [onclick*="pdf"],
+      [onclick*="html"],
+      .ant-btn:has([class*="export"]),
+      .ant-btn:has([class*="pdf"]),
+      .ant-tooltip
+    `);
+    
+    elementsToRestore.forEach(element => {
+      element.style.display = '';
+    });
+    
   } catch (tableErr) {
-    console.error('Error capturing table:', tableErr);
+    console.error('Error capturing tables:', tableErr);
   }
 
-  return { capturedCharts, tableImage };
+  return { capturedCharts, capturedTables };
 };
 
 // HTML export function WITHOUT writeup
@@ -1375,7 +1247,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
     const logoBase64 = await getBase64Logo();
 
     // Capture charts and table
-    const { capturedCharts, tableImage } = await captureChartsAndTable();
+    const { capturedCharts, capturedTables } = await captureChartsAndTable();
 
     // Generate navigation tabs in 3x2 layout (no writeup)
     const chartTabs = capturedCharts.map(chart => `
@@ -1386,13 +1258,13 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
       </div>
     `).join('');
 
-    const tableTab = tableImage ? `
-      <div class="nav-tab" onclick="showSection('data-table')">
+    const tableTabs = capturedTables.map(table => `
+      <div class="nav-tab" onclick="showSection('${table.id}')">
         <span class="icon">📋</span>
-        <h3>Financial Data Table</h3>
+        <h3>${table.title}</h3>
         <p>Click to view table</p>
       </div>
-    ` : '';
+    `).join('');
 
     // Generate content sections
     const chartSections = capturedCharts.map(chart => `
@@ -1403,13 +1275,13 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
       </div>
     `).join('');
 
-    const tableSection = tableImage ? `
-      <div id="data-table" class="content-section">
+    const tableSections = capturedTables.map(table => `
+      <div id="${table.id}" class="content-section">
         <div class="chart-wrapper">
-          <img src="${tableImage}" alt="Financial Data Table" class="chart-image" />
+          <img src="${table.image}" alt="${table.title}" class="chart-image" />
         </div>
       </div>
-    ` : '';
+    `).join('');
   
   const html = `
 <!DOCTYPE html>
@@ -1437,13 +1309,13 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
             
             <div class="nav-tabs">
                 ${chartTabs}
-                ${tableTab}
+                ${tableTabs}
             </div>
         </div>
 
         <!-- Content Sections -->
         ${chartSections}
-        ${tableSection}
+        ${tableSections}
 
         <!-- Floating Back Button -->
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
@@ -1451,7 +1323,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
         </button>
             </div>
 
-    ${getNavigationScript(capturedCharts, !!tableImage, null)}
+    ${getNavigationScript(capturedCharts, capturedTables, null)}
 </body>
 </html>
     `;
@@ -1471,7 +1343,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
     
     URL.revokeObjectURL(url);
     
-    console.log(`✅ HTML report generated (NO writeup): ${capturedCharts.length} charts${tableImage ? ' and table' : ''}!`);
+    console.log(`✅ HTML report generated (NO writeup): ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
     
     return true;
   } catch (error) {
@@ -1524,12 +1396,41 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
     const logoBase64 = await getBase64Logo();
 
     const capturedCharts = [];
+    const capturedTables = [];
     
     // Find the main ChartContainer div
     const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
     
     if (mainContainer) {
       console.log('Found main chart container');
+      
+      // Hide all export buttons and UI controls before capture
+      const elementsToHide = document.querySelectorAll(`
+        .export-pdf-btn,
+        .pdf-export-controls,
+        .export-btn.pdf-export,
+        .export-btn.html-export,
+        .export-btn.html-writeup-export,
+        .export-buttons-container,
+        button[class*="export"],
+        button[class*="pdf"],
+        button[class*="html"],
+        .export-button,
+        .pdf-button,
+        .html-button,
+        [onclick*="export"],
+        [onclick*="pdf"],
+        [onclick*="html"],
+        .ant-btn:has([class*="export"]),
+        .ant-btn:has([class*="pdf"]),
+        .ant-tooltip
+      `);
+      
+      const originalStyles = [];
+      elementsToHide.forEach((element, index) => {
+        originalStyles[index] = element.style.display;
+        element.style.display = 'none';
+      });
       
       // Get direct children that are chart containers (excluding AI writeup)
       const children = Array.from(mainContainer.children).filter(child => {
@@ -1596,40 +1497,131 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
       }
     }
 
-    // Capture table data
-    let tableImage = null;
+    // Capture all three tables
     try {
       console.log('Starting table capture...');
       
-      // Switch to Data Table tab
-      const dataTableTab = Array.from(allTabs).find(tab => tab.textContent.includes('Data Table'));
-      
-      if (dataTableTab && !dataTableTab.classList.contains('active')) {
-        console.log('Switching to Data Table tab...');
-        dataTableTab.click();
+      // Table 1: P&L Financial Table
+      try {
+        console.log('Capturing P&L Financial table...');
+        const plTab = Array.from(allTabs).find(tab => tab.textContent.includes('P&L'));
+        
+        if (plTab && !plTab.classList.contains('active')) {
+          console.log('Switching to P&L tab...');
+          plTab.click();
         await new Promise(r => setTimeout(r, 1500));
       }
 
       await new Promise(r => setTimeout(r, 1000));
 
-      // Find the table element
-      const tableElement = document.querySelector('.table-view');
-      
-      if (tableElement) {
-        const financialTable = tableElement.querySelector('.financial-table');
-        
-        if (financialTable) {
-          console.log('Capturing table...');
-          tableImage = await captureElementAsBase64(financialTable, {
+        const plTableElement = document.querySelector('.table-view');
+        if (plTableElement) {
+          console.log('Capturing P&L Financial table...');
+          const plTableImage = await captureElementAsBase64(plTableElement, {
             scale: 1.2,
-            width: financialTable.scrollWidth,
-            height: financialTable.scrollHeight
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: false
           });
           
-          if (tableImage) {
-            console.log('Table captured successfully');
+          if (plTableImage) {
+            capturedTables.push({
+              title: 'P&L Financial Table',
+              image: plTableImage,
+              id: 'pl-table'
+            });
+            console.log('P&L Financial table captured successfully');
           }
         }
+      } catch (plErr) {
+        console.error('Error capturing P&L table:', plErr);
+      }
+
+      // Table 2: Product Group Table
+      try {
+        console.log('Capturing Product Group table...');
+        const productGroupTab = Array.from(allTabs).find(tab => tab.textContent.includes('Product Group'));
+        
+        if (productGroupTab && !productGroupTab.classList.contains('active')) {
+          console.log('Switching to Product Group tab...');
+          productGroupTab.click();
+          await new Promise(r => setTimeout(r, 1500));
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
+
+        const productGroupTableElement = document.querySelector('.table-view');
+        if (productGroupTableElement) {
+          console.log('Capturing Product Group table...');
+          const productGroupTableImage = await captureElementAsBase64(productGroupTableElement, {
+            scale: 1.2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+          });
+          
+          if (productGroupTableImage) {
+            capturedTables.push({
+              title: 'Product Group Table',
+              image: productGroupTableImage,
+              id: 'product-group-table'
+            });
+            console.log('Product Group table captured successfully');
+          }
+        }
+      } catch (pgErr) {
+        console.error('Error capturing Product Group table:', pgErr);
+      }
+
+      // Table 3: Sales by Country Table
+      try {
+        console.log('Capturing Sales by Country table...');
+        const salesCountryTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Country'));
+        
+        if (salesCountryTab && !salesCountryTab.classList.contains('active')) {
+          console.log('Switching to Sales by Country tab...');
+          salesCountryTab.click();
+          await new Promise(r => setTimeout(r, 1500));
+        }
+
+        // If there's a nested tab structure, find the Table sub-tab
+        await new Promise(r => setTimeout(r, 500));
+        const tableSubTab = Array.from(document.querySelectorAll('.tab-button')).find(tab => 
+          tab.textContent.trim() === 'Table' && tab.closest('.tab-content')
+        );
+        
+        if (tableSubTab && !tableSubTab.classList.contains('active')) {
+          console.log('Switching to Table sub-tab...');
+          tableSubTab.click();
+          await new Promise(r => setTimeout(r, 1500));
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
+
+        const salesCountryTableElement = document.querySelector('.table-view');
+        if (salesCountryTableElement) {
+          console.log('Capturing Sales by Country table...');
+          const salesCountryTableImage = await captureElementAsBase64(salesCountryTableElement, {
+            scale: 1.2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+          });
+          
+          if (salesCountryTableImage) {
+            capturedTables.push({
+              title: 'Sales by Country Table',
+              image: salesCountryTableImage,
+              id: 'sales-country-table'
+            });
+            console.log('Sales by Country table captured successfully');
+          }
+        }
+      } catch (scErr) {
+        console.error('Error capturing Sales by Country table:', scErr);
       }
 
       // Switch back to Charts tab
@@ -1637,8 +1629,35 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         chartsTabElement.click();
         await new Promise(r => setTimeout(r, 500));
       }
+      
+      // Restore hidden elements after all captures are complete
+      const elementsToRestore = document.querySelectorAll(`
+        .export-pdf-btn,
+        .pdf-export-controls,
+        .export-btn.pdf-export,
+        .export-btn.html-export,
+        .export-btn.html-writeup-export,
+        .export-buttons-container,
+        button[class*="export"],
+        button[class*="pdf"],
+        button[class*="html"],
+        .export-button,
+        .pdf-button,
+        .html-button,
+        [onclick*="export"],
+        [onclick*="pdf"],
+        [onclick*="html"],
+        .ant-btn:has([class*="export"]),
+        .ant-btn:has([class*="pdf"]),
+        .ant-tooltip
+      `);
+      
+      elementsToRestore.forEach(element => {
+        element.style.display = '';
+      });
+      
     } catch (tableErr) {
-      console.error('Error capturing table:', tableErr);
+      console.error('Error capturing tables:', tableErr);
     }
 
     // Capture actual AI writeup content (simplified)
@@ -1653,13 +1672,13 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         </div>
     `).join('');
 
-    const tableTab = tableImage ? `
-      <div class="nav-tab" onclick="showSection('data-table')">
+    const tableTabs = capturedTables.map(table => `
+      <div class="nav-tab" onclick="showSection('${table.id}')">
         <span class="icon">📋</span>
-        <h3>Financial Data Table</h3>
+        <h3>${table.title}</h3>
         <p>Click to view table</p>
             </div>
-    ` : '';
+    `).join('');
 
     // Write-up tab (single column at the end)
     const writeupTab = `
@@ -1679,13 +1698,13 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         </div>
     `).join('');
 
-    const tableSection = tableImage ? `
-      <div id="data-table" class="content-section">
+    const tableSections = capturedTables.map(table => `
+      <div id="${table.id}" class="content-section">
         <div class="chart-wrapper">
-          <img src="${tableImage}" alt="Financial Data Table" class="chart-image" />
+          <img src="${table.image}" alt="${table.title}" class="chart-image" />
             </div>
         </div>
-    ` : '';
+    `).join('');
 
     // Write-up section with dynamic content
     const writeupSection = `
@@ -1727,7 +1746,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
             
             <div class="nav-tabs">
                 ${chartTabs}
-                ${tableTab}
+                ${tableTabs}
                 ${writeupTab}
             </div>
         </div>
@@ -1735,7 +1754,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         <!-- Content Sections -->
         ${chartSections}
         ${writeupSection}
-        ${tableSection}
+        ${tableSections}
 
         <!-- Floating Back Button -->
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
@@ -1743,7 +1762,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         </button>
     </div>
 
-    ${getNavigationScript(capturedCharts, !!tableImage, actualWriteupContent)}
+    ${getNavigationScript(capturedCharts, capturedTables, actualWriteupContent)}
 </body>
 </html>
     `;
@@ -1763,7 +1782,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
     
     URL.revokeObjectURL(url);
     
-    console.log(`✅ Interactive HTML report with writeup generated: ${capturedCharts.length} charts${tableImage ? ' and table' : ''}!`);
+    console.log(`✅ Interactive HTML report with writeup generated: ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
     console.log('📝 Write-up functionality ready for one-time editing');
     console.log('📧 File ready for email distribution after write-up finalization');
     

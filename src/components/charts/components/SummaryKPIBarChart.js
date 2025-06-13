@@ -255,7 +255,7 @@ const SummaryKPIBarChart = ({ tableData, selectedPeriods, computeCellValue, styl
   };
 
   return (
-    <div className="modern-margin-gauge-panel" style={{ marginTop: 60, backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', padding: '20px', ...(style || {}) }}>
+    <div className="modern-margin-gauge-panel" style={{ marginTop: 60, backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', padding: '20px', width: '95%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', ...(style || {}) }}>
       <h2 className="modern-gauge-heading" style={{ textAlign: 'center', fontSize: '18px', marginBottom: '20px', color: '#333', fontWeight: '600' }}>
         Summary KPI Bar Chart
       </h2>

@@ -53,6 +53,10 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
       padding: '20px',
+      width: '95%',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      boxSizing: 'border-box',
       ...(style || {})
     }}>
       <h2 className="modern-gauge-heading" style={{
@@ -67,14 +71,13 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
       <div style={{
         display: 'flex',
         flexWrap: 'nowrap',
-        justifyContent: 'center',
+        justifyContent: 'space-around',
         alignItems: 'flex-end',
-        gap: '4px',
+        gap: '5px',
         marginTop: 20,
         marginBottom: 0,
         width: '100%',
-        overflowX: 'auto',
-        padding: '0 16px',
+        padding: '0 24px',
       }}>
         {cards.map((card, idx) => (
           <React.Fragment key={card.periodName}>
@@ -85,9 +88,9 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
               backgroundColor: card.color,
               border: `1px solid ${card.color}`,
               boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
-              minWidth: '180px',
+              minWidth: '150px',
               maxWidth: '180px',
-              width: '180px',
+              flex: '1',
               textAlign: 'center',
               position: 'relative',
               overflow: 'hidden',
@@ -95,7 +98,6 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              flex: '0 0 200px',
             }}>
               <div style={{ fontSize: 14, color: card.textColor, fontWeight: 500, marginTop: 4 }}>{card.periodName}</div>
               <div style={{ fontWeight: 'bold', fontSize: 22, color: card.textColor, marginTop: 8 }}>
