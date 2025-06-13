@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useFilter } from '../../contexts/FilterContext';
-import './TableView.css';
+import SalesCountryPDFExport from './SalesCountryPDFExport';
+import './SalesByCountryTable.css';
 
 const SalesByCountryTable = () => {
   const { salesData, selectedDivision } = useSalesData();
@@ -342,25 +343,24 @@ const SalesByCountryTable = () => {
 
   return (
     <div className="table-view">
-      <div className="table-container" ref={tableRef}>
-        <div className="table-header">
-          <div className="header-left"></div>
-          <div className="header-center">
-            <h3 className="table-title">Sales by Country</h3>
-            <div className="table-subtitle">(%)</div>
-          </div>
-          <div className="header-right"></div>
+      <SalesCountryPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
+      <div className="table-header">
+        <div className="header-center">
+          <h3 className="table-title">Sales by Country</h3>
+          <div className="table-subtitle">(%)</div>
         </div>
-        <table className="financial-table product-group-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+      </div>
+      <div className="table-container" ref={tableRef}>
+        <table className="financial-table sales-country-table" style={{ tableLayout: 'fixed', width: '100%' }}>
           {/* Column Groups for width control */}
           <colgroup>
-            <col style={{ width: '20%' }}/>
+            <col style={{ width: '12%' }}/>
           </colgroup>
           {extendedColumns.map((col, index) => {
             const filteredDataColumns = extendedColumns.filter(c => c.columnType !== 'delta').length;
             return (
               <colgroup key={`colgroup-${index}`}>
-                <col style={{ width: col.columnType === 'delta' ? '5.15%' : `${74.85 / filteredDataColumns}%` }}/>
+                <col style={{ width: col.columnType === 'delta' ? `${5.15 * 0.45}%` : `${(82.85 / filteredDataColumns) * 0.55}%` }}/>
               </colgroup>
             );
           })}
@@ -385,8 +385,7 @@ const SalesByCountryTable = () => {
                     }}
                   >
                     <div style={{ lineHeight: '1.1' }}>
-                      <div style={{ fontSize: '18px' }}>Δ</div>
-                      <div style={{ fontSize: '14px' }}>%</div>
+                      <div style={{ fontSize: '12px' }}>Difference</div>
                     </div>
                   </th>
                 ) : (

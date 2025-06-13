@@ -1,13 +1,10 @@
-/* PDF Export Controls Styling - Left Side Within Container */
+/* PDF Export Controls Styling - Above Title Centered */
 .pdf-export-controls {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 100;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 15px;
+  z-index: 100;
 }
 
 .export-pdf-btn {

@@ -1,8 +1,10 @@
 .master-data-container {
   padding: 20px;
+  width: 100%;
   max-width: 100%;
   background-color: #f8f9fa;
   min-height: 100vh;
+  box-sizing: border-box; /* FIX: Include padding within width */
 }
 
 .master-data-header {

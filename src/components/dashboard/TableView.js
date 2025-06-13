@@ -360,24 +360,23 @@ const TableView = () => {
 
   return (
     <div className="table-view" ref={tableRef}>
-      <div className="table-container">
-        <div className="table-header">
-          <div className="header-left"></div>
-          <div className="header-center">
-            <h3 className="table-title">{selectedDivision} Financials</h3>
-            <div className="table-subtitle">(AED)</div>
-          </div>
-          <div className="header-right"></div>
+      <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
+      <div className="table-header">
+        <div className="header-center">
+          <h3 className="table-title">{selectedDivision} Financials</h3>
+          <div className="table-subtitle">(AED)</div>
         </div>
+      </div>
+      <div className="table-container">
         <table className="financial-table">
           <colgroup>
-            <col style={{ width: '192px' }}/>
+            <col style={{ width: '18%' }}/>
           </colgroup>
           {columnOrder.map((_, index) => (
             <colgroup key={`colgroup-${index}`} className="period-column-group">
-              <col style={{ width: '80px' }}/>
-              <col style={{ width: '48px' }}/>
-              <col style={{ width: '57px' }}/>
+              <col style={{ width: `${76 / columnOrder.length * 0.7}%` }}/>
+              <col style={{ width: `${76 / columnOrder.length * 0.18}%` }}/>
+              <col style={{ width: `${76 / columnOrder.length * 0.12}%` }}/>
             </colgroup>
           ))}
           <thead>
@@ -419,13 +418,13 @@ const TableView = () => {
             <tr>
               {columnOrder.map((column, index) => (
                 <React.Fragment key={`metric-${index}`}>
-                  <th style={{...getColumnHeaderStyle(column), fontSize: '13px', width: '80px'}}>
+                  <th style={{...getColumnHeaderStyle(column), fontSize: '13px'}}>
                     Amount
                   </th>
-                  <th style={{...getColumnHeaderStyle(column), fontSize: '12px', lineHeight: '1.1', width: '48px', textAlign: 'center', padding: '2px'}}>
+                  <th style={{...getColumnHeaderStyle(column), fontSize: '12px', lineHeight: '1.1', textAlign: 'center', padding: '2px'}}>
                     %<br/>of<br/>Sales
                   </th>
-                  <th style={{...getColumnHeaderStyle(column), fontSize: '12px', lineHeight: '1.1', width: '57px', textAlign: 'center', padding: '2px'}}>
+                  <th style={{...getColumnHeaderStyle(column), fontSize: '12px', lineHeight: '1.1', textAlign: 'center', padding: '2px'}}>
                     Sales<br/>per<br/>Kg
                   </th>
                 </React.Fragment>
@@ -802,14 +801,14 @@ const TableView = () => {
                         <td
                           key={`amount-${row.key}-${colIndex}`}
                           className="calculated-cell"
-                          style={{ backgroundColor: bgColor, width: '80px' }}
+                          style={{ backgroundColor: bgColor }}
                         >
                           {formattedResult}
                         </td>,
                         <td
                           key={`percent-${row.key}-${colIndex}`}
                           className="calculated-cell"
-                          style={{ backgroundColor: bgColor, width: '57px' }}
+                          style={{ backgroundColor: bgColor }}
                         >
                           {(() => {
                             // For Direct cost as % of C.O.G.S (index -5), show empty cell
@@ -839,7 +838,6 @@ const TableView = () => {
                           className="calculated-cell"
                           style={{ 
                             backgroundColor: bgColor, 
-                            width: '57px', 
                             color: row.index === 3 ? '#2E865F' : 'inherit', 
                             fontWeight: row.index === 3 ? 'bold' : 'inherit' 
                           }}
@@ -880,13 +878,13 @@ const TableView = () => {
                     return [
                       <td 
                         key={`amount-${row.key}-${colIndex}`}
-                        style={{ backgroundColor: bgColor, width: '80px' }}
+                        style={{ backgroundColor: bgColor }}
                       >
                         {cellValue}
                       </td>,
                       <td 
                         key={`percent-${row.key}-${colIndex}`}
-                        style={{ backgroundColor: bgColor, width: '57px' }}
+                        style={{ backgroundColor: bgColor }}
                       >
                         {/* Keep % of Sales empty for specific rows */}
                         {row.index !== 7 && row.index !== 8 && row.index !== -5 ? computePercentOfSales(row.index, column) : ''}
@@ -895,7 +893,6 @@ const TableView = () => {
                         key={`perkg-${row.key}-${colIndex}`}
                         style={{ 
                           backgroundColor: bgColor, 
-                          width: '57px', 
                           color: row.index === 3 ? '#2E865F' : 'inherit', 
                           fontWeight: row.index === 3 ? 'bold' : 'inherit' 
                         }}
@@ -910,7 +907,6 @@ const TableView = () => {
             })}
           </tbody>
         </table>
-        <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
       </div>
     </div>
   );

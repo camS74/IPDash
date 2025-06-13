@@ -1,0 +1,20 @@
+
+.map-toggle-buttons {
+  text-align: center;
+  margin-bottom: 10px;
+}
+.map-toggle-buttons button {
+  margin: 0 10px;
+  padding: 10px 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.map-toggle-buttons button.active {
+  background-color: #007bff;
+  color: white;
+  border: none;
+}
+.leaflet-container {
+  width: 100%;
+  height: 600px;
+}

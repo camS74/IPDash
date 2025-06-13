@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useFilter } from '../../contexts/FilterContext';
-import './TableView.css';
+import ProductGroupPDFExport from './ProductGroupPDFExport';
+import './ProductGroupTable.css';
 
 const ProductGroupTable = () => {
   const { salesData, selectedDivision, getProductGroups } = useSalesData();
@@ -534,22 +535,21 @@ const ProductGroupTable = () => {
 
       return (
       <div className="table-view">
-        <div className="table-container" ref={tableRef}>
+        <ProductGroupPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
         <div className="table-header">
-          <div className="header-left"></div>
           <div className="header-center">
             <h3 className="table-title">Product Group</h3>
             <div className="table-subtitle">(AED)</div>
           </div>
-          <div className="header-right"></div>
         </div>
-        <table className="financial-table product-group-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+        <div className="table-container" ref={tableRef}>
+        <table className="financial-table product-group-table">
           <colgroup>
-            <col style={{ width: '20%' }}/>
+            <col style={{ width: '192px' }}/>
           </colgroup>
           {extendedColumns.map((col, index) => (
             <colgroup key={`colgroup-${index}`}>
-              <col style={{ width: col.columnType === 'delta' ? '5.15%' : `${74.85 / columnOrder.length}%` }}/>
+              <col style={{ width: col.columnType === 'delta' ? '90px' : '110px' }}/>
             </colgroup>
           ))}
           <thead>
@@ -571,8 +571,7 @@ const ProductGroupTable = () => {
                       }}
                     >
                       <div style={{ lineHeight: '1.1' }}>
-                        <div style={{ fontSize: '18px' }}>Δ</div>
-                        <div style={{ fontSize: '14px' }}>%</div>
+                        <div style={{ fontSize: '12px' }}>Difference</div>
                       </div>
                     </th>
                 ) : (

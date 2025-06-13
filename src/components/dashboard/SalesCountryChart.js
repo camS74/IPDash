@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as echarts from 'echarts';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useFilter } from '../../contexts/FilterContext';
-import './SalesCountryMap.css';
+import '../charts/components/SalesCountryMapChart.css';
 
 const SalesCountryChart = () => {
   const { salesData, selectedDivision } = useSalesData();
@@ -594,9 +594,9 @@ const SalesCountryChart = () => {
       )}
 
       {/* Main Content Layout */}
-      <div style={{ display: 'flex', gap: '20px' }}>
+      <div className="chart-layout">
         {/* Chart Container */}
-        <div style={{ flex: '1' }}>
+        <div className="chart-main">
           <div 
             ref={chartRef}
             style={{
@@ -611,7 +611,7 @@ const SalesCountryChart = () => {
         </div>
 
         {/* Right Panels */}
-        <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="chart-panels">
           {/* Local vs Export Sales Panel */}
           <div style={{
             padding: '20px',

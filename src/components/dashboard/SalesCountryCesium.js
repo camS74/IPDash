@@ -1,15 +1,14 @@
 // CesiumJS 3D Globe Component
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
-import { useExcelData } from '../../contexts/ExcelDataContext';
+import './SalesCountryCesium.css';
 import countryCoordinates from './countryCoordinates';
 import './SalesCountryMap.css';
 
 const SalesCountryCesium = () => {
   const cesiumContainer = useRef(null);
   const viewerRef = useRef(null);
-  const { salesData, loading: salesLoading } = useSalesData();
-  const { selectedDivision } = useExcelData();
+  const { salesData, selectedDivision, loading: salesLoading } = useSalesData();
   const [countries, setCountries] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [cesiumLoaded, setCesiumLoaded] = useState(false);
@@ -129,169 +128,326 @@ const SalesCountryCesium = () => {
   };
 
   const initializeCesium = useCallback(() => {
-    if (!cesiumLoaded || isInitialized || !cesiumContainer.current) return;
+    if (!cesiumLoaded || isInitialized || !cesiumContainer.current) {
+      console.log('Cesium initialization blocked:', { cesiumLoaded, isInitialized, container: !!cesiumContainer.current });
+      return;
+    }
+
+    console.log('Starting Cesium initialization...');
 
     try {
       const Cesium = window.Cesium;
       
-      // Create viewer without imagery first
+      // Set Cesium Ion access token to default (for basic functionality)
+      Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc3MzMsImlhdCI6MTYyNzg0NTE4Mn0.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJHYZxk';
+      
+      // Create viewer with simple, working configuration
       const viewer = new Cesium.Viewer(cesiumContainer.current, {
-        // Start with no imagery to avoid conflicts
-        imageryProvider: false,
-        terrainProvider: new Cesium.EllipsoidTerrainProvider(),
         baseLayerPicker: false,
         geocoder: false,
         homeButton: true,
         sceneModePicker: true,
-        navigationHelpButton: false,
+        navigationHelpButton: true,
         animation: false,
         timeline: false,
         fullscreenButton: true,
         vrButton: false,
         selectionIndicator: true,
         infoBox: true,
-        scene3DOnly: false
+        scene3DOnly: false,
+        requestRenderMode: false,
+        maximumRenderTimeChange: Infinity,
+        fullscreenElement: cesiumContainer.current
       });
 
-      // Apply world texture directly to globe material with proper shader
-      viewer.scene.globe.material = new Cesium.Material({
-        fabric: {
-          type: 'Image',
-          uniforms: {
-            image: '/assets/world.jpg'
-          },
-          source: `
-            uniform sampler2D image;
-            czm_material czm_getMaterial(czm_materialInput materialInput) {
-              czm_material material = czm_getDefaultMaterial(materialInput);
-              vec2 st = materialInput.st;
-              vec4 colorSample = texture(image, st);
-              material.diffuse = colorSample.rgb;
-              material.alpha = colorSample.a;
-              return material;
-            }
-          `
+      console.log('Cesium viewer created successfully');
+
+      // Remove all default imagery layers
+      viewer.imageryLayers.removeAll();
+      
+      // Add the 8K texture as primary imagery
+      let imageryAdded = false;
+      try {
+        console.log('Loading 8K Earth texture...');
+        const imageryProvider = new Cesium.SingleTileImageryProvider({
+          url: '/assets/8k_earth.jpg'
+        });
+        viewer.imageryLayers.addImageryProvider(imageryProvider);
+        imageryAdded = true;
+        console.log('8K Earth texture loaded successfully');
+      } catch (error) {
+        console.warn('8K texture failed, trying fallback...', error);
+      }
+
+      // If 8K texture failed, use Cesium World Imagery
+      if (!imageryAdded) {
+        try {
+          const worldImagery = Cesium.createWorldImagery();
+          viewer.imageryLayers.addImageryProvider(worldImagery);
+          imageryAdded = true;
+          console.log('Cesium World Imagery loaded as fallback');
+        } catch (error) {
+          console.warn('World imagery failed, using default...', error);
+        }
+      }
+
+      // Final fallback to Bing Maps
+      if (!imageryAdded) {
+        try {
+          const bingProvider = new Cesium.BingMapsImageryProvider({
+            url: 'https://dev.virtualearth.net',
+            key: '', // Will use default
+            mapStyle: Cesium.BingMapsStyle.AERIAL
+          });
+          viewer.imageryLayers.addImageryProvider(bingProvider);
+          console.log('Bing Maps loaded as final fallback');
+        } catch (error) {
+          console.error('All imagery providers failed:', error);
+        }
+      }
+
+      // Configure globe appearance
+      viewer.scene.globe.show = true;
+      viewer.scene.globe.enableLighting = false; // Disable lighting for consistent visibility
+      viewer.scene.skyBox.show = true;
+      viewer.scene.backgroundColor = Cesium.Color.BLACK;
+      
+      // Set camera to show UAE region properly zoomed out (6 clicks worth)
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(55.296249, 25.276987, 27731640), // UAE region, properly zoomed out
+        orientation: {
+          heading: 0.0,
+          pitch: -Math.PI / 6, // 30 degrees down for better view
+          roll: 0.0
         }
       });
 
-      // Set initial camera position (focused on UAE region but zoomed out to see globe)
-      viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(55.296249, 25.276987, 15000000)
-      });
-
-      // Configure globe appearance - balanced settings for map visibility
-      viewer.scene.globe.enableLighting = true;  // Enable lighting to show texture
-      viewer.scene.globe.dynamicAtmosphereLighting = false;  // Keep atmosphere minimal
-      viewer.scene.globe.showWaterEffect = false;  // Keep water effect off to prevent blue
-      viewer.scene.skyBox.show = false;  // Keep skybox off
-      viewer.scene.backgroundColor = Cesium.Color.BLACK;
-      // Remove the gray base color to let the map texture show
-      
-      // Ensure globe is visible
-      viewer.scene.globe.show = true;
-      
-      // Simple zoom controls (slower zooming)
-      viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1.0;
-      viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40075000;
+      // Configure controls with much slower zoom and safe limits
       viewer.scene.screenSpaceCameraController.enableZoom = true;
 
+
+      viewer.scene.screenSpaceCameraController.enableRotate = true;
+      viewer.scene.screenSpaceCameraController.enableTilt = true;
+      viewer.scene.screenSpaceCameraController.enableTranslate = true;
+      viewer.scene.screenSpaceCameraController.wheelZoomSpeedMultiplier = 0.01; // Extremely slow zoom
+      viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1000.0; // Safer minimum distance
+      viewer.scene.screenSpaceCameraController.maximumZoomDistance = 30000000; // Safer maximum distance
+      
+      // Add error handling for rendering issues
+      viewer.scene.renderError.addEventListener(function(scene, error) {
+        console.error('Cesium render error:', error);
+        // Try to recover by resetting camera position to UAE region
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(55.296249, 25.276987, 27731640),
+          orientation: {
+            heading: 0.0,
+            pitch: -Math.PI / 6,
+            roll: 0.0
+          }
+        });
+      });
+
+      // Override home button
+      viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function(e) {
+        e.cancel = true;
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(55.296249, 25.276987, 27731640), // Same as default view - properly zoomed out
+          orientation: {
+            heading: 0.0,
+            pitch: -Math.PI / 6, // 30 degrees down for better view
+            roll: 0.0
+          },
+          duration: 2.0
+        });
+      });
+
+
+
+      // Store viewer reference
       viewerRef.current = viewer;
       setIsInitialized(true);
 
-      // Add markers for countries
-      addCountryMarkers(viewer);
+      // Add custom zoom buttons
+      const toolbar = document.createElement('div');
+      toolbar.className = 'cesium-zoom-toolbar';
+      toolbar.style.position = 'absolute';
+      toolbar.style.top = '60px';
+      toolbar.style.right = '10px';
+      toolbar.style.zIndex = '1000';
+      toolbar.style.display = 'flex';
+      toolbar.style.flexDirection = 'column';
+      toolbar.style.gap = '5px';
+
+      // Zoom In button
+      const zoomInButton = document.createElement('button');
+      zoomInButton.innerHTML = '+';
+      zoomInButton.className = 'cesium-zoom-button';
+      zoomInButton.style.width = '40px';
+      zoomInButton.style.height = '40px';
+      zoomInButton.style.backgroundColor = '#48b';
+      zoomInButton.style.color = 'white';
+      zoomInButton.style.border = 'none';
+      zoomInButton.style.borderRadius = '5px';
+      zoomInButton.style.fontSize = '20px';
+      zoomInButton.style.cursor = 'pointer';
+      zoomInButton.style.fontWeight = 'bold';
+      zoomInButton.title = 'Zoom In';
+      
+      zoomInButton.onclick = () => {
+        try {
+          const camera = viewer.camera;
+          const currentHeight = camera.positionCartographic.height;
+          
+          // Dynamic zoom factor based on current height (same as mouse wheel)
+          const zoomFactor = 0.15; // 15% closer each click
+          const newHeight = currentHeight * (1 - zoomFactor);
+          
+          // Safe zoom with bounds checking
+          if (newHeight > 1000) { // Minimum zoom distance
+            // Get current position and direction
+            const currentPosition = camera.position.clone();
+            const ellipsoid = viewer.scene.globe.ellipsoid;
+            const cartographic = ellipsoid.cartesianToCartographic(currentPosition);
+            
+            // Calculate new position with same lat/lon but new height
+            const newPosition = Cesium.Cartesian3.fromRadians(
+              cartographic.longitude,
+              cartographic.latitude, 
+              newHeight
+            );
+            
+            // Smoothly move camera to new position
+            camera.flyTo({
+              destination: newPosition,
+              duration: 0.3, // Smooth 0.3 second animation
+              easingFunction: Cesium.EasingFunction.CUBIC_OUT
+            });
+          }
+    } catch (error) {
+          console.warn('Zoom in error:', error);
+        }
+      };
+
+      // Zoom Out button
+      const zoomOutButton = document.createElement('button');
+      zoomOutButton.innerHTML = '−';
+      zoomOutButton.className = 'cesium-zoom-button';
+      zoomOutButton.style.width = '40px';
+      zoomOutButton.style.height = '40px';
+      zoomOutButton.style.backgroundColor = '#48b';
+      zoomOutButton.style.color = 'white';
+      zoomOutButton.style.border = 'none';
+      zoomOutButton.style.borderRadius = '5px';
+      zoomOutButton.style.fontSize = '20px';
+      zoomOutButton.style.cursor = 'pointer';
+      zoomOutButton.style.fontWeight = 'bold';
+      zoomOutButton.title = 'Zoom Out';
+      
+      zoomOutButton.onclick = () => {
+        try {
+          const camera = viewer.camera;
+          const currentHeight = camera.positionCartographic.height;
+          
+          // Dynamic zoom factor based on current height (same as mouse wheel)
+          const zoomFactor = 0.15; // 15% farther each click
+          const newHeight = currentHeight * (1 + zoomFactor);
+          
+          // Safe zoom with bounds checking
+          if (newHeight < 40000000) { // Maximum zoom distance
+            // Get current position and direction
+            const currentPosition = camera.position.clone();
+            const ellipsoid = viewer.scene.globe.ellipsoid;
+            const cartographic = ellipsoid.cartesianToCartographic(currentPosition);
+            
+            // Calculate new position with same lat/lon but new height
+            const newPosition = Cesium.Cartesian3.fromRadians(
+              cartographic.longitude,
+              cartographic.latitude, 
+              newHeight
+            );
+            
+            // Smoothly move camera to new position
+            camera.flyTo({
+              destination: newPosition,
+              duration: 0.3, // Smooth 0.3 second animation
+              easingFunction: Cesium.EasingFunction.CUBIC_OUT
+            });
+          }
+        } catch (error) {
+          console.warn('Zoom out error:', error);
+        }
+      };
+
+      toolbar.appendChild(zoomInButton);
+      toolbar.appendChild(zoomOutButton);
+      cesiumContainer.current.appendChild(toolbar);
+      
+      console.log('Cesium initialization completed successfully');
+
+      // Add country markers if data is available
+      if (countries.length > 0) {
+        console.log('Adding markers for', countries.length, 'countries');
+        addCountryMarkers(viewer);
+      }
 
     } catch (error) {
-      console.error('Error initializing Cesium:', error);
-      // Fallback: try with basic ellipsoid terrain
-             try {
-         const Cesium = window.Cesium;
-         const viewer = new Cesium.Viewer(cesiumContainer.current, {
-           imageryProvider: false,
-           terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-           baseLayerPicker: false,
-           geocoder: false,
-           homeButton: true,
-           sceneModePicker: true,
-           navigationHelpButton: false,
-           animation: false,
-           timeline: false,
-           fullscreenButton: true,
-           vrButton: false,
-           selectionIndicator: true,
-           infoBox: true
-         });
-
-         viewer.camera.setView({
-           destination: Cesium.Cartesian3.fromDegrees(55.296249, 25.276987, 15000000)
-         });
-
-         // Apply world texture directly to globe material with proper shader
-         viewer.scene.globe.material = new Cesium.Material({
-           fabric: {
-             type: 'Image',
-             uniforms: {
-               image: '/assets/world.jpg'
-             },
-             source: `
-               uniform sampler2D image;
-               czm_material czm_getMaterial(czm_materialInput materialInput) {
-                 czm_material material = czm_getDefaultMaterial(materialInput);
-                 vec2 st = materialInput.st;
-                 vec4 colorSample = texture(image, st);
-                 material.diffuse = colorSample.rgb;
-                 material.alpha = colorSample.a;
-                 return material;
-               }
-             `
-           }
-         });
-
-        viewerRef.current = viewer;
-        setIsInitialized(true);
-        addCountryMarkers(viewer);
-      } catch (fallbackError) {
-        console.error('Fallback Cesium initialization failed:', fallbackError);
-      }
+      console.error('Critical error in Cesium initialization:', error);
+      setIsInitialized(false);
     }
-  }, [cesiumLoaded, isInitialized, countries]);
+  }, [cesiumLoaded, isInitialized]);
 
   const addCountryMarkers = useCallback((viewer) => {
-    if (!viewer || !countries.length) return;
+    console.log('addCountryMarkers called with:', { viewer: !!viewer, countries: countries });
+    if (!viewer || !countries.length) {
+      console.log('Returning early - viewer or countries missing');
+      return;
+    }
 
     const Cesium = window.Cesium;
     
     // Clear existing entities
     viewer.entities.removeAll();
 
+    console.log('Adding markers for countries:', countries);
+
     countries.forEach(country => {
+      console.log('Processing country:', country);
       const coordinates = getCountryCoordinates(country.name);
-      if (!coordinates) return;
+      console.log('Coordinates for', country.name, ':', coordinates);
+      if (!coordinates) {
+        console.log('No coordinates found for:', country.name);
+        return;
+      }
 
       const [longitude, latitude] = coordinates;
       const color = getMarkerColor(country.percentage, country.name);
+
+      console.log('Adding marker for:', country.name, 'at', longitude, latitude, 'with percentage:', country.percentage);
 
       // Add point entity
       viewer.entities.add({
         position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
         point: {
-          pixelSize: Math.max(8, Math.min(25, 8 + (country.percentage * 0.5))),
+          pixelSize: Math.max(12, Math.min(35, 12 + (country.percentage * 0.8))),
           color: Cesium.Color.fromBytes(color.r, color.g, color.b, Math.floor(color.a * 255)),
           outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 2,
+          outlineWidth: 3,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 1.5e7, 0.5)
+          scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.5, 1.5e7, 0.8)
         },
         label: {
           text: `${country.name}\n${country.percentage.toFixed(1)}%`,
-          font: '12pt Arial',
+          font: 'bold 12pt Arial',
           fillColor: Cesium.Color.WHITE,
           outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 2,
+          outlineWidth: 3,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          pixelOffset: new Cesium.Cartesian2(0, -50),
+          pixelOffset: new Cesium.Cartesian2(0, -60),
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          scaleByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 1.5e7, 0.5)
+          scaleByDistance: new Cesium.NearFarScalar(1.5e2, 2.0, 1.5e7, 1.0),
+          horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          show: true
         },
         description: `
           <div style="padding: 10px;">
@@ -333,8 +489,11 @@ const SalesCountryCesium = () => {
   // Extract countries when data changes
   useEffect(() => {
     const extractedCountries = getCountriesFromExcel();
+    console.log('Extracted countries:', extractedCountries);
+    console.log('Sales data:', salesData);
+    console.log('Selected division:', selectedDivision);
     setCountries(extractedCountries);
-  }, [getCountriesFromExcel]);
+  }, [getCountriesFromExcel, salesData, selectedDivision]);
 
   // Initialize Cesium when ready
   useEffect(() => {
@@ -400,15 +559,13 @@ const SalesCountryCesium = () => {
         className="cesium-container"
         style={{ 
           width: '100%', 
-          height: '500px', 
+          height: '80vh', 
+          minHeight: '600px',
           border: '1px solid #ccc',
           borderRadius: '8px'
         }}
       />
-      <div className="map-info">
-        <p>Showing {countries.length} countries with sales data for {selectedDivision} division</p>
-        <p>Click on markers for detailed information • Use mouse to rotate and zoom</p>
-      </div>
+
     </div>
   );
 };

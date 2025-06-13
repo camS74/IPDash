@@ -6,7 +6,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-top: 20px;
   max-width: 100%; /* Use full width of container */
-  overflow-x: auto; /* Enable horizontal scrolling at the view level */
+  overflow-x: visible; /* No horizontal scrolling */
+  box-sizing: border-box; /* FIX: Include padding within width */
 }
 
 /* PDF export optimization */
@@ -23,34 +24,19 @@
 }
 
 .table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  text-align: center;
   width: 100%;
   margin-bottom: 20px;
-  position: relative;
-}
-
-.header-left {
-  flex: 1;
-  min-width: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .header-center {
-  flex: 1;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.header-right {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  min-width: 0;
 }
 
 .table-title {
@@ -72,10 +58,11 @@
 
 .table-container {
   width: 100%;
-  margin-top: 15px;
-  display: block;
+  margin: 15px auto 10px auto; /* Center the container and add margins */
+  display: flex;
+  justify-content: center; /* Center the table horizontally */
   position: relative;
-  overflow-x: auto;
+  overflow-x: visible;
   overflow-y: visible;
   padding-bottom: 10px;
 }
@@ -83,17 +70,13 @@
 .financial-table {
   border-collapse: collapse;
   font-size: 14px;
-  margin: 0; /* Remove auto centering */
-  width: auto; /* Auto width to fit content */
-  min-width: 1200px; /* Ensure minimum width */
-  table-layout: auto; /* Auto layout for better content fit */
+  margin: 0 auto; /* Center the table horizontally */
+  width: 90%; /* Use 90% of container width for equal side gaps */
+  table-layout: fixed; /* Fixed layout for consistent proportions */
   text-align: center; /* Center content within cells */
 }
 
-/* Ensure each column group (period) has equal width */
-.financial-table colgroup {
-  width: 1fr; /* Use fractional units for equal distribution */
-}
+/* Allow JavaScript to control column widths */
 
 .financial-table th,
 .financial-table td {
@@ -105,22 +88,19 @@
   line-height: 1.08; /* Reduced line height by 10% from default of 1.2 */
 }
 
-/* Set consistent widths for the 3 columns in each period group */
+/* Font sizing for period columns - widths controlled by JavaScript */
 .financial-table th:nth-child(3n+2),
 .financial-table td:nth-child(3n+2) {
-  width: 120px; /* Fixed width for amount column */
   font-size: 13px; /* Slightly smaller font for amount values */
 }
 
 .financial-table th:nth-child(3n+3),
 .financial-table td:nth-child(3n+3) {
-  width: 57px; /* Percentage column - 1.5 cm */
   font-size: 13px; /* Consistent font size */
 }
 
 .financial-table th:nth-child(3n+4),
 .financial-table td:nth-child(3n+4) {
-  width: 57px; /* Per Kg column - 1.5 cm */
   font-size: 13px; /* Consistent font size */
 }
 
@@ -130,10 +110,7 @@
   display: inline-block;
 }
 
-/* Additional rules to enforce consistent column widths - Allow specific table overrides */
-.financial-table:not(.product-group-table) col {
-  width: auto !important; /* Override any dynamic calculations */
-}
+/* Let JavaScript colgroup widths take precedence */
 
 /* Apply strict box sizing to prevent padding from affecting width */
 .financial-table * {
@@ -150,7 +127,6 @@
 .financial-table td:first-child {
   text-align: left;
   font-weight: normal;
-  width: 192px; /* Increased by 20% from 160px */
   background-color: #ffffff;
 }
 
@@ -272,100 +248,6 @@
   }
 }
 
-/* Product Group Table Specific Styles */
-.product-header-row {
-  background-color: #f0f8ff !important;
-}
-
-.product-header {
-  font-weight: bold !important;
-  font-size: 14px !important;
-  color: #2c5aa0 !important;
-  background-color: #f0f8ff !important;
-}
-
-.product-header-cell {
-  background-color: #f0f8ff !important;
-}
-
-.metric-row {
-  background-color: #fff;
-}
-
-.metric-label {
-  font-weight: normal;
-  color: #333;
-  padding-left: 20px !important;
-  font-size: 12px;
-}
-
-.metric-cell {
-  font-size: 12px;
-  text-align: center !important;
-}
-
-/* Make separator between product groups more visible */
-.financial-table .separator-row td {
-  height: 8px;
-  background-color: #ffffff;
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-}
-
-/* Special styling for calculated metrics */
-.metric-row.calculated {
-  font-style: italic;
-}
-
-/* Product Group Table Responsive Styles */
-.product-group-table {
-  width: 100% !important;
-  table-layout: fixed !important;
-  min-width: unset !important;
-}
-
-.product-group-table colgroup col {
-  /* Force equal width distribution for period columns */
-}
-
-/* Override any conflicting CSS - Allow colgroup width settings */
-.product-group-table th,
-.product-group-table td {
-  max-width: none !important;
-  min-width: none !important;
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .product-group-table {
-    font-size: 12px;
-  }
-  
-  .product-group-table th,
-  .product-group-table td {
-    padding: 4px;
-  }
-  
-  .product-group-table .metric-label {
-    font-size: 10px;
-    padding-left: 10px !important;
-  }
-  
-  .product-group-table .metric-cell {
-    font-size: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  .product-group-table {
-    min-width: 600px;
-  }
-}
-
 /* Enhanced scrolling for all screen sizes */
 .table-container::-webkit-scrollbar {
   height: 8px;
@@ -384,79 +266,82 @@
 .table-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
-.metric-row.calculated {
-  font-style: italic;
-  color: #666;
+
+/* Responsive Design for Different Screen Resolutions */
+
+/* Extra large screens (1920px and up) */
+@media (min-width: 1920px) {
+  .financial-table {
+    font-size: 16px;
+  }
+  .financial-table th,
+  .financial-table td {
+    padding: 10px;
+  }
 }
 
-/* Total Section Styling - Apply darker blue shade to Total rows */
-.total-header-row {
-  background-color: #1a365d !important; /* Dark blue background for Total header */
+/* Large screens (1366px to 1919px) */
+@media (min-width: 1366px) and (max-width: 1919px) {
+  .financial-table {
+    font-size: 14px;
+  }
+  .financial-table th,
+  .financial-table td {
+    padding: 8px;
+  }
 }
 
-.total-header {
-  font-weight: bold !important;
-  font-size: 16px !important;
-  color: #ffffff !important; /* White text */
-  background-color: #1a365d !important; /* Dark blue background for Total header */
+/* Medium screens (1024px to 1365px) */
+@media (min-width: 1024px) and (max-width: 1365px) {
+  .financial-table {
+    font-size: 12px;
+  }
+  .financial-table th,
+  .financial-table td {
+    padding: 6px;
+  }
+  .table-view {
+    overflow-x: auto; /* Enable scrolling for smaller screens */
+  }
 }
 
-.total-header-cell {
-  background-color: #1a365d !important; /* Dark blue background for Total header cells */
-  color: #ffffff !important; /* White text for Total header cells */
+/* Small screens (768px to 1023px) - Tablets */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .financial-table {
+    font-size: 11px;
+    min-width: 800px; /* Minimum width for readability */
+  }
+  .financial-table th,
+  .financial-table td {
+    padding: 4px;
+  }
+  .table-view {
+    overflow-x: auto; /* Enable horizontal scrolling */
+  }
+  .table-container {
+    overflow-x: auto;
+  }
 }
 
-.total-metric-row {
-  background-color: #f0f8ff !important; /* Light blue background for Total metric rows */
+/* Very small screens (below 768px) - Mobile phones */
+@media (max-width: 767px) {
+  .financial-table {
+    font-size: 10px;
+    min-width: 600px; /* Minimum width for mobile */
+  }
+  .financial-table th,
+  .financial-table td {
+    padding: 3px;
+    line-height: 1.2;
+  }
+  .table-view {
+    padding: 10px;
+    overflow-x: auto; /* Enable horizontal scrolling on mobile */
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+  .table-title {
+    font-size: 1.2rem;
+  }
 }
-
-.total-metric-label {
-  font-weight: bold !important;
-  color: #1a365d !important;
-  background-color: #f0f8ff !important; /* Light blue background for Total metric labels */
-}
-
-.total-metric-cell {
-  font-weight: bold !important;
-}
-
-/* Category breakdown rows styling - Blue background shade like Total */
-.category-header-row {
-  background: #b3d9ff !important;
-}
-
-.category-header {
-  background: #b3d9ff !important;
-  color: #1a365d !important;
-  font-weight: bold;
-  font-style: normal;
-  font-size: 14px !important;
-}
-
-.category-header-cell {
-  background: #b3d9ff !important;
-}
-
-.category-metric-row {
-  background: #f0f8ff !important;
-}
-
-.category-metric-label {
-  background: #f0f8ff !important;
-  color: #1a365d !important;
-  font-style: normal;
-  font-weight: bold !important;
-  padding-left: 20px !important;
-  font-size: 12px;
-}
-
-.category-metric-cell {
-  color: #1a365d !important;
-  font-style: normal;
-  font-size: 12px;
-  font-weight: bold !important;
-}
-
-
-
-

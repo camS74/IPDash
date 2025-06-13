@@ -10,7 +10,8 @@ import TableView from './TableView';
 import ProductGroupTable from './ProductGroupTable';
 import SalesByCountryTable from './SalesByCountryTable';
 import SalesCountryChart from './SalesCountryChart';
-import SalesCountryGlobe from './SalesCountryGlobe';
+
+import MapSwitcher from './MapSwitcher';
 import ChartView from './ChartView';
 import WriteUpView from './WriteUpView';
 import MasterData from './MasterData';
@@ -117,11 +118,11 @@ const Dashboard = () => {
                 <Tab label="Table">
                   <SalesByCountryTable />
                 </Tab>
-                                  <Tab label="Chart">
-                    <SalesCountryChart />
-                  </Tab>
-                <Tab label="Map 3D">
-                  <SalesCountryGlobe />
+                <Tab label="Chart">
+                  <SalesCountryChart />
+                </Tab>
+                <Tab label="Map (2D/3D)">
+                  <MapSwitcher />
                 </Tab>
               </TabsComponent>
             </Tab>

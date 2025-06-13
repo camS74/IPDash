@@ -1,9 +1,11 @@
 .sales-country-map-container {
+  width: 100%;
   padding: 20px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   margin: 20px 0;
+  box-sizing: border-box; /* FIX: Include padding within width */
 }
 
 .empty-state, .loading-state {
@@ -109,7 +111,52 @@
   background: #fafbfc;
 }
 
+/* Chart layout specific styles */
+.sales-country-map-container .chart-layout {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.sales-country-map-container .chart-main {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+  max-width: calc(100% - 320px); /* Account for right panel width + gap */
+}
+
+.sales-country-map-container .chart-panels {
+  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* Responsive design */
+@media (max-width: 1200px) {
+  .sales-country-map-container .chart-layout {
+    flex-direction: column;
+  }
+  
+  .sales-country-map-container .chart-main {
+    max-width: 100%;
+  }
+  
+  .sales-country-map-container .chart-panels {
+    width: 100%;
+    min-width: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .sales-country-map-container .chart-panels > div {
+    flex: 1;
+    min-width: 250px;
+  }
+}
+
 @media (max-width: 768px) {
   .sales-country-map-container {
     padding: 15px;
@@ -132,6 +179,14 @@
   
   .sales-country-map-chart {
     height: 400px !important;
+  }
+  
+  .sales-country-map-container .chart-panels {
+    flex-direction: column;
+  }
+  
+  .sales-country-map-container .chart-panels > div {
+    min-width: auto;
   }
 }
 

@@ -1,8 +1,10 @@
 .country-reference {
+  width: 100%;
   padding: 20px;
   background-color: #f8f9fa;
   min-height: 100vh;
   color: #2c3e50;
+  box-sizing: border-box; /* FIX: Include padding within width */
 }
 
 .country-reference-header {

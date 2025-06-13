@@ -1,7 +1,7 @@
 .dashboard-container {
   padding: 20px;
   max-width: none; /* Remove max-width constraint */
-  width: 88%; /* Balanced width that works well */
+  width: 95%; /* Use 95% of page width */
   margin: 0 auto;
   font-family: Arial, sans-serif;
 }

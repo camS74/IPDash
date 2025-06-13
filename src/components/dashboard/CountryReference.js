@@ -6,14 +6,14 @@ import './CountryReference.css';
 
 const CountryReference = () => {
   const { salesData, loading: salesLoading } = useSalesData();
-  const { selectedDivision } = useExcelData(); // Get selectedDivision from the main context
+  const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [excelCountries, setExcelCountries] = useState(new Map()); // Store both original and matched names
 
   // Debug logging
   console.log('🐛 CountryReference Component Debug:');
-  console.log('  - selectedDivision:', selectedDivision);
+  console.log('  - selectedDivision from ExcelData:', selectedDivision);
   console.log('  - salesLoading:', salesLoading);
   console.log('  - salesData keys:', Object.keys(salesData || {}));
 
@@ -133,10 +133,11 @@ const CountryReference = () => {
     
     console.log('🔍 Processing sales data from SalesDataContext');
     console.log('📊 Available sheets:', Object.keys(salesData));
-    console.log('🎯 Selected division:', selectedDivision);
+    console.log('🎯 Selected division from ExcelData:', selectedDivision);
     
-    // Extract division name from selectedDivision (e.g., "FP-Product Group" -> "FP")
-    const divisionName = selectedDivision.split('-')[0];
+    // selectedDivision from ExcelData is just the division name (e.g., "SB")
+    // We need to construct the countries sheet name
+    const divisionName = selectedDivision; // Already just the division name
     const countriesSheetName = `${divisionName}-Countries`;
     
     console.log(`🔍 Looking for countries sheet: ${countriesSheetName}`);
@@ -173,23 +174,39 @@ const CountryReference = () => {
           console.log(`❌ No match found for: "${countryName}"`);
         }
       });
+      
+      console.log(`\n📊 Final Country Matching Summary for ${divisionName}:`);
+      console.log(`Total unique countries found in Excel: ${countries.length}`);
+      console.log(`Successfully matched with coordinates: ${countriesMap.size}`);
+      console.log(`Excel country names:`, countries);
+      console.log(`Matched standard names:`, Array.from(countriesMap.values()));
+      console.log(`❌ Countries without coordinates:`, countries.filter(c => !Array.from(countriesMap.keys()).includes(c)));
+      
+      return countriesMap;
     } else {
       console.log(`⏭️ No data for ${countriesSheetName} in division ${divisionName}`);
     }
-    
-    console.log(`\n📊 Final Country Matching Summary for ${divisionName}:`);
-    console.log(`Total unique countries found: ${countriesMap.size}`);
-    console.log(`Excel country names:`, Array.from(countriesMap.keys()));
-    console.log(`Matched standard names:`, Array.from(countriesMap.values()));
     
     return countriesMap;
   };
 
   useEffect(() => {
+    console.log('🔄 CountryReference useEffect triggered!');
+    console.log('  - salesLoading:', salesLoading);
+    console.log('  - salesData available:', !!(salesData && Object.keys(salesData).length > 0));
+    console.log('  - selectedDivision:', selectedDivision);
+    console.log('  - Available sheets:', Object.keys(salesData || {}));
+    
     if (!salesLoading && salesData && Object.keys(salesData).length > 0 && selectedDivision) {
       console.log('🔄 Sales data loaded, extracting countries for division:', selectedDivision);
       const countriesMap = getAllCountriesFromExcel();
+      console.log('🗺️ Setting excelCountries map with size:', countriesMap.size);
       setExcelCountries(countriesMap);
+    } else {
+      console.log('⏸️ Conditions not met for country extraction:');
+      console.log('  - salesLoading:', salesLoading);
+      console.log('  - salesData exists:', !!(salesData && Object.keys(salesData).length > 0));
+      console.log('  - selectedDivision exists:', !!selectedDivision);
     }
   }, [salesData, salesLoading, selectedDivision]);
 
@@ -205,9 +222,13 @@ const CountryReference = () => {
     return matchesSearch;
   });
 
+  // Get actual Excel countries count (before coordinate matching)
+  const actualExcelCountries = Array.from(excelCountries.keys()).length;
+  
   const stats = {
     total: Object.keys(countryCoordinates).length,
-    inExcel: matchedCountriesSet.size,
+    inExcel: matchedCountriesSet.size, // Countries with coordinates that match Excel
+    inExcelRaw: actualExcelCountries, // Raw countries found in Excel (may not have coordinates)
     notInExcel: Object.keys(countryCoordinates).length - matchedCountriesSet.size
   };
 
@@ -224,7 +245,11 @@ const CountryReference = () => {
           </div>
           <div className="stat-box in-excel">
             <span className="stat-number">{stats.inExcel}</span>
-            <span className="stat-label">In Excel Data</span>
+            <span className="stat-label">With Coordinates</span>
+          </div>
+          <div className="stat-box excel-raw">
+            <span className="stat-number">{stats.inExcelRaw}</span>
+            <span className="stat-label">In Excel Sheet</span>
           </div>
           <div className="stat-box not-in-excel">
             <span className="stat-number">{stats.notInExcel}</span>

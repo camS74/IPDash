@@ -1,0 +1,301 @@
+/* Product Group Table Styles - Cleaned Version */
+.table-view {
+  width: 100%;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+  max-width: 100%;
+  overflow-x: visible;
+  box-sizing: border-box;
+}
+
+/* PDF export optimization */
+@media print {
+  .table-view,
+  .financial-table {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .pdf-export-button {
+    display: none;
+  }
+}
+
+/* Header Styles */
+.table-header {
+  text-align: center;
+  width: 100%;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.header-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+  text-align: center;
+  font-weight: bold;
+}
+
+.table-subtitle {
+  font-style: italic;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 5px;
+  color: #000000;
+  font-size: 1.1rem;
+}
+
+/* Table Container */
+.table-container {
+  width: 100%;
+  margin: 15px auto 10px auto;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  overflow-x: visible;
+  overflow-y: visible;
+  padding-bottom: 10px;
+}
+
+/* Base Table Styles */
+.financial-table {
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 0 auto;
+  width: 90%;
+  table-layout: fixed;
+  text-align: center;
+}
+
+/* PRODUCT GROUP TABLE SPECIFIC BORDERS - Gray borders for metric rows */
+.financial-table.product-group-table th,
+.financial-table.product-group-table td {
+  padding: 7px;
+  border: 1px solid #ddd;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.08;
+  vertical-align: middle;
+}
+
+/* First column (labels) styling - PRODUCT GROUP SPECIFIC */
+.financial-table.product-group-table th:first-child,
+.financial-table.product-group-table td:first-child {
+  text-align: left;
+  font-weight: normal;
+  background-color: #ffffff;
+}
+
+/* Header Styles - PRODUCT GROUP SPECIFIC */
+.financial-table.product-group-table th {
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+  border: none;
+}
+
+.financial-table.product-group-table th.empty-header {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.financial-table.product-group-table thead {
+  background-color: white;
+}
+
+/* Specific header row styling - PRODUCT GROUP SPECIFIC */
+.financial-table.product-group-table tr:nth-child(4) th {
+  font-size: 12px;
+  padding: 5px 7px;
+}
+
+/* Product Group Header Styles - Consolidated */
+.financial-table.product-group-table .product-header-row {
+  background-color: #bbdefb;
+}
+
+.financial-table.product-group-table .product-header-row td {
+  background-color: #bbdefb !important;
+  font-weight: bold !important;
+  color: #0d47a1 !important;
+  border: 1px solid #ddd !important;
+  border-top: 2px solid #1976d2 !important;
+}
+
+/* First product group gets extra top spacing and border - MAXIMUM SPECIFICITY */
+.financial-table.product-group-table tbody tr.product-header-row:first-child td {
+  border-top: 2px solid #1976d2 !important;
+  border-left: 2px solid #1976d2 !important;
+  border-right: 2px solid #1976d2 !important;
+  border-bottom: 2px solid #1976d2 !important;
+  padding-top: 15px !important;
+}
+
+/* Override TableView.css border conflicts for ALL product group header rows */
+table.financial-table.product-group-table tbody tr.product-header-row td {
+  border: 2px solid #1976d2 !important;
+}
+
+/* Total Header Styles - Consolidated */
+.financial-table.product-group-table .total-header-row {
+  background-color: #ffcc80;
+}
+
+.financial-table.product-group-table .total-header-row td {
+  background-color: #ffcc80 !important;
+  font-weight: bold !important;
+  color: #bf360c !important;
+  border: none !important;
+}
+
+/* Category Header Styles - Consolidated - CHANGED TO LIGHT YELLOW */
+.financial-table.product-group-table .category-header-row {
+  background-color: #fff9c4;
+}
+
+.financial-table.product-group-table .category-header-row td {
+  background-color: #fff9c4 !important;
+  font-weight: bold !important;
+  color: #795548 !important;
+  border: 1px solid #ddd !important;
+  border-top: 2px solid #fbc02d !important;
+}
+
+/* Separator Rows - REDUCED HEIGHT */
+.financial-table.product-group-table .separator-row td {
+  background-color: #ffffff;
+  height: 15px;
+  border: none;
+}
+
+/* Special Row Types - PRODUCT GROUP SPECIFIC */
+.financial-table.product-group-table .section-header {
+  background-color: transparent;
+}
+
+.financial-table.product-group-table .section-header td {
+  font-weight: bold;
+}
+
+.financial-table.product-group-table .important-row td {
+  font-weight: bold !important;
+}
+
+.financial-table.product-group-table .calculated-cell {
+  background-color: #f8f9fa;
+  font-style: italic;
+}
+
+/* Empty State */
+.table-empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+/* PDF Export Button */
+.pdf-export-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.pdf-export-button:hover {
+  background-color: #0056b3;
+}
+
+.pdf-export-button:active {
+  background-color: #004494;
+}
+
+/* Responsive Design - PRODUCT GROUP TABLE SPECIFIC */
+@media (min-width: 1920px) {
+  .financial-table.product-group-table {
+    font-size: 16px;
+  }
+  .financial-table.product-group-table th,
+  .financial-table.product-group-table td {
+    padding: 10px;
+  }
+}
+
+@media (min-width: 1366px) and (max-width: 1919px) {
+  .financial-table.product-group-table {
+    font-size: 15px;
+  }
+  .financial-table.product-group-table th,
+  .financial-table.product-group-table td {
+    padding: 8px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1365px) {
+  .financial-table.product-group-table {
+    font-size: 14px;
+  }
+  .financial-table.product-group-table th,
+  .financial-table.product-group-table td {
+    padding: 7px;
+  }
+  .table-view {
+    padding: 15px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .financial-table.product-group-table {
+    font-size: 12px;
+    width: 95%;
+  }
+  .financial-table.product-group-table th,
+  .financial-table.product-group-table td {
+    padding: 6px;
+  }
+  .table-view {
+    padding: 12px;
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .financial-table.product-group-table {
+    font-size: 11px;
+    width: 100%;
+  }
+  .financial-table.product-group-table th,
+  .financial-table.product-group-table td {
+    padding: 4px;
+  }
+  .table-view {
+    padding: 8px;
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+  .table-title {
+    font-size: 1.2rem;
+  }
+}
