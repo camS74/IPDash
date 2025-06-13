@@ -1,5 +1,5 @@
 // Professional HTML Report Generator
-// Captures actual charts and table from the DOM and embeds them as base64 images in HTML
+// Captures actual charts and tables from the DOM and embeds them as base64 images in HTML
 
 import html2canvas from 'html2canvas';
 import interplastLogo from '../assets/Ip Logo.png';
@@ -28,11 +28,12 @@ const captureElementAsBase64 = async (element, options = {}) => {
       backgroundColor: '#ffffff',
       useCORS: true,
       allowTaint: true,
-      logging: false,
+      logging: true,
       ...options
     });
     
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      console.warn('Canvas capture resulted in empty image');
       return null;
     }
     
@@ -48,10 +49,6 @@ const captureAIWriteupContent = async () => {
   try {
     console.log('Attempting to capture AI writeup content...');
     
-    // Wait a moment for content to be visible
-    await new Promise(r => setTimeout(r, 500));
-    
-    // Look for the specific AIWriteupPanel structure
     const aiWriteupContainer = document.querySelector('.ai-writeup-content');
     
     if (!aiWriteupContainer) {
@@ -65,7 +62,6 @@ const captureAIWriteupContent = async () => {
     
     console.log('Found AI writeup container');
     
-    // Look for the contentEditable div that contains the actual content
     const contentEditableDiv = aiWriteupContainer.querySelector('.ai-writeup-contenteditable');
     
     if (!contentEditableDiv) {
@@ -79,10 +75,8 @@ const captureAIWriteupContent = async () => {
     
     console.log('Found content editable div');
     
-    // Clone the contentEditable div to avoid modifying the original
     const clonedDiv = contentEditableDiv.cloneNode(true);
     
-    // Remove ALL button elements and their containers
     const buttonsToRemove = clonedDiv.querySelectorAll(`
       button, 
       input[type="button"], 
@@ -90,11 +84,12 @@ const captureAIWriteupContent = async () => {
       .ai-writeup-button-container,
       [class*="button"],
       [onclick],
-      [role="button"]
+      [role="button"],
+      [data-testid*="button"],
+      [aria-label*="button"]
     `);
     buttonsToRemove.forEach(btn => btn.remove());
     
-    // Remove any div that contains button-like text
     const allDivs = clonedDiv.querySelectorAll('div, span, p');
     allDivs.forEach(div => {
       const text = div.textContent?.toLowerCase() || '';
@@ -103,13 +98,11 @@ const captureAIWriteupContent = async () => {
       }
     });
     
-    // Get the cleaned content
     const textContent = clonedDiv.textContent || clonedDiv.innerText || '';
     
     console.log('Cleaned content length:', textContent.length);
     console.log('Cleaned content preview:', textContent.substring(0, 200));
     
-    // Check if content is just the placeholder text or empty
     const isPlaceholder = textContent.toLowerCase().includes('click "generate" to create') ||
                          textContent.toLowerCase().includes('generate ai-powered') ||
                          textContent.toLowerCase().includes('no content available') ||
@@ -125,7 +118,6 @@ const captureAIWriteupContent = async () => {
       };
     }
     
-    // Check if this is real AI analysis content
     const hasAnalysisKeywords = textContent.toLowerCase().includes('analysis') ||
                                textContent.toLowerCase().includes('performance') ||
                                textContent.toLowerCase().includes('revenue') ||
@@ -142,19 +134,16 @@ const captureAIWriteupContent = async () => {
       };
     }
     
-    // Get HTML content for formatting preservation - also clean it
     let htmlContent = clonedDiv.innerHTML || '';
     
-    // Clean the HTML content more aggressively
     htmlContent = htmlContent
-      .replace(/<button[^>]*>.*?<\/button>/gi, '') // Remove button tags
-      .replace(/<div[^>]*class="[^"]*button[^"]*"[^>]*>.*?<\/div>/gi, '') // Remove button container divs
-      .replace(/<div[^>]*style="[^"]*cursor:[^"]*pointer[^"]*"[^>]*>.*?<\/div>/gi, '') // Remove clickable divs
-      .replace(/Generate.*?<\/.*?>/gi, '') // Remove any remaining generate text
-      .replace(/<div[^>]*style="color:[^"]*666[^"]*font-style:[^"]*italic[^"]*"[^>]*>.*?<\/div>/gi, '') // Remove placeholder div
+      .replace(/<button[^>]*>.*?<\/button>/gi, '')
+      .replace(/<div[^>]*class="[^"]*button[^"]*"[^>]*>.*?<\/div>/gi, '')
+      .replace(/<div[^>]*style="[^"]*cursor:[^"]*pointer[^"]*"[^>]*>.*?<\/div>/gi, '')
+      .replace(/Generate.*?<\/.*?>/gi, '')
+      .replace(/<div[^>]*style="color:[^"]*666[^"]*font-style:[^"]*italic[^"]*"[^>]*>.*?<\/div>/gi, '')
       .trim();
     
-    // Final text cleaning
     const cleanedText = textContent
       .replace(/Generate.*?Analysis/gi, '')
       .replace(/Click.*?to.*?generate/gi, '')
@@ -180,7 +169,7 @@ const captureAIWriteupContent = async () => {
   }
 };
 
-// CSS styles for the HTML report WITHOUT writeup
+// CSS styles for the HTML report WITHOUT writeup - ORIGINAL FORMAT PRESERVED
 const getEmbeddedCSSNoWriteup = () => `
 <style>
   * {
@@ -193,113 +182,143 @@ const getEmbeddedCSSNoWriteup = () => `
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a8b8e6 100%);
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow-x: auto;
   }
 
   .report-container {
-    max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
     background: white;
     min-height: 100vh;
     position: relative;
   }
   
-  /* Title Page / Navigation */
   .title-page {
     background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);
     color: white;
-    padding: 60px;
+    padding: 40px 20px;
     text-align: center;
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     position: relative;
+    overflow: hidden;
   }
 
   .logo-container {
-    margin-bottom: 40px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
   }
 
   .logo-container img {
-    max-height: 180px;
+    max-height: 80px;
     width: auto;
     filter: brightness(1.1);
+    transition: transform 0.3s ease;
+  }
+
+  .logo-container img:hover {
+    transform: scale(1.05);
   }
 
   .title-page h1 {
-    font-size: 42px;
-    font-weight: 700;
-    margin-bottom: 20px;
+    font-size: 2.2rem;
+    margin-bottom: 8px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    flex-shrink: 0;
   }
 
   .title-page h2 {
-    font-size: 24px;
-    font-weight: 400;
-    margin-bottom: 50px;
+    font-size: 1.2rem;
+    margin-bottom: 25px;
     opacity: 0.9;
+    flex-shrink: 0;
   }
   
-  /* Navigation Tabs - 3x2 Layout (no writeup) */
   .nav-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    max-width: 1000px;
+    gap: 15px;
+    max-width: 900px;
     width: 100%;
-    margin-top: 40px;
+    margin: 0 auto;
+    flex: 1;
+    align-content: center;
+    padding: 0 20px;
   }
   
   .nav-tab {
     background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
-    padding: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     text-align: center;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
   
   .nav-tab:hover {
     background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
   }
   
   .nav-tab h3 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 0.95rem;
+    margin: 6px 0 4px 0;
     color: white;
+    transition: color 0.3s ease;
+  }
+
+  .nav-tab:hover h3 {
+    color: #e0f7ff;
   }
 
   .nav-tab p {
-    font-size: 12px;
+    font-size: 0.75rem;
     opacity: 0.8;
     color: white;
+    transition: opacity 0.3s ease;
+    margin: 0;
+  }
+
+  .nav-tab:hover p {
+    opacity: 1;
   }
   
   .nav-tab .icon {
-    font-size: 24px;
-    margin-bottom: 10px;
+    font-size: 1.8rem;
+    margin-bottom: 6px;
     display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .nav-tab:hover .icon {
+    transform: scale(1.2);
   }
   
-  /* Content Sections */
   .content-section {
     display: none;
-    min-height: 100vh;
-    padding: 40px;
-    position: relative;
+    padding: 0;
     background: white;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
   }
   
   .content-section.active {
-    display: block;
+    display: flex;
   }
   
   .chart-wrapper {
@@ -308,129 +327,165 @@ const getEmbeddedCSSNoWriteup = () => `
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     overflow: hidden;
     position: relative;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     margin: 0 auto;
-    max-width: 100%;
+    width: 95vw;
+    height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
   }
   
   .chart-wrapper:hover {
-    transform: translateY(-5px);
+    transform: scale(1.02);
     box-shadow: 0 15px 40px rgba(0,0,0,0.15);
   }
   
   .chart-image {
-    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
     height: auto;
+    object-fit: contain;
+    display: block;
+    transition: opacity 0.3s ease;
+  }
+
+  .content-section[id*="table"] {
+    padding: 0;
+    overflow: hidden;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .content-section[id*="table"].active {
     display: block;
   }
   
-  /* Special handling for table containers */
   .content-section[id*="table"] .chart-wrapper {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
-    position: relative;
-    margin: 0 auto;
-    max-width: 100%;
+    width: 95vw;
+    max-width: 95vw;
+    height: auto;
     padding: 20px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .content-section[id*="table"] .chart-image {
-    width: 100%;
+    max-width: 95%;
+    width: 95%;
     height: auto;
+    object-fit: contain;
     display: block;
     margin: 0 auto;
   }
   
-  /* Floating Back Button */
   .back-button {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: linear-gradient(135deg, #003366, #0066cc);
+    top: 20px;
+    right: 20px;
+    background: #003366;
     color: white;
     border: none;
+    padding: 8px 16px;
     border-radius: 25px;
-    padding: 12px 20px;
-    font-size: 14px;
-    font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    font-size: 12px;
+    font-weight: 500;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,51,102,0.3);
     z-index: 1000;
-    display: none;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    white-space: nowrap;
-  }
-  
-  .back-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-    background: linear-gradient(135deg, #0066cc, #4da6ff);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    text-align: center;
+    line-height: 1.2;
+    min-width: 60px;
   }
   
   .back-button.visible {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
   }
   
-  /* Responsive Design */
+  .back-button:hover {
+    background: #004080;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,51,102,0.4);
+  }
+
   @media (max-width: 768px) {
-    .title-page {
-      padding: 40px 20px;
-    }
-    
-    .title-page h1 {
-      font-size: 32px;
-    }
-    
-    .title-page h2 {
-      font-size: 20px;
-    }
-    
     .nav-tabs {
-      grid-template-columns: 1fr;
-      gap: 15px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 0 15px;
+    }
+    
+    .nav-tab {
+      min-height: 80px;
+      padding: 12px;
     }
     
     .nav-tab h3 {
-      font-size: 14px;
+      font-size: 0.85rem;
     }
     
     .nav-tab p {
-      font-size: 11px;
+      font-size: 0.7rem;
     }
     
-    .content-section {
-      padding: 20px;
+    .nav-tab .icon {
+      font-size: 1.5rem;
+    }
+    
+    .title-page h1 {
+      font-size: 1.8rem;
+    }
+    
+    .title-page h2 {
+      font-size: 1rem;
+    }
+
+    .back-button {
+      padding: 6px 12px;
+      font-size: 10px;
+      top: 15px;
+      right: 15px;
+      min-width: 50px;
     }
   }
-  
-  /* Print Styles */
-  @media print {
-    body {
-      background: white;
+
+  @media (max-width: 480px) {
+    .nav-tabs {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
     
-    .back-button {
-      display: none !important;
+    .nav-tab {
+      min-height: 70px;
+      padding: 10px;
     }
     
-    .title-page {
-      page-break-after: always;
+    .title-page h1 {
+      font-size: 1.5rem;
     }
     
-    .content-section {
-      page-break-before: always;
-      display: block !important;
+    .title-page h2 {
+      font-size: 0.9rem;
     }
   }
 </style>
 `;
 
-// CSS styles for the HTML report WITH writeup
+// CSS styles for the HTML report WITH writeup - ORIGINAL FORMAT PRESERVED
 const getEmbeddedCSSWithWriteup = () => `
 <style>
   * {
@@ -443,120 +498,143 @@ const getEmbeddedCSSWithWriteup = () => `
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a8b8e6 100%);
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow-x: auto;
   }
 
   .report-container {
-    max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
     background: white;
     min-height: 100vh;
     position: relative;
   }
   
-  /* Title Page / Navigation */
   .title-page {
     background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);
     color: white;
-    padding: 60px;
+    padding: 40px 20px;
     text-align: center;
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     position: relative;
+    overflow: hidden;
   }
 
   .logo-container {
-    margin-bottom: 40px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
   }
 
   .logo-container img {
-    max-height: 180px;
+    max-height: 80px;
     width: auto;
     filter: brightness(1.1);
+    transition: transform 0.3s ease;
+  }
+
+  .logo-container img:hover {
+    transform: scale(1.05);
   }
 
   .title-page h1 {
-    font-size: 42px;
-    font-weight: 700;
-    margin-bottom: 20px;
+    font-size: 2.2rem;
+    margin-bottom: 8px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    flex-shrink: 0;
   }
 
   .title-page h2 {
-    font-size: 24px;
-    font-weight: 400;
-    margin-bottom: 50px;
+    font-size: 1.2rem;
+    margin-bottom: 25px;
     opacity: 0.9;
+    flex-shrink: 0;
   }
   
-  /* Navigation Tabs - 3x3x1 Layout */
   .nav-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    max-width: 1000px;
+    gap: 15px;
+    max-width: 900px;
     width: 100%;
-    margin-top: 40px;
+    margin: 0 auto;
+    flex: 1;
+    align-content: center;
+    padding: 0 20px;
   }
   
   .nav-tab {
     background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
-    padding: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 15px;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     text-align: center;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
   
   .nav-tab:hover {
     background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
   }
   
   .nav-tab h3 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 0.95rem;
+    margin: 6px 0 4px 0;
     color: white;
+    transition: color 0.3s ease;
+  }
+
+  .nav-tab:hover h3 {
+    color: #e0f7ff;
   }
 
   .nav-tab p {
-    font-size: 12px;
+    font-size: 0.75rem;
     opacity: 0.8;
     color: white;
+    transition: opacity 0.3s ease;
+    margin: 0;
+  }
+
+  .nav-tab:hover p {
+    opacity: 1;
   }
   
   .nav-tab .icon {
-    font-size: 24px;
-    margin-bottom: 10px;
+    font-size: 1.8rem;
+    margin-bottom: 6px;
     display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .nav-tab:hover .icon {
+    transform: scale(1.2);
   }
   
-  /* Single column for write-up tab */
-  .nav-tab.writeup-tab {
-    grid-column: 1 / -1;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-  
-  /* Content Sections */
   .content-section {
     display: none;
-    min-height: 100vh;
-    padding: 40px;
-    position: relative;
+    padding: 0;
     background: white;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
   }
   
   .content-section.active {
-    display: block;
+    display: flex;
   }
   
   .chart-wrapper {
@@ -565,110 +643,132 @@ const getEmbeddedCSSWithWriteup = () => `
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     overflow: hidden;
     position: relative;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     margin: 0 auto;
-    max-width: 100%;
-  }
-  
-  .chart-wrapper:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-  }
-  
-  .chart-image {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-  
-  /* Special handling for table containers */
-  .content-section[id*="table"] .chart-wrapper {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    overflow: hidden;
-    position: relative;
-    margin: 0 auto;
-    max-width: 100%;
+    width: 95vw;
+    height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 20px;
   }
   
-  .content-section[id*="table"] .chart-image {
-    width: 100%;
+  .chart-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
     height: auto;
+    object-fit: contain;
+    display: block;
+    transition: opacity 0.3s ease;
+  }
+
+  .content-section[id*="table"] {
+    padding: 0;
+    overflow: hidden;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .content-section[id*="table"].active {
+    display: block;
+  }
+  
+  .content-section[id*="table"] .chart-wrapper {
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+    width: 95vw;
+    max-width: 95vw;
+    height: auto;
+    padding: 20px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .content-section[id*="table"] .chart-image {
+    max-width: 95%;
+    width: 95%;
+    height: auto;
+    object-fit: contain;
     display: block;
     margin: 0 auto;
   }
   
-  /* Write-up Section */
   .writeup-section {
-    max-width: 1000px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 40px;
+    padding: 20px;
     background: white;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+    height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .writeup-section:hover {
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
   }
   
   .writeup-header {
     text-align: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 3px solid #0066cc;
+    margin-bottom: 15px;
+    flex-shrink: 0;
   }
   
   .writeup-header h2 {
-    font-size: 32px;
+    font-size: 1.8rem;
     font-weight: 700;
     color: #003366;
+    transition: color 0.3s ease;
+  }
+  
+  .writeup-header:hover h2 {
+    color: #0066cc;
   }
   
   .writeup-editor {
-    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
   
   .writeup-textarea {
     width: 100%;
-    min-height: 400px;
-    padding: 25px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-family: 'Georgia', serif;
-    font-size: 16px;
-    line-height: 1.8;
-    color: #333;
+    flex: 1;
+    min-height: 300px;
+    padding: 15px;
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
     background: #fafafa;
-    resize: vertical;
-    transition: border-color 0.3s ease;
+    resize: none;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    outline: none;
   }
   
-  .writeup-textarea:focus {
-    outline: none;
+  .writeup-textarea:focus, .writeup-textarea:hover {
     border-color: #0066cc;
     background: white;
   }
   
-  .writeup-content-readonly {
-    padding: 25px;
-    font-family: 'Georgia', serif;
-    font-size: 16px;
-    line-height: 1.8;
-    color: #333;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    min-height: 400px;
-  }
-  
   .writeup-controls {
-    margin-top: 20px;
+    margin-top: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
+    flex-shrink: 0;
   }
   
   .writeup-controls.hidden {
@@ -691,24 +791,29 @@ const getEmbeddedCSSWithWriteup = () => `
   .save-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    background: linear-gradient(135deg, #20c997, #28a745);
   }
   
   .word-count {
     color: #666;
     font-size: 14px;
+    transition: color 0.3s ease;
   }
   
-  /* Floating Back Button */
+  .word-count:hover {
+    color: #333;
+  }
+  
   .back-button {
     position: fixed;
-    bottom: 30px;
+    top: 30px;
     right: 30px;
     background: linear-gradient(135deg, #003366, #0066cc);
     color: white;
     border: none;
     border-radius: 25px;
-    padding: 12px 20px;
-    font-size: 14px;
+    padding: 8px 16px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
@@ -718,7 +823,9 @@ const getEmbeddedCSSWithWriteup = () => `
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     letter-spacing: 0.5px;
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    white-space: nowrap;
+    text-align: center;
+    line-height: 1.2;
+    min-width: 60px;
   }
   
   .back-button:hover {
@@ -731,7 +838,6 @@ const getEmbeddedCSSWithWriteup = () => `
     display: block;
   }
   
-  /* Responsive Design */
   @media (max-width: 768px) {
     .title-page {
       padding: 40px 20px;
@@ -742,71 +848,81 @@ const getEmbeddedCSSWithWriteup = () => `
     }
     
     .title-page h2 {
-      font-size: 20px;
+      font-size: 18px;
     }
     
     .nav-tabs {
-      grid-template-columns: 1fr;
-      gap: 15px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 0 15px;
     }
     
-    .nav-tab.writeup-tab {
-      grid-column: 1;
-      max-width: none;
+    .nav-tab {
+      min-height: 80px;
+      padding: 12px;
     }
     
     .nav-tab h3 {
-      font-size: 14px;
+      font-size: 0.85rem;
     }
     
     .nav-tab p {
-      font-size: 11px;
+      font-size: 0.7rem;
     }
     
-    .content-section {
-      padding: 20px;
+    .nav-tab .icon {
+      font-size: 1.5rem;
     }
     
     .writeup-section {
-      padding: 20px;
+      height: 80vh;
+      padding: 15px;
+    }
+    
+    .writeup-header h2 {
+      font-size: 1.5rem;
     }
     
     .writeup-textarea {
-      min-height: 300px;
-      padding: 15px;
+      font-size: 13px;
+    }
+    
+    .save-button {
+      padding: 10px 20px;
       font-size: 14px;
     }
     
-    .writeup-controls {
-      flex-direction: column;
-      align-items: stretch;
+    .back-button {
+      top: 20px;
+      right: 20px;
+      padding: 6px 12px;
+      font-size: 10px;
+      min-width: 50px;
     }
   }
-  
-  /* Print Styles */
-  @media print {
-    body {
-      background: white;
+
+  @media (max-width: 480px) {
+    .nav-tabs {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
     
-    .back-button, .save-button, .writeup-controls {
-      display: none !important;
+    .nav-tab {
+      min-height: 70px;
+      padding: 10px;
     }
     
-    .title-page {
-      page-break-after: always;
+    .title-page h1 {
+      font-size: 1.5rem;
     }
     
-    .content-section {
-      page-break-before: always;
-      display: block !important;
+    .title-page h2 {
+      font-size: 0.9rem;
     }
     
-    .writeup-textarea {
-      border: none;
-      background: white;
-      padding: 0;
-      min-height: auto;
+    .writeup-section {
+      height: 75vh;
+      padding: 10px;
     }
   }
 </style>
@@ -815,62 +931,49 @@ const getEmbeddedCSSWithWriteup = () => `
 // JavaScript for navigation and write-up functionality
 const getNavigationScript = (capturedCharts, capturedTables, actualWriteupContent) => `
 <script>
-  // Make functions global to avoid ReferenceError
   window.showSection = function(sectionId) {
     console.log('showSection called with:', sectionId);
     
-    // Hide all sections
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.classList.remove('active'));
     
-    // Hide title page
     const titlePage = document.querySelector('.title-page');
     if (titlePage) titlePage.style.display = 'none';
     
-    // Show selected section
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
       targetSection.classList.add('active');
       
-      // If showing writeup, load content
       if (sectionId === 'writeup') {
         loadWriteupContent();
       }
     }
     
-    // Show back button
     const backButton = document.querySelector('.back-button');
     if (backButton) backButton.classList.add('visible');
     
-    // Scroll to top
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   window.showHomePage = function() {
     console.log('showHomePage called');
     
-    // Hide all content sections
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.classList.remove('active'));
     
-    // Show title page
     const titlePage = document.querySelector('.title-page');
     if (titlePage) titlePage.style.display = 'flex';
     
-    // Hide back button
     const backButton = document.querySelector('.back-button');
     if (backButton) backButton.classList.remove('visible');
     
-    // Scroll to top
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Store data safely without complex JSON parsing
-  let writeupData = null;
+  let writeupData = ${actualWriteupContent ? JSON.stringify(actualWriteupContent.text) : 'null'};
   let hasBeenSaved = false;
   let currentContent = '';
 
-  // Define all missing functions
   function loadWriteupContent() {
     console.log('loadWriteupContent called');
     const container = document.querySelector('.writeup-editor');
@@ -880,15 +983,16 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
       return;
     }
     
-    // Simple placeholder content for now
-    container.innerHTML = '<textarea id="writeup-content" class="writeup-textarea" placeholder="Edit your financial analysis writeup...">Edit your financial analysis and insights here...</textarea>' +
-      '<div class="writeup-controls">' +
-        '<button class="save-button" onclick="saveWriteup()" style="background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">💾 Save & Download Final Report</button>' +
-        '<div class="save-status"></div>' +
-        '<div class="word-count">0 words, 0 characters</div>' +
-      '</div>';
+    const initialContent = writeupData || 'Edit your financial analysis and insights here...';
+    container.innerHTML = \`
+      <textarea id="writeup-content" class="writeup-textarea" placeholder="Edit your financial analysis writeup...">\${initialContent}</textarea>
+      <div class="writeup-controls">
+        <button class="save-button" onclick="saveWriteup()">💾 Save & Download Final Report</button>
+        <div class="save-status"></div>
+        <div class="word-count">0 words, 0 characters</div>
+      </div>
+    \`;
     
-    // Add event listeners
     const textarea = document.getElementById('writeup-content');
     if (textarea) {
       textarea.addEventListener('input', updateWordCount);
@@ -899,6 +1003,8 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
   window.saveWriteup = function() {
     console.log('saveWriteup called');
     const textarea = document.getElementById('writeup-content');
+    const saveStatus = document.querySelector('.save-status');
+    
     if (!textarea) {
       alert('No content to save!');
       return;
@@ -910,25 +1016,45 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
       return;
     }
     
-    alert('Save functionality will be implemented in next update!');
+    writeupData = content;
+    hasBeenSaved = true;
+    
+    const savedContentDiv = document.getElementById('saved-writeup-content');
+    if (savedContentDiv) {
+      savedContentDiv.textContent = content;
+    }
+    
+    if (saveStatus) {
+      saveStatus.textContent = 'Saved successfully!';
+      saveStatus.style.color = '#28a745';
+      setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+    }
+    
+    const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Financial_Report_Final.html';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
-  
+
   function updateWordCount() {
     const textarea = document.getElementById('writeup-content');
     const wordCountEl = document.querySelector('.word-count');
     
     if (textarea && wordCountEl) {
       const text = textarea.value.trim();
-      const words = text ? text.split(' ').filter(w => w.length > 0).length : 0;
+      const words = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
       const characters = text.length;
-      wordCountEl.textContent = words + ' words, ' + characters + ' characters';
+      wordCountEl.textContent = \`\${words} words, \${characters} characters\`;
     }
   }
-  
+
   console.log('=== NAVIGATION SCRIPT LOADED ===');
-  console.log('Functions available:', typeof window.showSection, typeof window.showHomePage, typeof window.saveWriteup);
   
-  // Initialize on page load
   document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded - navigation ready');
   });
@@ -939,134 +1065,88 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
 const captureChartsAndTable = async () => {
   const capturedCharts = [];
   const capturedTables = [];
-  
-  // Find and switch to Charts tab to ensure charts are visible
+
   const allTabs = document.querySelectorAll('.tab-button');
   let chartsTabElement = null;
-  
+
   allTabs.forEach(tab => {
     if (tab.textContent.includes('Charts')) {
       chartsTabElement = tab;
     }
   });
-  
+
   if (!chartsTabElement) {
     throw new Error('Charts tab not found. Please ensure the Charts view is available.');
   }
-  
-  // Check if Charts tab is not already active
+
   if (!chartsTabElement.classList.contains('active')) {
     chartsTabElement.click();
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 300));
   }
 
-  // Additional wait to ensure charts are fully rendered
-  await new Promise(r => setTimeout(r, 500));
+  try {
+    const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
 
-  // Find the main ChartContainer div
-  const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
-  
-  if (mainContainer) {
-    console.log('Found main chart container');
-    
-    // Hide all export buttons and UI controls before capture
-    const elementsToHide = document.querySelectorAll(`
-      .export-pdf-btn,
-      .pdf-export-controls,
-      .export-btn.pdf-export,
-      .export-btn.html-export,
-      .export-btn.html-writeup-export,
-      .export-buttons-container,
-      button[class*="export"],
-      button[class*="pdf"],
-      button[class*="html"],
-      .export-button,
-      .pdf-button,
-      .html-button,
-      [onclick*="export"],
-      [onclick*="pdf"],
-      [onclick*="html"],
-      .ant-btn:has([class*="export"]),
-      .ant-btn:has([class*="pdf"]),
-      .ant-tooltip
-    `);
-    
-    const originalStyles = [];
-    elementsToHide.forEach((element, index) => {
-      originalStyles[index] = element.style.display;
-      element.style.display = 'none';
-    });
-    
-    // Get direct children that are chart containers (excluding AI writeup)
-    const children = Array.from(mainContainer.children).filter(child => {
-      const rect = child.getBoundingClientRect();
-      const hasStyle = child.style.marginTop;
-      const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
-                     !child.innerHTML.toLowerCase().includes('writeup');
-      return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
-    });
-    
-    console.log(`Found ${children.length} chart containers`);
-    
-    // Chart titles for navigation tabs
-    const chartTitles = [
-      'Sales and Volume Analysis',
-      'Margin over Material Cost', 
-      'Manufacturing Cost Breakdown',
-      'Below Gross Profit Expenses',
-      'Expenses Trends & Profit Analysis'
-    ];
-    
-    for (let i = 0; i < children.length && i < chartTitles.length; i++) {
-      const container = children[i];
-      
-      // Hide tooltips
-      const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');
-      tooltips.forEach(tooltip => {
-        if (tooltip) tooltip.style.display = 'none';
+    if (mainContainer) {
+      console.log('Found main chart container');
+
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
+                        !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
       });
 
-      await new Promise(r => setTimeout(r, 300));
+      console.log(`Found ${children.length} chart containers`);
 
-      // Try to resize ECharts instances
-      const echartsElements = container.querySelectorAll('.echarts-for-react');
-      echartsElements.forEach(echartsEl => {
-        if (typeof echartsEl.getEchartsInstance === 'function') {
-          const inst = echartsEl.getEchartsInstance();
-          if (inst) {
-            inst.dispatchAction({ type: 'hideTip' });
-            inst.resize();
+      const chartTitles = [
+        'Sales and Volume Analysis',
+        'Margin over Material Cost', 
+        'Manufacturing Cost Breakdown',
+        'Below Gross Profit Expenses',
+        'Expenses Trends & Profit Analysis'
+      ];
+
+      for (let i = 0; i < children.length && i < chartTitles.length; i++) {
+        const container = children[i];
+
+        const echartsElements = container.querySelectorAll('.echarts-for-react');
+        echartsElements.forEach(echartsEl => {
+          if (typeof echartsEl.getEchartsInstance === 'function') {
+            const inst = echartsEl.getEchartsInstance();
+            if (inst) {
+              inst.dispatchAction({ type: 'hideTip' });
+              inst.resize();
+            }
           }
-        }
-      });
-
-      await new Promise(r => setTimeout(r, 300));
-
-      // Capture the chart
-      const chartImage = await captureElementAsBase64(container, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        allowTaint: true,
-        logging: false
-      });
-
-      if (chartImage) {
-        capturedCharts.push({
-          title: chartTitles[i],
-          image: chartImage,
-          id: `chart-${i + 1}`
         });
-        console.log(`Captured chart: ${chartTitles[i]}`);
+
+        await new Promise(r => setTimeout(r, 500));
+
+        const chartImage = await captureElementAsBase64(container, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          logging: true
+        });
+
+        if (chartImage) {
+          capturedCharts.push({
+            title: chartTitles[i],
+            image: chartImage,
+            id: `chart-${i + 1}`
+          });
+          console.log(`Captured chart: ${chartTitles[i]}`);
+        } else {
+          console.warn(`Failed to capture chart: ${chartTitles[i]}`);
+        }
       }
     }
-  }
 
-  // Capture all three tables
-  try {
     console.log('Starting table capture...');
-    
-    // Table 1: P&L Financial Table
+
     try {
       console.log('Capturing P&L Financial table...');
       const plTab = Array.from(allTabs).find(tab => tab.textContent.includes('P&L'));
@@ -1074,21 +1154,47 @@ const captureChartsAndTable = async () => {
       if (plTab && !plTab.classList.contains('active')) {
         console.log('Switching to P&L tab...');
         plTab.click();
-      await new Promise(r => setTimeout(r, 1500));
-    }
+        await new Promise(r => setTimeout(r, 300));
+      }
 
-    await new Promise(r => setTimeout(r, 1000));
-
-      const plTableElement = document.querySelector('.table-view');
-      if (plTableElement) {
-        console.log('Capturing P&L Financial table...');
-        const plTableImage = await captureElementAsBase64(plTableElement, {
+      // Create a clean container for table capture without PDF export controls
+      const originalTableView = document.querySelector('.table-view');
+      if (originalTableView) {
+        console.log('Creating clean table container for P&L...');
+        
+        // Create a clean container
+        const cleanContainer = document.createElement('div');
+        cleanContainer.className = 'table-view';
+        cleanContainer.style.cssText = originalTableView.style.cssText;
+        
+        // Clone only the table content (exclude PDF export controls)
+        const tableHeader = originalTableView.querySelector('.table-header');
+        const tableContainer = originalTableView.querySelector('.table-container');
+        
+        if (tableHeader) {
+          cleanContainer.appendChild(tableHeader.cloneNode(true));
+        }
+        if (tableContainer) {
+          cleanContainer.appendChild(tableContainer.cloneNode(true));
+        }
+        
+        // Position off-screen for capture
+        cleanContainer.style.position = 'absolute';
+        cleanContainer.style.left = '-9999px';
+        cleanContainer.style.top = '-9999px';
+        cleanContainer.style.zIndex = '-1';
+        document.body.appendChild(cleanContainer);
+        
+        const plTableImage = await captureElementAsBase64(cleanContainer, {
           scale: 1.2,
           backgroundColor: '#ffffff',
           useCORS: true,
           allowTaint: true,
-          logging: false
+          logging: true
         });
+        
+        // Clean up
+        document.body.removeChild(cleanContainer);
         
         if (plTableImage) {
           capturedTables.push({
@@ -1097,13 +1203,14 @@ const captureChartsAndTable = async () => {
             id: 'pl-table'
           });
           console.log('P&L Financial table captured successfully');
+        } else {
+          console.warn('Failed to capture P&L Financial table');
         }
       }
     } catch (plErr) {
-      console.error('Error capturing P&L table:', plErr);
+      console.error('Error capturing P&L Financial table:', plErr);
     }
 
-    // Table 2: Product Group Table
     try {
       console.log('Capturing Product Group table...');
       const productGroupTab = Array.from(allTabs).find(tab => tab.textContent.includes('Product Group'));
@@ -1111,21 +1218,47 @@ const captureChartsAndTable = async () => {
       if (productGroupTab && !productGroupTab.classList.contains('active')) {
         console.log('Switching to Product Group tab...');
         productGroupTab.click();
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 300));
       }
 
-      await new Promise(r => setTimeout(r, 1000));
-
-      const productGroupTableElement = document.querySelector('.table-view');
-      if (productGroupTableElement) {
-        console.log('Capturing Product Group table...');
-        const productGroupTableImage = await captureElementAsBase64(productGroupTableElement, {
+      // Create a clean container for table capture without PDF export controls
+      const originalTableView = document.querySelector('.table-view');
+      if (originalTableView) {
+        console.log('Creating clean table container for Product Group...');
+        
+        // Create a clean container
+        const cleanContainer = document.createElement('div');
+        cleanContainer.className = 'table-view';
+        cleanContainer.style.cssText = originalTableView.style.cssText;
+        
+        // Clone only the table content (exclude PDF export controls)
+        const tableHeader = originalTableView.querySelector('.table-header');
+        const tableContainer = originalTableView.querySelector('.table-container');
+        
+        if (tableHeader) {
+          cleanContainer.appendChild(tableHeader.cloneNode(true));
+        }
+        if (tableContainer) {
+          cleanContainer.appendChild(tableContainer.cloneNode(true));
+        }
+        
+        // Position off-screen for capture
+        cleanContainer.style.position = 'absolute';
+        cleanContainer.style.left = '-9999px';
+        cleanContainer.style.top = '-9999px';
+        cleanContainer.style.zIndex = '-1';
+        document.body.appendChild(cleanContainer);
+        
+        const productGroupTableImage = await captureElementAsBase64(cleanContainer, {
           scale: 1.2,
           backgroundColor: '#ffffff',
           useCORS: true,
           allowTaint: true,
-          logging: false
+          logging: true
         });
+        
+        // Clean up
+        document.body.removeChild(cleanContainer);
         
         if (productGroupTableImage) {
           capturedTables.push({
@@ -1134,13 +1267,14 @@ const captureChartsAndTable = async () => {
             id: 'product-group-table'
           });
           console.log('Product Group table captured successfully');
+        } else {
+          console.warn('Failed to capture Product Group table');
         }
       }
     } catch (pgErr) {
       console.error('Error capturing Product Group table:', pgErr);
     }
 
-    // Table 3: Sales by Country Table
     try {
       console.log('Capturing Sales by Country table...');
       const salesCountryTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Country'));
@@ -1148,11 +1282,9 @@ const captureChartsAndTable = async () => {
       if (salesCountryTab && !salesCountryTab.classList.contains('active')) {
         console.log('Switching to Sales by Country tab...');
         salesCountryTab.click();
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 300));
       }
 
-      // If there's a nested tab structure, find the Table sub-tab
-      await new Promise(r => setTimeout(r, 500));
       const tableSubTab = Array.from(document.querySelectorAll('.tab-button')).find(tab => 
         tab.textContent.trim() === 'Table' && tab.closest('.tab-content')
       );
@@ -1160,21 +1292,47 @@ const captureChartsAndTable = async () => {
       if (tableSubTab && !tableSubTab.classList.contains('active')) {
         console.log('Switching to Table sub-tab...');
         tableSubTab.click();
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 300));
       }
 
-      await new Promise(r => setTimeout(r, 1000));
-
-      const salesCountryTableElement = document.querySelector('.table-view');
-      if (salesCountryTableElement) {
-        console.log('Capturing Sales by Country table...');
-        const salesCountryTableImage = await captureElementAsBase64(salesCountryTableElement, {
+      // Create a clean container for table capture without PDF export controls
+      const originalTableView = document.querySelector('.table-view');
+      if (originalTableView) {
+        console.log('Creating clean table container for Sales by Country...');
+        
+        // Create a clean container
+        const cleanContainer = document.createElement('div');
+        cleanContainer.className = 'table-view';
+        cleanContainer.style.cssText = originalTableView.style.cssText;
+        
+        // Clone only the table content (exclude PDF export controls)
+        const tableHeader = originalTableView.querySelector('.table-header');
+        const tableContainer = originalTableView.querySelector('.table-container');
+        
+        if (tableHeader) {
+          cleanContainer.appendChild(tableHeader.cloneNode(true));
+        }
+        if (tableContainer) {
+          cleanContainer.appendChild(tableContainer.cloneNode(true));
+        }
+        
+        // Position off-screen for capture
+        cleanContainer.style.position = 'absolute';
+        cleanContainer.style.left = '-9999px';
+        cleanContainer.style.top = '-9999px';
+        cleanContainer.style.zIndex = '-1';
+        document.body.appendChild(cleanContainer);
+        
+        const salesCountryTableImage = await captureElementAsBase64(cleanContainer, {
           scale: 1.2,
           backgroundColor: '#ffffff',
           useCORS: true,
           allowTaint: true,
-          logging: false
+          logging: true
         });
+        
+        // Clean up
+        document.body.removeChild(cleanContainer);
         
         if (salesCountryTableImage) {
           capturedTables.push({
@@ -1183,46 +1341,102 @@ const captureChartsAndTable = async () => {
             id: 'sales-country-table'
           });
           console.log('Sales by Country table captured successfully');
+        } else {
+          console.warn('Failed to capture Sales by Country table');
         }
       }
     } catch (scErr) {
       console.error('Error capturing Sales by Country table:', scErr);
     }
 
-    // Switch back to Charts tab
+    // Capture Sales by Customer table
+    try {
+      console.log('Capturing Sales by Customer table...');
+      
+      // Check if there's a Sales by Customer tab - if not, we'll skip this capture
+      const salesCustomerTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Customer'));
+      
+      if (salesCustomerTab) {
+        if (!salesCustomerTab.classList.contains('active')) {
+          console.log('Switching to Sales by Customer tab...');
+          salesCustomerTab.click();
+          await new Promise(r => setTimeout(r, 300));
+        }
+
+        // Check for Table sub-tab within Sales by Customer
+        const customerTableSubTab = Array.from(document.querySelectorAll('.tab-button')).find(tab => 
+          tab.textContent.trim() === 'Table' && tab.closest('.tab-content')
+        );
+        
+        if (customerTableSubTab && !customerTableSubTab.classList.contains('active')) {
+          console.log('Switching to Customer Table sub-tab...');
+          customerTableSubTab.click();
+          await new Promise(r => setTimeout(r, 300));
+        }
+
+        // Create a clean container for table capture without PDF export controls
+        const originalTableView = document.querySelector('.table-view');
+        if (originalTableView) {
+          console.log('Creating clean table container for Sales by Customer...');
+          
+          // Create a clean container
+          const cleanContainer = document.createElement('div');
+          cleanContainer.className = 'table-view';
+          cleanContainer.style.cssText = originalTableView.style.cssText;
+          
+          // Clone only the table content (exclude PDF export controls)
+          const tableHeader = originalTableView.querySelector('.table-header');
+          const tableContainer = originalTableView.querySelector('.table-container');
+          
+          if (tableHeader) {
+            cleanContainer.appendChild(tableHeader.cloneNode(true));
+          }
+          if (tableContainer) {
+            cleanContainer.appendChild(tableContainer.cloneNode(true));
+          }
+          
+          // Position off-screen for capture
+          cleanContainer.style.position = 'absolute';
+          cleanContainer.style.left = '-9999px';
+          cleanContainer.style.top = '-9999px';
+          cleanContainer.style.zIndex = '-1';
+          document.body.appendChild(cleanContainer);
+          
+          const salesCustomerTableImage = await captureElementAsBase64(cleanContainer, {
+            scale: 1.2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: true
+          });
+          
+          // Clean up
+          document.body.removeChild(cleanContainer);
+          
+          if (salesCustomerTableImage) {
+            capturedTables.push({
+              title: 'Sales by Customer Table',
+              image: salesCustomerTableImage,
+              id: 'sales-customer-table'
+            });
+            console.log('Sales by Customer table captured successfully');
+          } else {
+            console.warn('Failed to capture Sales by Customer table');
+          }
+        }
+      } else {
+        console.log('Sales by Customer tab not found, skipping capture');
+      }
+    } catch (customerErr) {
+      console.error('Error capturing Sales by Customer table:', customerErr);
+    }
+
     if (chartsTabElement) {
       chartsTabElement.click();
-      await new Promise(r => setTimeout(r, 500));
     }
-    
-    // Restore hidden elements after all captures are complete
-    const elementsToRestore = document.querySelectorAll(`
-      .export-pdf-btn,
-      .pdf-export-controls,
-      .export-btn.pdf-export,
-      .export-btn.html-export,
-      .export-btn.html-writeup-export,
-      .export-buttons-container,
-      button[class*="export"],
-      button[class*="pdf"],
-      button[class*="html"],
-      .export-button,
-      .pdf-button,
-      .html-button,
-      [onclick*="export"],
-      [onclick*="pdf"],
-      [onclick*="html"],
-      .ant-btn:has([class*="export"]),
-      .ant-btn:has([class*="pdf"]),
-      .ant-tooltip
-    `);
-    
-    elementsToRestore.forEach(element => {
-      element.style.display = '';
-    });
-    
-  } catch (tableErr) {
-    console.error('Error capturing tables:', tableErr);
+
+  } finally {
+    // No need to restore original styles as the clean container approach excludes the PDF export controls
   }
 
   return { capturedCharts, capturedTables };
@@ -1233,23 +1447,19 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
   try {
     console.log('Starting HTML report generation (NO writeup)...');
 
-    // Division full names mapping
-  const divisionNames = {
-    FP: 'Flexible Packaging',
-    SB: 'Shopping Bags', 
-    TF: 'Thermoforming Products',
-    HCM: 'Preforms and Closures'
-  };
+    const divisionNames = {
+      FP: 'Flexible Packaging',
+      SB: 'Shopping Bags', 
+      TF: 'Thermoforming Products',
+      HCM: 'Preforms and Closures'
+    };
 
     const divisionFullName = divisionNames[exportData.division] || exportData.division;
 
-    // Get the logo as base64
     const logoBase64 = await getBase64Logo();
 
-    // Capture charts and table
     const { capturedCharts, capturedTables } = await captureChartsAndTable();
 
-    // Generate navigation tabs in 3x2 layout (no writeup)
     const chartTabs = capturedCharts.map(chart => `
       <div class="nav-tab" onclick="showSection('${chart.id}')">
         <span class="icon">📊</span>
@@ -1266,7 +1476,6 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
       </div>
     `).join('');
 
-    // Generate content sections
     const chartSections = capturedCharts.map(chart => `
       <div id="${chart.id}" class="content-section">
         <div class="chart-wrapper">
@@ -1283,7 +1492,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
       </div>
     `).join('');
   
-  const html = `
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1293,11 +1502,9 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
     ${getEmbeddedCSSNoWriteup()}
 </head>
 <body>
-    <!-- Hidden div for consistency (not used in no-writeup version) -->
     <div id="saved-writeup-content" style="display: none;">EMPTY</div>
     
     <div class="report-container">
-        <!-- Title Page with Navigation -->
         <div class="title-page">
             ${logoBase64 ? `
             <div class="logo-container">
@@ -1313,22 +1520,19 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
             </div>
         </div>
 
-        <!-- Content Sections -->
         ${chartSections}
         ${tableSections}
 
-        <!-- Floating Back Button -->
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
-            Back to Home page
+            Home<br>Page
         </button>
-            </div>
+    </div>
 
     ${getNavigationScript(capturedCharts, capturedTables, null)}
 </body>
 </html>
     `;
 
-    // Create and download the HTML file
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
@@ -1353,12 +1557,11 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
   }
 };
 
-// Main HTML export function WITH writeup functionality - completely rewritten for better functionality
+// HTML export function WITH writeup
 export const exportHTMLReportWithWriteup = async (exportData) => {
   try {
-    console.log('Starting enhanced HTML report with writeup generation...');
+    console.log('Starting HTML report with writeup generation...');
 
-    // Division full names mapping
     const divisionNames = {
       FP: 'Flexible Packaging',
       SB: 'Shopping Bags', 
@@ -1368,7 +1571,6 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
 
     const divisionFullName = divisionNames[exportData.division] || exportData.division;
 
-    // Find and switch to Charts tab to ensure charts are visible
     const allTabs = document.querySelectorAll('.tab-button');
     let chartsTabElement = null;
     
@@ -1383,293 +1585,23 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
       return false;
     }
     
-    // Check if Charts tab is not already active
     if (!chartsTabElement.classList.contains('active')) {
       chartsTabElement.click();
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    // Additional wait to ensure charts are fully rendered
-    await new Promise(r => setTimeout(r, 500));
-
-    // Get the logo as base64
     const logoBase64 = await getBase64Logo();
 
-    const capturedCharts = [];
-    const capturedTables = [];
-    
-    // Find the main ChartContainer div
-    const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
-    
-    if (mainContainer) {
-      console.log('Found main chart container');
-      
-      // Hide all export buttons and UI controls before capture
-      const elementsToHide = document.querySelectorAll(`
-        .export-pdf-btn,
-        .pdf-export-controls,
-        .export-btn.pdf-export,
-        .export-btn.html-export,
-        .export-btn.html-writeup-export,
-        .export-buttons-container,
-        button[class*="export"],
-        button[class*="pdf"],
-        button[class*="html"],
-        .export-button,
-        .pdf-button,
-        .html-button,
-        [onclick*="export"],
-        [onclick*="pdf"],
-        [onclick*="html"],
-        .ant-btn:has([class*="export"]),
-        .ant-btn:has([class*="pdf"]),
-        .ant-tooltip
-      `);
-      
-      const originalStyles = [];
-      elementsToHide.forEach((element, index) => {
-        originalStyles[index] = element.style.display;
-        element.style.display = 'none';
-      });
-      
-      // Get direct children that are chart containers (excluding AI writeup)
-      const children = Array.from(mainContainer.children).filter(child => {
-        const rect = child.getBoundingClientRect();
-        const hasStyle = child.style.marginTop;
-        const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
-                       !child.innerHTML.toLowerCase().includes('writeup');
-        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
-      });
-      
-      console.log(`Found ${children.length} chart containers`);
-      
-      // Chart titles for navigation tabs (not overlays)
-      const chartTitles = [
-        'Sales and Volume Analysis',
-        'Margin over Material Cost', 
-        'Manufacturing Cost Breakdown',
-        'Below Gross Profit Expenses',
-        'Expenses Trends & Profit Analysis'
-      ];
-      
-      for (let i = 0; i < children.length && i < chartTitles.length; i++) {
-        const container = children[i];
-        
-        // Hide tooltips
-        const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');
-        tooltips.forEach(tooltip => {
-          if (tooltip) tooltip.style.display = 'none';
-        });
+    const { capturedCharts, capturedTables } = await captureChartsAndTable();
 
-        await new Promise(r => setTimeout(r, 300));
+    const actualWriteupContent = await captureAIWriteupContent();
 
-        // Try to resize ECharts instances
-        const echartsElements = container.querySelectorAll('.echarts-for-react');
-        echartsElements.forEach(echartsEl => {
-          if (typeof echartsEl.getEchartsInstance === 'function') {
-            const inst = echartsEl.getEchartsInstance();
-            if (inst) {
-              inst.dispatchAction({ type: 'hideTip' });
-              inst.resize();
-            }
-          }
-        });
-
-        await new Promise(r => setTimeout(r, 300));
-
-        // Capture the chart
-        const chartImage = await captureElementAsBase64(container, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          allowTaint: true,
-          logging: false
-        });
-
-        if (chartImage) {
-          capturedCharts.push({
-            title: chartTitles[i],
-            image: chartImage,
-            id: `chart-${i + 1}`
-          });
-          console.log(`Captured chart: ${chartTitles[i]}`);
-        }
-      }
-    }
-
-    // Capture all three tables
-    try {
-      console.log('Starting table capture...');
-      
-      // Table 1: P&L Financial Table
-      try {
-        console.log('Capturing P&L Financial table...');
-        const plTab = Array.from(allTabs).find(tab => tab.textContent.includes('P&L'));
-        
-        if (plTab && !plTab.classList.contains('active')) {
-          console.log('Switching to P&L tab...');
-          plTab.click();
-        await new Promise(r => setTimeout(r, 1500));
-      }
-
-      await new Promise(r => setTimeout(r, 1000));
-
-        const plTableElement = document.querySelector('.table-view');
-        if (plTableElement) {
-          console.log('Capturing P&L Financial table...');
-          const plTableImage = await captureElementAsBase64(plTableElement, {
-            scale: 1.2,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            allowTaint: true,
-            logging: false
-          });
-          
-          if (plTableImage) {
-            capturedTables.push({
-              title: 'P&L Financial Table',
-              image: plTableImage,
-              id: 'pl-table'
-            });
-            console.log('P&L Financial table captured successfully');
-          }
-        }
-      } catch (plErr) {
-        console.error('Error capturing P&L table:', plErr);
-      }
-
-      // Table 2: Product Group Table
-      try {
-        console.log('Capturing Product Group table...');
-        const productGroupTab = Array.from(allTabs).find(tab => tab.textContent.includes('Product Group'));
-        
-        if (productGroupTab && !productGroupTab.classList.contains('active')) {
-          console.log('Switching to Product Group tab...');
-          productGroupTab.click();
-          await new Promise(r => setTimeout(r, 1500));
-        }
-
-        await new Promise(r => setTimeout(r, 1000));
-
-        const productGroupTableElement = document.querySelector('.table-view');
-        if (productGroupTableElement) {
-          console.log('Capturing Product Group table...');
-          const productGroupTableImage = await captureElementAsBase64(productGroupTableElement, {
-            scale: 1.2,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            allowTaint: true,
-            logging: false
-          });
-          
-          if (productGroupTableImage) {
-            capturedTables.push({
-              title: 'Product Group Table',
-              image: productGroupTableImage,
-              id: 'product-group-table'
-            });
-            console.log('Product Group table captured successfully');
-          }
-        }
-      } catch (pgErr) {
-        console.error('Error capturing Product Group table:', pgErr);
-      }
-
-      // Table 3: Sales by Country Table
-      try {
-        console.log('Capturing Sales by Country table...');
-        const salesCountryTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Country'));
-        
-        if (salesCountryTab && !salesCountryTab.classList.contains('active')) {
-          console.log('Switching to Sales by Country tab...');
-          salesCountryTab.click();
-          await new Promise(r => setTimeout(r, 1500));
-        }
-
-        // If there's a nested tab structure, find the Table sub-tab
-        await new Promise(r => setTimeout(r, 500));
-        const tableSubTab = Array.from(document.querySelectorAll('.tab-button')).find(tab => 
-          tab.textContent.trim() === 'Table' && tab.closest('.tab-content')
-        );
-        
-        if (tableSubTab && !tableSubTab.classList.contains('active')) {
-          console.log('Switching to Table sub-tab...');
-          tableSubTab.click();
-          await new Promise(r => setTimeout(r, 1500));
-        }
-
-        await new Promise(r => setTimeout(r, 1000));
-
-        const salesCountryTableElement = document.querySelector('.table-view');
-        if (salesCountryTableElement) {
-          console.log('Capturing Sales by Country table...');
-          const salesCountryTableImage = await captureElementAsBase64(salesCountryTableElement, {
-            scale: 1.2,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            allowTaint: true,
-            logging: false
-          });
-          
-          if (salesCountryTableImage) {
-            capturedTables.push({
-              title: 'Sales by Country Table',
-              image: salesCountryTableImage,
-              id: 'sales-country-table'
-            });
-            console.log('Sales by Country table captured successfully');
-          }
-        }
-      } catch (scErr) {
-        console.error('Error capturing Sales by Country table:', scErr);
-      }
-
-      // Switch back to Charts tab
-      if (chartsTabElement) {
-        chartsTabElement.click();
-        await new Promise(r => setTimeout(r, 500));
-      }
-      
-      // Restore hidden elements after all captures are complete
-      const elementsToRestore = document.querySelectorAll(`
-        .export-pdf-btn,
-        .pdf-export-controls,
-        .export-btn.pdf-export,
-        .export-btn.html-export,
-        .export-btn.html-writeup-export,
-        .export-buttons-container,
-        button[class*="export"],
-        button[class*="pdf"],
-        button[class*="html"],
-        .export-button,
-        .pdf-button,
-        .html-button,
-        [onclick*="export"],
-        [onclick*="pdf"],
-        [onclick*="html"],
-        .ant-btn:has([class*="export"]),
-        .ant-btn:has([class*="pdf"]),
-        .ant-tooltip
-      `);
-      
-      elementsToRestore.forEach(element => {
-        element.style.display = '';
-      });
-      
-    } catch (tableErr) {
-      console.error('Error capturing tables:', tableErr);
-    }
-
-    // Capture actual AI writeup content (simplified)
-    const actualWriteupContent = null; // Simplified for now to avoid errors
-
-    // Generate navigation tabs in 3-3-1 layout
     const chartTabs = capturedCharts.map(chart => `
       <div class="nav-tab" onclick="showSection('${chart.id}')">
         <span class="icon">📊</span>
         <h3>${chart.title}</h3>
         <p>Click to view chart</p>
-        </div>
+      </div>
     `).join('');
 
     const tableTabs = capturedTables.map(table => `
@@ -1677,45 +1609,44 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         <span class="icon">📋</span>
         <h3>${table.title}</h3>
         <p>Click to view table</p>
-            </div>
+      </div>
     `).join('');
 
-    // Write-up tab (single column at the end)
     const writeupTab = `
       <div class="nav-tab writeup-tab" onclick="showSection('writeup')">
         <span class="icon">✍️</span>
         <h3>Write-up</h3>
         <p>Edit & finalize report</p>
-        </div>
+      </div>
     `;
 
-    // Generate content sections (without overlay titles since charts have their own)
     const chartSections = capturedCharts.map(chart => `
       <div id="${chart.id}" class="content-section">
         <div class="chart-wrapper">
           <img src="${chart.image}" alt="${chart.title}" class="chart-image" />
-            </div>
         </div>
+      </div>
     `).join('');
 
     const tableSections = capturedTables.map(table => `
       <div id="${table.id}" class="content-section">
         <div class="chart-wrapper">
           <img src="${table.image}" alt="${table.title}" class="chart-image" />
-            </div>
         </div>
+      </div>
     `).join('');
 
-    // Write-up section with dynamic content
     const writeupSection = `
       <div id="writeup" class="content-section">
         <div class="writeup-section">
           <div class="writeup-header">
             <h2>Financial Analysis Write-up</h2>
-        </div>
+          </div>
           <div class="writeup-editor">
-            <!-- Content will be loaded dynamically -->
-    </div>
+            ${actualWriteupContent.hasContent ? `
+              <div class="writeup-content-readonly">${actualWriteupContent.html}</div>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -1730,11 +1661,9 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
     ${getEmbeddedCSSWithWriteup()}
 </head>
 <body>
-    <!-- Hidden div to store saved writeup content within this file -->
-    <div id="saved-writeup-content" style="display: none;">EMPTY</div>
+    <div id="saved-writeup-content" style="display: none;">${actualWriteupContent.text || 'EMPTY'}</div>
     
     <div class="report-container">
-        <!-- Title Page with Navigation -->
         <div class="title-page">
             ${logoBase64 ? `
             <div class="logo-container">
@@ -1751,14 +1680,12 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
             </div>
         </div>
 
-        <!-- Content Sections -->
         ${chartSections}
         ${writeupSection}
         ${tableSections}
 
-        <!-- Floating Back Button -->
         <button class="back-button" onclick="showHomePage()" title="Back to Home">
-            Back to Home page
+            Home<br>Page
         </button>
     </div>
 
@@ -1767,7 +1694,6 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
 </html>
     `;
 
-    // Create and download the HTML file
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
@@ -1783,8 +1709,6 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
     URL.revokeObjectURL(url);
     
     console.log(`✅ Interactive HTML report with writeup generated: ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
-    console.log('📝 Write-up functionality ready for one-time editing');
-    console.log('📧 File ready for email distribution after write-up finalization');
     
     return true;
   } catch (error) {
@@ -1794,11 +1718,11 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
   }
 };
 
-// Keep the original function for backward compatibility (will be the no-writeup version)
+// Backward compatibility
 export const exportHTMLReport = exportHTMLReportNoWriteup;
 
 export default { 
   exportHTMLReport, 
   exportHTMLReportNoWriteup, 
   exportHTMLReportWithWriteup 
-}; 
+};

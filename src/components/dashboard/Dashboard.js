@@ -9,6 +9,7 @@ import TabsComponent, { Tab } from './TabsComponent';
 import TableView from './TableView';
 import ProductGroupTable from './ProductGroupTable';
 import SalesByCountryTable from './SalesByCountryTable';
+import SalesByCustomerTable from './SalesByCustomerTable';
 import SalesCountryChart from './SalesCountryChart';
 
 import MapSwitcher from './MapSwitcher';
@@ -125,6 +126,9 @@ const Dashboard = () => {
                   <MapSwitcher />
                 </Tab>
               </TabsComponent>
+            </Tab>
+            <Tab label="Sales by Customer">
+              <SalesByCustomerTable />
             </Tab>
             <Tab label="Charts">
               {dataGenerated ? (
