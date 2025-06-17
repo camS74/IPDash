@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import './BarChart.css';
 
@@ -25,6 +25,7 @@ const debounce = (func, delay) => {
 const BarChart = ({ data, periods, basePeriod }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
+  const [barPositions, setBarPositions] = useState([]);
 
   // Test display of raw data
   console.log('BarChart received props:', {
@@ -170,30 +171,33 @@ const BarChart = ({ data, periods, basePeriod }) => {
 
         // Set option
         myChart.setOption({
-        title: {
-          text: 'Sales and Volume',
-          subtext: 'Overview\n(AED)',
-          left: 'center',
-          top: 10,
-          textStyle: {
-            fontSize: 22,
-            fontWeight: 'bold'
-            },
-          subtextStyle: {
-            fontSize: 18,
-            lineHeight: 24,
-            align: 'center',
-            fontWeight: 'normal'
-          }
-        },
         legend: {
-          show: false
-    },
+          show: true,
+          data: periodLabels,
+          bottom: 0,
+          orient: 'horizontal',
+          itemWidth: 32,
+          itemHeight: 18,
+          textStyle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#333'
+          },
+          formatter: function(name) {
+            // Show only the year and month/type for brevity
+            const parts = name.split('-');
+            if (parts.length >= 3) {
+              return `${parts[0]} ${parts[1]} ${parts[2]}`;
+            }
+            return name;
+          },
+          selectedMode: false // Disable toggling
+        },
     grid: {
-            left: '5%',
-          right: '5%',
-          bottom: 180,
-          top: 70,
+      left: '0%',
+      right: '0%',
+      bottom: 140,
+      top: 25,
       containLabel: true
     },
     xAxis: {
@@ -209,7 +213,6 @@ const BarChart = ({ data, periods, basePeriod }) => {
                 const parts = value.split('-');
                 if (parts.length >= 3) {
                   const year = parts[0];
-                  
                   // Check if this is a custom range (contains more than 3 parts due to hyphen in displayName)
                   if (parts.length > 3) {
                     // For custom ranges like "2025-Jan-Apr-Actual"
@@ -249,12 +252,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
         yAxis: [
           {
       type: 'value',
-            show: true,
+            show: false,
             scale: true,
-            splitLine: { show: true, lineStyle: { color: '#eee', type: 'dashed' } },
-            axisLabel: { fontWeight: 'bold', fontSize: 13, color: '#444' },
-            axisLine: { lineStyle: { color: '#ddd' } },
-            axisTick: { show: false },
             max: function(value) {
               return value.max * 1.15;
               }
@@ -265,8 +264,9 @@ const BarChart = ({ data, periods, basePeriod }) => {
             name: '',
               data: seriesData,
         type: 'bar',
-            barMaxWidth: '80%',
-            barWidth: '50%',
+        barMaxWidth: '80%',
+        barWidth: '80%',
+        barCategoryGap: '0%',
         itemStyle: {
                 color: function(params) {
                 return barColors[params.dataIndex];
@@ -293,36 +293,36 @@ const BarChart = ({ data, periods, basePeriod }) => {
             },
             z: 2
           },
-          // Custom % variance (no line)
-          {
-            name: '',
-            type: 'custom',
-            renderItem: function(params, api) {
-              const idx = api.value(0);
-              if (idx === baseIndex) return null;
-              const value = api.value(1);
-              const pct = percentVariance[idx];
-              if (pct === null || pct === undefined) return null;
-              let color = '#888';
-              if (pct > 0) color = '#2E865F';
-              else if (pct < 0) color = '#dc3545';
-              const x = api.coord([idx, value])[0];
-              const y = api.coord([idx, value])[1];
-              return {
-                type: 'text',
-                style: {
-                  text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`,
-                  fill: color,
-                  font: 'bold 16px sans-serif',
-                  textAlign: 'center',
-                  textVerticalAlign: 'bottom',
-                },
-                position: [x, y - 36],
-              };
+      // Custom % variance above each bar
+      {
+        name: 'Percent Difference',
+        type: 'custom',
+        renderItem: function(params, api) {
+          const idx = api.value(0);
+          if (idx === baseIndex) return null;
+          const value = api.value(1);
+          const pct = percentVariance[idx];
+          if (pct === null || pct === undefined) return null;
+          let color = '#888';
+          if (pct > 0) color = '#2E865F';
+          else if (pct < 0) color = '#dc3545';
+          const x = api.coord([idx, value])[0];
+          const y = api.coord([idx, value])[1];
+          return {
+            type: 'text',
+            style: {
+              text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`,
+              fill: color,
+              font: 'bold 16px sans-serif',
+              textAlign: 'center',
+              textVerticalAlign: 'bottom',
             },
-            data: periods.map((_, idx) => [idx, seriesData[idx]]),
-            z: 3
-          },
+            position: [x, y - 36],
+          };
+        },
+        data: periods.map((_, idx) => [idx, seriesData[idx]]),
+        z: 3
+      },
         ],
         tooltip: {
           show: false, // Completely disable tooltips to prevent white panel
@@ -343,6 +343,40 @@ const BarChart = ({ data, periods, basePeriod }) => {
         console.error('Error rendering chart:', error);
         }
   };
+
+  // Function to update bar positions using ECharts API
+  const updateBarPositions = () => {
+    if (!chartInstance.current || !periods || periods.length === 0) return;
+    const myChart = chartInstance.current;
+    const positions = periods.map((period, idx) => {
+      // Use the same label as xAxis data
+      let label;
+      if (period.isCustomRange) {
+        label = `${period.year}-${period.displayName}-${period.type}`;
+      } else if (period.month) {
+        label = `${period.year}-${period.month}-${period.type}`;
+      } else {
+        label = `${period.year}-${period.type}`;
+      }
+      // Get the x pixel position for the center of the bar
+      const x = myChart.convertToPixel({ xAxisIndex: 0 }, label);
+      return x;
+    });
+    setBarPositions(positions);
+  };
+
+  // Update bar positions after chart renders and on resize
+  useEffect(() => {
+    const handleUpdate = () => {
+      updateBarPositions();
+    };
+    // Wait for chart to render
+    setTimeout(handleUpdate, 400);
+    window.addEventListener('resize', handleUpdate);
+    return () => {
+      window.removeEventListener('resize', handleUpdate);
+    };
+  }, [data, periods, basePeriod]);
 
   useEffect(() => {
     // Initialize only the main chart
@@ -394,8 +428,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
     <div className="bar-chart-container" style={{ 
       position: 'relative', 
       width: '100%', 
-      minHeight: '320px', // Ensure enough height for bars
-      height: 'auto',
+      height: '1080px', // Increased by 20%
+      minHeight: '840px', // Increased by 20%
       backgroundColor: '#fff',
       borderRadius: '8px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -405,160 +439,185 @@ const BarChart = ({ data, periods, basePeriod }) => {
       flexDirection: 'column',
       alignItems: 'stretch'
     }}>
-      {/* Chart area */}
-      <div style={{ flex: 1, width: '100%', height: '60vw', maxHeight: '600px', minHeight: '260px', marginBottom: '-40px' }}>
-      {periods && periods.length > 0 ? (
-        <div 
-          ref={chartRef} 
-          className="bar-chart" 
-          style={{ 
-            width: '100%', 
-            height: '100%',
-            minHeight: '260px',
-            maxHeight: '600px'
-          }} 
-        />
-      ) : (
-        <div className="no-data-message" style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-          color: '#666',
-          fontStyle: 'italic',
-          textAlign: 'center'
-        }}>
-          <div>
-            <p>No periods visible in chart.</p>
-            <p>Use the eye icons in Column Configuration to select which periods to display.</p>
-          </div>
-        </div>
-      )}
-      </div>
-      
-      {/* Volume legend and values */}
-      <div style={{ 
-        position: 'relative',
-        marginTop: '-90px',
-        width: '100%',
-        minHeight: '90px',
-        height: 'auto',
+      {/* Title, subtitle, and legend in three stacked rows above the chart */}
+      <div style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'stretch',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: '24px',
+        marginBottom: '12px',
+        width: '100%'
       }}>
-        {/* Volume legend on the left */}
+        <span style={{ fontSize: 28, fontWeight: 'bold', color: '#444', lineHeight: '36px', textAlign: 'center' }}>
+          Sales and Volume
+        </span>
+        <span style={{ fontSize: 18, fontWeight: 'normal', color: '#888', lineHeight: '24px', textAlign: 'center', marginTop: 2 }}>
+          (AED)
+        </span>
         <div style={{
-          position: 'relative',
-          left: 0,
-          top: 0,
           display: 'flex',
           flexDirection: 'row',
-          gap: '24px',
           justifyContent: 'center',
           alignItems: 'center',
-          width: '100%',
-          flexWrap: 'wrap',
-          marginBottom: '10px'
+          gap: '24px',
+          marginTop: '10px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: '#8e44ad', borderRadius: '4px' }}></div>
-            <div style={{ fontWeight: 'bold', fontSize: 18 }}>Sales Volume</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: '#2E865F', borderRadius: '4px' }}></div>
-            <div style={{ fontWeight: 'bold', fontSize: 18 }}>Sales per Kg</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: '#ff9800', borderRadius: '4px' }}></div>
-            <div style={{ fontWeight: 'bold', fontSize: 18 }}>Production Volume</div>
-          </div>
+          {periods.map((period, idx) => {
+            // Use the same color logic as the bars
+            let color;
+            if (period.customColor && colorSchemes[period.customColor]) {
+              color = colorSchemes[period.customColor];
+            } else {
+              // Default: highlight base period, otherwise green
+              const periodKey = createPeriodKey(period);
+              if (periodKey === basePeriod) {
+                color = '#5470c6';
+              } else {
+                color = '#91cc75';
+              }
+            }
+            // Use the same label as the x-axis
+            let label;
+            if (period.isCustomRange) {
+              label = `${period.year} ${period.displayName} ${period.type}`;
+            } else if (period.month) {
+              label = `${period.year} ${period.month} ${period.type}`;
+            } else {
+              label = `${period.year} ${period.type}`;
+            }
+            return (
+              <div key={`legend-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 16, height: 16, backgroundColor: color, borderRadius: 3, marginRight: 4 }}></div>
+                <span style={{ fontWeight: 'bold', fontSize: 15, color: '#333' }}>{label}</span>
+              </div>
+            );
+          })}
         </div>
-
-        {/* Volume values aligned with bars */}
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          display: 'grid',
-          gridTemplateColumns: `repeat(${periods.length}, 1fr)`,
-          gap: '0',
-          margin: 0,
-        }}>
-          {/* Sales Volume row */}
-          <div style={{
-            gridColumn: '1 / span ' + periods.length,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${periods.length}, 1fr)`,
-            marginBottom: '10px'
-          }}>
+      </div>
+      {/* Chart area */}
+      <div style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
+        {periods && periods.length > 0 
+          ? <div 
+              ref={chartRef} 
+              className="bar-chart" 
+              style={{ width: '100%', height: '100%' }} 
+            />
+          : (
+            <div className="no-data-message" style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%',
+              color: '#666',
+              fontStyle: 'italic',
+              textAlign: 'center'
+            }}>
+              <div>
+                <p>No periods visible in chart.</p>
+                <p>Use the eye icons in Column Configuration to select which periods to display.</p>
+              </div>
+            </div>
+          )
+        }
+        {/* Absolutely positioned value overlays using barPositions */}
+        {barPositions.length === periods.length && (
+          <>
+            {/* Sales Volume row */}
             {periods.map((period, idx) => {
               const periodKey = createPeriodKey(period);
               const value = data[periodKey]?.salesVolume || 0;
               const mtValue = Math.round(value / 1000);
               return (
-                <div key={`salesvol-${idx}`} style={{ 
-                  color: '#8e44ad', 
-                  fontWeight: 'bold', 
-                  textAlign: 'center', 
-                  fontSize: 18
-                }}>
+                <div key={`salesvol-${idx}`}
+                  style={{
+                    position: 'absolute',
+                    left: barPositions[idx] - 50, // Centered, adjust 50 for half width
+                    width: 100,
+                    textAlign: 'center',
+                    color: '#8e44ad',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                    bottom: 70 // Tighter spacing
+                  }}
+                >
                   {mtValue.toLocaleString()} MT
                 </div>
               );
             })}
-          </div>
-          
-          {/* Sales per Kg row */}
-          <div style={{
-            gridColumn: '1 / span ' + periods.length,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${periods.length}, 1fr)`,
-            marginBottom: '10px'
-          }}>
+            {/* Sales per Kg row */}
             {periods.map((period, idx) => {
               const periodKey = createPeriodKey(period);
               const salesValue = data[periodKey]?.sales || 0;
               const salesVolumeValue = data[periodKey]?.salesVolume || 0;
-              // Calculate Sales per Kg (divide sales by sales volume)
               let salesPerKg = 0;
               if (salesVolumeValue > 0) {
                 salesPerKg = salesValue / salesVolumeValue;
               }
               return (
-                <div key={`salespkg-${idx}`} style={{ 
-                  color: '#2E865F', 
-                  fontWeight: 'bold', 
-                  textAlign: 'center', 
-                  fontSize: 18
-                }}>
+                <div key={`salespkg-${idx}`}
+                  style={{
+                    position: 'absolute',
+                    left: barPositions[idx] - 50,
+                    width: 100,
+                    textAlign: 'center',
+                    color: '#2E865F',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                    bottom: 50 // Tighter spacing
+                  }}
+                >
                   {salesPerKg.toFixed(2)}
                 </div>
               );
             })}
-          </div>
-          
-          {/* Production Volume row */}
-          <div style={{
-            gridColumn: '1 / span ' + periods.length,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${periods.length}, 1fr)`,
-          }}>
+            {/* Production Volume row */}
             {periods.map((period, idx) => {
               const periodKey = createPeriodKey(period);
               const value = data[periodKey]?.productionVolume || 0;
               const mtValue = Math.round(value / 1000);
               return (
-                <div key={`prodvol-${idx}`} style={{ 
-                  color: '#ff9800', 
-                  fontWeight: 'bold', 
-                  textAlign: 'center', 
-                  fontSize: 18
-                }}>
+                <div key={`prodvol-${idx}`}
+                  style={{
+                    position: 'absolute',
+                    left: barPositions[idx] - 50,
+                    width: 100,
+                    textAlign: 'center',
+                    color: '#ff9800',
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                    bottom: 30 // Tighter spacing
+                  }}
+                >
                   {mtValue.toLocaleString()} MT
                 </div>
               );
             })}
-          </div>
+          </>
+        )}
+      </div>
+
+      {/* Legend below the value rows, horizontal and centered */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '32px',
+        marginTop: '32px',
+        width: '100%'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '16px', height: '16px', backgroundColor: '#8e44ad', borderRadius: '4px' }}></div>
+          <div style={{ fontWeight: 'bold', fontSize: 16 }}>Sales Volume</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '16px', height: '16px', backgroundColor: '#2E865F', borderRadius: '4px' }}></div>
+          <div style={{ fontWeight: 'bold', fontSize: 16 }}>Sales per Kg</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '16px', height: '16px', backgroundColor: '#ff9800', borderRadius: '4px' }}></div>
+          <div style={{ fontWeight: 'bold', fontSize: 16 }}>Production Volume</div>
         </div>
       </div>
     </div>

@@ -90,7 +90,7 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
       const pageContentHeight = pageHeight - 40;
       const pxPerMm = canvas.width / imgWidth;
       const pageContentHeightPx = pageContentHeight * pxPerMm;
-
+      
       // Adjust available height to account for repeated headers
       const headerHeightMm = headerCanvas ? (headerHeight / pxPerMm) : 0;
       const availableContentHeightPx = pageContentHeightPx - (headerCanvas ? headerHeight : 0);
@@ -112,10 +112,10 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
       // Add each slice to PDF
       for (let i = 0; i < slices.length; i++) {
         if (i > 0) {
-          doc.addPage();
+            doc.addPage();
         }
         // Add page title
-        doc.setFontSize(16);
+            doc.setFontSize(16);
         doc.text(
           `Product Group - ${selectedDivision.split('-')[0]}${slices.length > 1 ? ` (Page ${i + 1})` : ''}`,
           pageWidth / 2,
@@ -133,15 +133,15 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
         const { startY, endY } = slices[i];
         const sliceHeight = endY - startY;
         // Create canvas for this slice
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
         pageCanvas.height = sliceHeight;
-        const pageCtx = pageCanvas.getContext('2d');
+          const pageCtx = pageCanvas.getContext('2d');
         pageCtx.drawImage(canvas, 0, startY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-        const pageImgData = pageCanvas.toDataURL('image/png');
+          const pageImgData = pageCanvas.toDataURL('image/png');
         const imgHeight = (sliceHeight / pxPerMm);
         doc.addImage(pageImgData, 'PNG', 10, currentY, imgWidth, imgHeight);
-      }
+        }
       doc.save(`ProductGroup_Canvas_${Date.now()}.pdf`);
     } catch (err) {
       setError(err.message || 'Failed to export PDF');
@@ -152,15 +152,15 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
 
   return (
     <div className="pdf-export-controls">
-      <button 
-        onClick={handleExportCanvas}
-        disabled={isExporting}
-        className="export-pdf-btn"
-        style={{ backgroundColor: '#FF9800' }}
-        title="HTML to canvas to PDF"
-      >
+        <button 
+          onClick={handleExportCanvas}
+          disabled={isExporting}
+          className="export-pdf-btn"
+          style={{ backgroundColor: '#FF9800' }}
+          title="HTML to canvas to PDF"
+        >
         {isExporting ? 'Exporting PDF...' : 'Export to PDF'}
-      </button>
+        </button>
       {error && (
         <div className="export-error" style={{ marginTop: '10px', color: 'red', fontSize: '12px' }}>
           {error}

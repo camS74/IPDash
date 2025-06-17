@@ -686,16 +686,16 @@ const ProductGroupTable = () => {
     return divisionNames[selectedDivision] || selectedDivision;
   };
 
-  return (
-    <div className="table-view">
-      <ProductGroupPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
-      <div className="table-header">
-        <div className="header-center">
+      return (
+      <div className="table-view">
+        <ProductGroupPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
+        <div className="table-header">
+          <div className="header-center">
           <h3 className="table-title">Product Group - {getDivisionDisplayName()}</h3>
-          <div className="table-subtitle">(AED)</div>
+            <div className="table-subtitle">(AED)</div>
+          </div>
         </div>
-      </div>
-      <div className="table-container" ref={tableRef}>
+        <div className="table-container" ref={tableRef}>
         <table className="financial-table product-group-table">
           <colgroup>
             <col style={{ width: '192px' }}/>
