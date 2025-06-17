@@ -438,11 +438,11 @@ const SalesByCountryTable = () => {
                       fontSize: '18px',
                       textAlign: 'center',
                       verticalAlign: 'middle',
-                      padding: '8px 4px'
+                      padding: '8px 4px',
                     }}
                   >
-                    <div style={{ lineHeight: '1.1' }}>
-                      <div style={{ fontSize: '12px' }}>Difference</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      <span style={{ fontSize: '12px', width: '100%', textAlign: 'center' }}>Difference</span>
                     </div>
                   </th>
                 ) : (

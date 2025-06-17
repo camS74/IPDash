@@ -372,11 +372,11 @@ const SalesByCustomerTable = () => {
     return ((toSales - fromSales) / fromSales) * 100;
   };
 
-  // Get division display name
+  // Helper to get user-friendly division name
   const getDivisionDisplayName = () => {
     const divisionNames = {
       'FP': 'Flexible Packaging',
-      'SB': 'Shopping Bags', 
+      'SB': 'Shopping Bags',
       'TF': 'Thermoforming Products',
       'HCM': 'Preforms and Closures'
     };
@@ -453,6 +453,18 @@ const SalesByCustomerTable = () => {
     const toPercentage = toTotal > 0 ? (toOther / toTotal) * 100 : 0;
     
     return toPercentage - fromPercentage;
+  };
+
+  // Helper function to count all customers with sales in a specific period
+  const getAllCustomersCount = (column) => {
+    let count = 0;
+    customers.forEach(customerName => {
+      const salesAmount = getCustomerSalesAmount(customerName, column);
+      if (salesAmount > 0) {
+        count++;
+      }
+    });
+    return count;
   };
 
   return (
@@ -536,11 +548,11 @@ const SalesByCustomerTable = () => {
                       fontSize: '18px',
                       textAlign: 'center',
                       verticalAlign: 'middle',
-                      padding: '8px 4px'
+                      padding: '8px 4px',
                     }}
                   >
-                    <div style={{ lineHeight: '1.1' }}>
-                      <div style={{ fontSize: '12px' }}>Difference</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      <span style={{ fontSize: '12px', width: '100%', textAlign: 'center' }}>Difference</span>
                     </div>
                   </th>
                 ) : (
@@ -625,7 +637,7 @@ const SalesByCustomerTable = () => {
                         {/* Summary Section */}
             <tr>
               <td className="row-label" style={{ textAlign: 'left', fontWeight: 'bold', backgroundColor: '#4472C4', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-                Total 20 Customers
+                Total Top 20 Customers
               </td>
               {extendedColumns.map((col, colIndex) => {
                                   if (col.columnType === 'delta') {
@@ -667,7 +679,7 @@ const SalesByCustomerTable = () => {
             </tr>
             <tr>
               <td className="row-label" style={{ textAlign: 'left', fontWeight: 'bold', backgroundColor: '#4472C4', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-                % of Total Sales
+                % of Total Sales Top 20
               </td>
               {extendedColumns.map((col, colIndex) => {
                                   if (col.columnType === 'delta') {
@@ -708,7 +720,7 @@ const SalesByCustomerTable = () => {
             </tr>
             <tr>
               <td className="row-label" style={{ textAlign: 'left', fontWeight: 'bold', backgroundColor: '#003366', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-                Other Customers
+                Total Other Customers
               </td>
               {extendedColumns.map((col, colIndex) => {
                                   if (col.columnType === 'delta') {
@@ -750,46 +762,7 @@ const SalesByCustomerTable = () => {
             </tr>
             <tr>
               <td className="row-label" style={{ textAlign: 'left', fontWeight: 'bold', backgroundColor: '#003366', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-                Number of Customers
-              </td>
-              {extendedColumns.map((col, colIndex) => {
-                                  if (col.columnType === 'delta') {
-                    const delta = calculateOtherCustomersCountDelta(col.fromColumn, col.toColumn);
-                    const deltaFormatted = formatDelta(delta);
-                  return (
-                    <td 
-                      key={`delta-${colIndex}`}
-                      style={{
-                        ...getDeltaCellStyle(deltaFormatted),
-                        backgroundColor: '#003366',
-                        color: '#FFFFFF'
-                      }}
-                    >
-                      {deltaFormatted.value}
-                    </td>
-                  );
-                } else {
-                  const customerCount = getOtherCustomersCount(col);
-                  return (
-                    <td 
-                      key={`${colIndex}`}
-                      style={{
-                        backgroundColor: '#003366',
-                        color: '#FFFFFF',
-                        textAlign: 'center',
-                        padding: '8px 4px',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      {customerCount}
-                    </td>
-                  );
-                }
-              })}
-            </tr>
-            <tr>
-              <td className="row-label" style={{ textAlign: 'left', fontWeight: 'bold', backgroundColor: '#003366', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-                % of Total Sales
+                % of Total Sales Others
               </td>
               {extendedColumns.map((col, colIndex) => {
                                   if (col.columnType === 'delta') {
@@ -828,8 +801,51 @@ const SalesByCustomerTable = () => {
                 }
               })}
             </tr>
+            <tr>
+              <td className="row-label" style={{ textAlign: 'left', fontWeight: 'bold', backgroundColor: '#2196F3', color: '#FFFFFF', whiteSpace: 'nowrap' }}>
+                Number of All Customers
+              </td>
+              {extendedColumns.map((col, colIndex) => {
+                if (col.columnType === 'delta') {
+                  // Delta for all customers count (optional, can be left as 0 or blank)
+                  return (
+                    <td 
+                      key={`delta-${colIndex}`}
+                      style={{
+                        ...getDeltaCellStyle({color: '#FFFFFF'}),
+                        backgroundColor: '#2196F3',
+                        color: '#FFFFFF'
+                      }}
+                    >
+                      {/* No delta for all customers count */}
+                    </td>
+                  );
+                } else {
+                  // Show number of all customers with sales in this period
+                  const customerCount = getAllCustomersCount(col);
+                  return (
+                    <td 
+                      key={`${colIndex}`}
+                      style={{
+                        backgroundColor: '#2196F3',
+                        color: '#FFFFFF',
+                        textAlign: 'center',
+                        padding: '8px 4px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {customerCount}
+                    </td>
+                  );
+                }
+              })}
+            </tr>
           </tbody>
         </table>
+      </div>
+      {/* Explanatory sentence below the table */}
+      <div style={{ textAlign: 'center', marginTop: 8, fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+        ★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods
       </div>
     </div>
   );

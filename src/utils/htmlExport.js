@@ -198,13 +198,14 @@ const getEmbeddedCSSNoWriteup = () => `
     color: white;
     padding: 40px 20px;
     text-align: center;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .logo-container {
@@ -247,6 +248,7 @@ const getEmbeddedCSSNoWriteup = () => `
     flex: 1;
     align-content: center;
     padding: 0 20px;
+    overflow-y: auto;
   }
   
   .nav-tab {
@@ -258,11 +260,12 @@ const getEmbeddedCSSNoWriteup = () => `
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     text-align: center;
-    min-height: 100px;
+    min-height: 90px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    word-break: break-word;
   }
   
   .nav-tab:hover {
@@ -277,6 +280,7 @@ const getEmbeddedCSSNoWriteup = () => `
     margin: 6px 0 4px 0;
     color: white;
     transition: color 0.3s ease;
+    word-break: break-word;
   }
 
   .nav-tab:hover h3 {
@@ -289,6 +293,7 @@ const getEmbeddedCSSNoWriteup = () => `
     color: white;
     transition: opacity 0.3s ease;
     margin: 0;
+    word-break: break-word;
   }
 
   .nav-tab:hover p {
@@ -425,33 +430,35 @@ const getEmbeddedCSSNoWriteup = () => `
   @media (max-width: 768px) {
     .nav-tabs {
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding: 0 15px;
+      gap: 10px;
+      padding: 0 8px;
+      max-width: 100vw;
+      overflow-y: auto;
     }
     
     .nav-tab {
-      min-height: 80px;
-      padding: 12px;
+      min-height: 70px;
+      padding: 8px;
     }
     
     .nav-tab h3 {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
     
     .nav-tab p {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
     }
     
     .nav-tab .icon {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
     }
     
     .title-page h1 {
-      font-size: 1.8rem;
+      font-size: 1.3rem;
     }
     
     .title-page h2 {
-      font-size: 1rem;
+      font-size: 0.85rem;
     }
 
     .back-button {
@@ -466,20 +473,23 @@ const getEmbeddedCSSNoWriteup = () => `
   @media (max-width: 480px) {
     .nav-tabs {
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: 6px;
+      padding: 0 4px;
+      max-width: 100vw;
+      overflow-y: auto;
     }
     
     .nav-tab {
-      min-height: 70px;
-      padding: 10px;
+      min-height: 55px;
+      padding: 4px;
     }
     
     .title-page h1 {
-      font-size: 1.5rem;
+      font-size: 1.1rem;
     }
     
     .title-page h2 {
-      font-size: 0.9rem;
+      font-size: 0.7rem;
     }
   }
 </style>
@@ -514,13 +524,14 @@ const getEmbeddedCSSWithWriteup = () => `
     color: white;
     padding: 40px 20px;
     text-align: center;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .logo-container {
@@ -563,6 +574,7 @@ const getEmbeddedCSSWithWriteup = () => `
     flex: 1;
     align-content: center;
     padding: 0 20px;
+    overflow-y: auto;
   }
   
   .nav-tab {
@@ -574,11 +586,12 @@ const getEmbeddedCSSWithWriteup = () => `
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     text-align: center;
-    min-height: 100px;
+    min-height: 90px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    word-break: break-word;
   }
   
   .nav-tab:hover {
@@ -593,6 +606,7 @@ const getEmbeddedCSSWithWriteup = () => `
     margin: 6px 0 4px 0;
     color: white;
     transition: color 0.3s ease;
+    word-break: break-word;
   }
 
   .nav-tab:hover h3 {
@@ -605,6 +619,7 @@ const getEmbeddedCSSWithWriteup = () => `
     color: white;
     transition: opacity 0.3s ease;
     margin: 0;
+    word-break: break-word;
   }
 
   .nav-tab:hover p {
@@ -1489,6 +1504,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
         <div class="chart-wrapper">
           <img src="${table.image}" alt="${table.title}" class="chart-image" />
         </div>
+        ${(table.id === 'sales-country-table' || table.id === 'sales-customer-table') ? `<div style=\"text-align:center;margin-top:8px;font-size:13px;color:#666;font-style:italic;\">★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods</div>` : ''}
       </div>
     `).join('');
   
@@ -1633,6 +1649,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
         <div class="chart-wrapper">
           <img src="${table.image}" alt="${table.title}" class="chart-image" />
         </div>
+        ${(table.id === 'sales-country-table' || table.id === 'sales-customer-table') ? `<div style=\"text-align:center;margin-top:8px;font-size:13px;color:#666;font-style:italic;\">★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods</div>` : ''}
       </div>
     `).join('');
 

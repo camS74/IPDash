@@ -135,6 +135,12 @@ const PDFExport = ({ tableRef, selectedDivision }) => {
         },
       });
 
+      // Add explanation below the table
+      const finalY = doc.lastAutoTable.finalY || 100;
+      doc.setFontSize(9);
+      doc.setTextColor('#666666');
+      doc.text('★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods', 10, finalY + 10);
+
       doc.save(`Financial_Table_${selectedDivision}_${new Date().toISOString().slice(0, 10)}.pdf`);
 
     } catch (err) {

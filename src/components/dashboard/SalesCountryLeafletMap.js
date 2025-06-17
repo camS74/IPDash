@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useSalesData } from '../../contexts/SalesDataContext';
+import { useExcelData } from '../../contexts/ExcelDataContext';
 import countryCoordinates from './countryCoordinates';
 
 // Fix for default markers in webpack
@@ -14,7 +15,8 @@ L.Icon.Default.mergeOptions({
 });
 
 const SalesCountryLeafletMap = () => {
-  const { salesData, selectedDivision } = useSalesData();
+  const { salesData } = useSalesData();
+  const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const [countries, setCountries] = useState([]);
 
   const getCountriesFromExcel = useCallback(() => {

@@ -1,6 +1,7 @@
 // CesiumJS 3D Globe Component
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
+import { useExcelData } from '../../contexts/ExcelDataContext';
 import './SalesCountryCesium.css';
 import countryCoordinates from './countryCoordinates';
 import './SalesCountryMap.css';
@@ -8,7 +9,8 @@ import './SalesCountryMap.css';
 const SalesCountryCesium = () => {
   const cesiumContainer = useRef(null);
   const viewerRef = useRef(null);
-  const { salesData, selectedDivision, loading: salesLoading } = useSalesData();
+  const { salesData, loading: salesLoading } = useSalesData();
+  const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const [countries, setCountries] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [cesiumLoaded, setCesiumLoaded] = useState(false);

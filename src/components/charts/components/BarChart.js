@@ -174,7 +174,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
           text: 'Sales and Volume',
           subtext: 'Overview\n(AED)',
           left: 'center',
-          top: 0,
+          top: 10,
           textStyle: {
             fontSize: 22,
             fontWeight: 'bold'
@@ -191,9 +191,9 @@ const BarChart = ({ data, periods, basePeriod }) => {
     },
     grid: {
             left: '5%',
-          right: '0%',
-          bottom: 140,
-          top: 25,
+          right: '5%',
+          bottom: 180,
+          top: 70,
       containLabel: true
     },
     xAxis: {
@@ -249,8 +249,12 @@ const BarChart = ({ data, periods, basePeriod }) => {
         yAxis: [
           {
       type: 'value',
-            show: false,
+            show: true,
             scale: true,
+            splitLine: { show: true, lineStyle: { color: '#eee', type: 'dashed' } },
+            axisLabel: { fontWeight: 'bold', fontSize: 13, color: '#444' },
+            axisLine: { lineStyle: { color: '#ddd' } },
+            axisTick: { show: false },
             max: function(value) {
               return value.max * 1.15;
               }
@@ -261,8 +265,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
             name: '',
               data: seriesData,
         type: 'bar',
-            barMaxWidth: '70%',
-            barWidth: '65%',
+            barMaxWidth: '80%',
+            barWidth: '50%',
         itemStyle: {
                 color: function(params) {
                 return barColors[params.dataIndex];
@@ -390,8 +394,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
     <div className="bar-chart-container" style={{ 
       position: 'relative', 
       width: '100%', 
-      height: '900px', // Restore original height
-      minHeight: '700px', // Restore original min-height
+      minHeight: '320px', // Ensure enough height for bars
+      height: 'auto',
       backgroundColor: '#fff',
       borderRadius: '8px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -402,14 +406,16 @@ const BarChart = ({ data, periods, basePeriod }) => {
       alignItems: 'stretch'
     }}>
       {/* Chart area */}
-      <div style={{ flex: 1, width: '100%', height: '100%', marginBottom: '-40px' }}>
+      <div style={{ flex: 1, width: '100%', height: '60vw', maxHeight: '600px', minHeight: '260px', marginBottom: '-40px' }}>
       {periods && periods.length > 0 ? (
         <div 
           ref={chartRef} 
           className="bar-chart" 
           style={{ 
             width: '100%', 
-            height: '100%'
+            height: '100%',
+            minHeight: '260px',
+            maxHeight: '600px'
           }} 
         />
       ) : (
@@ -435,16 +441,25 @@ const BarChart = ({ data, periods, basePeriod }) => {
         position: 'relative',
         marginTop: '-90px',
         width: '100%',
-        height: '130px'
+        minHeight: '90px',
+        height: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
       }}>
         {/* Volume legend on the left */}
         <div style={{
-          position: 'absolute',
-          left: '30px',
-          top: '25px',
+          position: 'relative',
+          left: 0,
+          top: 0,
           display: 'flex',
-          flexDirection: 'column',
-          gap: '10px'
+          flexDirection: 'row',
+          gap: '24px',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+          flexWrap: 'wrap',
+          marginBottom: '10px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '16px', height: '16px', backgroundColor: '#8e44ad', borderRadius: '4px' }}></div>
@@ -462,13 +477,12 @@ const BarChart = ({ data, periods, basePeriod }) => {
 
         {/* Volume values aligned with bars */}
         <div style={{
-          position: 'absolute',
-          top: '25px',
-          left: '220px',
-          right: '0',
+          position: 'relative',
+          width: '100%',
           display: 'grid',
           gridTemplateColumns: `repeat(${periods.length}, 1fr)`,
-          gap: '0'
+          gap: '0',
+          margin: 0,
         }}>
           {/* Sales Volume row */}
           <div style={{

@@ -165,7 +165,7 @@ const TableView = () => {
   // Function to compute the value for a specific cell based on row index and column configuration
   const computeCellValue = (rowIndex, column) => {
     const value = sharedComputeCellValue(divisionData, rowIndex, column);
-    if (value === 0) return 'N/A';
+    if (value === 0) return '';
     return value.toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
@@ -193,8 +193,8 @@ const TableView = () => {
       const value = computeCellValue(rowIndex, column);
       const salesValue = computeCellValue(3, column);
 
-      // If either is N/A, return empty string
-      if (value === 'N/A' || value === 'Error' || salesValue === 'N/A' || salesValue === 'Error') return '';
+                  // If either is empty or error, return empty string
+            if (value === '' || value === 'Error' || salesValue === '' || salesValue === 'Error') return '';
 
       // Parse the values (remove commas)
       const numValue = parseFloat(value.replace(/,/g, ''));
@@ -234,8 +234,8 @@ const TableView = () => {
       // Get the sales volume value (always from row 7)
       const volumeValue = computeCellValue(7, column); // Sales Volume row
       
-      // If volume is N/A, return empty string
-      if (volumeValue === 'N/A' || volumeValue === 'Error') return '';
+                  // If volume is empty or error, return empty string
+            if (volumeValue === '' || volumeValue === 'Error') return '';
       
       // Parse the volume value
       const numVolumeValue = parseFloat(volumeValue.replace(/,/g, ''));
@@ -246,8 +246,8 @@ const TableView = () => {
       // Get the value for the current row
       const currentValue = computeCellValue(rowIndex, column);
       
-      // If the current row value is N/A, return empty string
-      if (currentValue === 'N/A' || currentValue === 'Error') return '';
+                  // If the current row value is empty or error, return empty string
+            if (currentValue === '' || currentValue === 'Error') return '';
       
       // Parse the current row value
       const numCurrentValue = parseFloat(currentValue.replace(/,/g, ''));
@@ -358,12 +358,23 @@ const TableView = () => {
     return colorSchemes.find(s => s.name === 'blue').light;
   };
 
+  // Helper to get user-friendly division name
+  const getDivisionDisplayName = () => {
+    const divisionNames = {
+      'FP': 'Flexible Packaging',
+      'SB': 'Shopping Bags',
+      'TF': 'Thermoforming Products',
+      'HCM': 'Preforms and Closures'
+    };
+    return divisionNames[selectedDivision] || selectedDivision;
+  };
+
   return (
     <div className="table-view" ref={tableRef}>
       <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
         <div className="table-header">
           <div className="header-center">
-            <h3 className="table-title">{selectedDivision} Financials</h3>
+            <h3 className="table-title">Financial - {getDivisionDisplayName()}</h3>
             <div className="table-subtitle">(AED)</div>
           </div>
         </div>
@@ -469,15 +480,15 @@ const TableView = () => {
                       const bgColor = getCellBackgroundColor(column);
 
                       // Process formulas based on the type
-                      let formattedResult = 'N/A';
+                      let formattedResult = '';
                       if (row.formula === 'sales-material') {
                         // Find the values for sales and material in this column
                         const salesValue = computeCellValue(3, column);
                         const materialValue = computeCellValue(5, column);
 
                         // Convert string values with commas back to numbers for calculation
-                        const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-                        const materialNum = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                                    const salesNum = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+            const materialNum = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
 
                         // Calculate the result
                         const result = salesNum - materialNum;

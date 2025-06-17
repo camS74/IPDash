@@ -294,8 +294,7 @@ const SalesCountryPDFExport = ({ tableRef, selectedDivision }) => {
       const finalY = doc.lastAutoTable.finalY || 100;
       doc.setFontSize(9);
       doc.setTextColor('#666666');
-      doc.text('* = Base Period | Countries sorted by base period percentage (highest to lowest) | +/-% shows percentage change between consecutive periods', 
-               10, finalY + 10);
+      doc.text('★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods', 10, finalY + 10);
 
       // Generate filename
       const timestamp = new Date().toISOString().slice(0, 10);

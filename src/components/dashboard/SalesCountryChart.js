@@ -1,11 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as echarts from 'echarts';
 import { useSalesData } from '../../contexts/SalesDataContext';
+import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import '../charts/components/SalesCountryMapChart.css';
 
 const SalesCountryChart = () => {
-  const { salesData, selectedDivision } = useSalesData();
+  const { salesData } = useSalesData();
+  const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const { columnOrder, basePeriodIndex, dataGenerated } = useFilter();
   const chartRef = useRef(null);
   const chartInstance = useRef(null);

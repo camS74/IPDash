@@ -4,8 +4,7 @@
     "2023-CUSTOM_January_February_March_April-Actual",
     "2024-CUSTOM_January_February_March_April-Actual",
     "2025-CUSTOM_January_February_March_April-Actual",
-    "2025-Q2-Budget",
-    "2025-Q2-Actual"
+    "2021-CUSTOM_January_February_March_April-Actual"
   ],
   "standardColumnSelection": [
     {
@@ -69,15 +68,19 @@
       "customColor": "green"
     },
     {
-      "year": "2025",
-      "month": "Q2",
+      "year": "2021",
+      "month": "CUSTOM_January_February_March_April",
       "type": "Actual",
       "months": [
-        "April",
-        "May",
-        "June"
+        "January",
+        "February",
+        "March",
+        "April"
       ],
-      "id": "2025-Q2-Actual"
+      "displayName": "Jan-Apr",
+      "isCustomRange": true,
+      "id": "2021-CUSTOM_January_February_March_April-Actual",
+      "customColor": "boldContrast"
     }
   ],
   "basePeriodIndex": 3

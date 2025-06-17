@@ -47,7 +47,7 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
 
   return (
     <div className="modern-margin-gauge-panel" style={{
-      marginTop: 60,
+      marginTop: 30,
       backgroundColor: 'white',
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
@@ -90,7 +90,7 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
           return calcVariance(card.value, cards[idx - 1].value);
         });
         return (
-          <div key={kpi.label} style={{ marginBottom: rowIdx < PROFIT_KPIS.length - 1 ? 60 : 0 }}>
+          <div key={kpi.label} style={{ marginBottom: rowIdx < PROFIT_KPIS.length - 1 ? 30 : 0 }}>
             <h2 className="modern-gauge-heading" style={{
               textAlign: 'center',
               fontSize: '18px',

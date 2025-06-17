@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
+import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import ProductGroupPDFExport from './ProductGroupPDFExport';
 import './ProductGroupTable.css';
 
 const ProductGroupTable = () => {
-  const { salesData, selectedDivision, getProductGroups } = useSalesData();
+  const { salesData, getProductGroups } = useSalesData();
+  const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const { columnOrder, dataGenerated } = useFilter();
   const tableRef = useRef(null);
 
@@ -21,9 +23,146 @@ const ProductGroupTable = () => {
     );
   }
 
-  // Get the Sales data based on selectedDivision
-  const divisionData = salesData[selectedDivision] || [];
-  const productGroups = getProductGroups();
+  // Get the Sales data based on selectedDivision from ExcelDataContext
+  // For Product Groups, we need to map division names to the correct sheet names
+  const getProductGroupSheetName = (division) => {
+    return `${division}-Product Group`;
+  };
+
+  const divisionSheetName = getProductGroupSheetName(selectedDivision);
+  const divisionData = salesData[divisionSheetName] || [];
+  
+  // Get product groups from the correct division data
+  const getProductGroupsForDivision = (divisionName) => {
+    const sheetName = getProductGroupSheetName(divisionName);
+    const sheetData = salesData[sheetName] || [];
+    const productGroups = [];
+    
+    // Extract unique product groups from column A (starting from row 4, index 3)
+    for (let i = 3; i < sheetData.length; i++) {
+      const row = sheetData[i];
+      if (row && row[0] && row[3]) { // Product Group name exists and has Figures Heads
+        const productGroup = row[0];
+        const figuresHead = row[3];
+        
+        // Group by product name
+        if (!productGroups.find(pg => pg.name === productGroup)) {
+          productGroups.push({
+            name: productGroup,
+            material: row[1] || '',
+            process: row[2] || '',
+            metrics: []
+          });
+        }
+        
+        // Add metric to the product group
+        const existingGroup = productGroups.find(pg => pg.name === productGroup);
+        if (existingGroup && !existingGroup.metrics.find(m => m.type === figuresHead)) {
+          existingGroup.metrics.push({
+            type: figuresHead,
+            rowIndex: i,
+            data: row.slice(4) // Data starts from column 5 (index 4)
+          });
+        }
+      }
+    }
+    
+    return productGroups;
+  };
+
+  const productGroups = getProductGroupsForDivision(selectedDivision);
+
+  // Dynamic function to get categories from Column C for the selected division
+  const getCategoriesForDivision = (divisionName) => {
+    const sheetName = getProductGroupSheetName(divisionName);
+    const sheetData = salesData[sheetName] || [];
+    const categories = new Set();
+    
+    // Extract unique values from Column C (Process) starting from row 4
+    for (let i = 3; i < sheetData.length; i++) {
+      const row = sheetData[i];
+      if (row && row[2]) { // Column C (index 2) = Process
+        const process = row[2].toString().trim();
+        if (process && process.toLowerCase() !== 'n/a') {
+          categories.add(process);
+        }
+      }
+    }
+    
+    return Array.from(categories).sort(); // Return sorted array
+  };
+
+  const dynamicCategories = getCategoriesForDivision(selectedDivision);
+
+  // Dynamic function to get material categories from Column B for the selected division
+  const getMaterialCategoriesForDivision = (divisionName) => {
+    const sheetName = getProductGroupSheetName(divisionName);
+    const sheetData = salesData[sheetName] || [];
+    const materialCategories = new Set();
+    
+    // Extract unique values from Column B (Material) starting from row 4
+    for (let i = 3; i < sheetData.length; i++) {
+      const row = sheetData[i];
+      if (row && row[1]) { // Column B (index 1) = Material
+        const material = row[1].toString().trim();
+        if (material && material.toLowerCase() !== 'n/a') {
+          materialCategories.add(material);
+        }
+      }
+    }
+    
+    // Sort alphabetically but put "Others" at the end
+    const sortedCategories = Array.from(materialCategories).sort();
+    const othersIndex = sortedCategories.indexOf('Others');
+    
+    if (othersIndex !== -1) {
+      // Remove "Others" from its current position and add it to the end
+      sortedCategories.splice(othersIndex, 1);
+      sortedCategories.push('Others');
+    }
+    
+    return sortedCategories;
+  };
+
+  const dynamicMaterialCategories = getMaterialCategoriesForDivision(selectedDivision);
+
+  // Function to check if a product group is empty across all selected periods and metrics
+  const isProductGroupEmpty = (productGroup, selectedColumns) => {
+    const metricsToCheck = ['KGS', 'Sales', 'MoRM', 'Sls/Kg', 'RM/kg', 'MoRM/Kg', 'MoRM %'];
+    
+    for (const metric of metricsToCheck) {
+      for (const column of selectedColumns.filter(col => col.columnType !== 'delta')) {
+        let value;
+        if (['KGS', 'Sales', 'MoRM'].includes(metric)) {
+          value = getRawValue(productGroup, metric, column);
+        } else {
+          value = calculateDerivedMetric(productGroup, metric, column);
+        }
+        if (value > 0) return false; // Found non-zero value, not empty
+      }
+    }
+    return true; // All values are zero/empty
+  };
+
+  // Function to check if a category is empty across all selected periods and metrics
+  const isCategoryEmpty = (categoryName, categoryType, selectedColumns) => {
+    const metricsToCheck = ['KGS', 'Sales', 'MoRM', 'Sls/Kg', 'RM/kg', 'MoRM/Kg', 'MoRM %'];
+    
+    for (const metric of metricsToCheck) {
+      for (const column of selectedColumns.filter(col => col.columnType !== 'delta')) {
+        let value;
+        if (['KGS', 'Sales', 'MoRM'].includes(metric)) {
+          value = calculateCategoryTotals(column, metric, categoryName, categoryType);
+        } else {
+          value = calculateDerivedCategoryTotals(column, metric, categoryName, categoryType);
+        }
+        if (value > 0) return false; // Found non-zero value, not empty
+      }
+    }
+    return true; // All values are zero/empty
+  };
+
+  // Note: visibleProductGroups filtering will be done after extendedColumns is created
 
   if (!divisionData.length || !productGroups.length) {
     return (
@@ -45,7 +184,8 @@ const ProductGroupTable = () => {
 
     // For sales data, we need to find matching columns from the raw Excel data
     // Get the sales sheet data to access headers
-    const divisionData = salesData[selectedDivision] || [];
+    const divisionSheetName = getProductGroupSheetName(selectedDivision);
+    const divisionData = salesData[divisionSheetName] || [];
     if (divisionData.length < 3) return 0;
 
     // Determine which months to include based on selected period
@@ -121,7 +261,7 @@ const ProductGroupTable = () => {
 
   // Helper function to format numbers
   const formatNumber = (value, metricType) => {
-    if (value === 0 || isNaN(value)) return 'N/A';
+    if (value === 0 || isNaN(value)) return '';
     
     if (metricType === 'MoRM %') {
       return `${value.toFixed(1)}%`;
@@ -179,8 +319,9 @@ const ProductGroupTable = () => {
   };
 
   // Helper function to calculate category totals based on Process and Material columns
-  const calculateCategoryTotals = (column, metricType, categoryName) => {
-    const divisionData = salesData[selectedDivision] || [];
+  const calculateCategoryTotals = (column, metricType, categoryName, categoryType = 'process') => {
+    const divisionSheetName = getProductGroupSheetName(selectedDivision);
+    const divisionData = salesData[divisionSheetName] || [];
     if (divisionData.length < 4) return 0;
 
     // Determine which months to include based on selected period - SAME LOGIC AS getRawValue
@@ -247,23 +388,19 @@ const ProductGroupTable = () => {
           
           if (!matchesMetric) continue;
           
-          // Check if this row matches the category criteria
+          // Check if this row matches the category criteria (exact match with specified column)
           let matchesCategory = false;
           
-          if (categoryName === 'UnPrinted') {
-            matchesCategory = process && process.toString().toLowerCase().includes('unprinted');
-          } else if (categoryName === 'Printed') {
-            // Match "printed" but exclude "unprinted" to avoid double counting
-            const processLower = process ? process.toString().toLowerCase() : '';
-            matchesCategory = processLower.includes('printed') && !processLower.includes('unprinted');
-          } else if (categoryName === 'Non-PE') {
-            // Direct match: Column B should contain "Non-PE" exactly, exclude N/A
-            const materialLower = material ? material.toString().toLowerCase().trim() : '';
-            matchesCategory = materialLower === 'non-pe';
-          } else if (categoryName === 'PE') {
-            // Direct match: Column B should contain "PE" exactly, exclude N/A
-            const materialLower = material ? material.toString().toLowerCase().trim() : '';
-            matchesCategory = materialLower === 'pe';
+          if (categoryType === 'process') {
+            // Match against Column C (Process)
+            if (process && process.toString().trim() === categoryName) {
+              matchesCategory = true;
+            }
+          } else if (categoryType === 'material') {
+            // Match against Column B (Material)
+            if (material && material.toString().trim() === categoryName) {
+              matchesCategory = true;
+            }
           }
           
           if (matchesCategory) {
@@ -280,10 +417,10 @@ const ProductGroupTable = () => {
   };
 
   // Helper function to calculate derived category totals
-  const calculateDerivedCategoryTotals = (column, metricType, categoryName) => {
-    const categoryKgs = calculateCategoryTotals(column, 'KGS', categoryName);
-    const categorySales = calculateCategoryTotals(column, 'Sales', categoryName);
-    const categoryMorm = calculateCategoryTotals(column, 'MoRM', categoryName);
+  const calculateDerivedCategoryTotals = (column, metricType, categoryName, categoryType = 'process') => {
+    const categoryKgs = calculateCategoryTotals(column, 'KGS', categoryName, categoryType);
+    const categorySales = calculateCategoryTotals(column, 'Sales', categoryName, categoryType);
+    const categoryMorm = calculateCategoryTotals(column, 'MoRM', categoryName, categoryType);
 
     switch (metricType) {
       case 'Sls/Kg':
@@ -408,6 +545,11 @@ const ProductGroupTable = () => {
     }
   });
 
+  // Filter out empty product groups and categories (after extendedColumns is created)
+  const visibleProductGroups = productGroups.filter(pg => !isProductGroupEmpty(pg, extendedColumns));
+  const visibleProcessCategories = dynamicCategories.filter(cat => !isCategoryEmpty(cat, 'process', extendedColumns));
+  const visibleMaterialCategories = dynamicMaterialCategories.filter(cat => !isCategoryEmpty(cat, 'material', extendedColumns));
+
   // Helper function to calculate percentage difference
   const calculateDelta = (productGroup, metricType, fromColumn, toColumn) => {
     let fromValue, toValue;
@@ -447,15 +589,15 @@ const ProductGroupTable = () => {
   };
 
   // Helper function to calculate category delta
-  const calculateCategoryDelta = (metricType, categoryName, fromColumn, toColumn) => {
+  const calculateCategoryDelta = (metricType, categoryName, fromColumn, toColumn, categoryType = 'process') => {
     let fromValue, toValue;
     
     if (['KGS', 'Sales', 'MoRM'].includes(metricType)) {
-      fromValue = calculateCategoryTotals(fromColumn, metricType, categoryName);
-      toValue = calculateCategoryTotals(toColumn, metricType, categoryName);
+      fromValue = calculateCategoryTotals(fromColumn, metricType, categoryName, categoryType);
+      toValue = calculateCategoryTotals(toColumn, metricType, categoryName, categoryType);
     } else {
-      fromValue = calculateDerivedCategoryTotals(fromColumn, metricType, categoryName);
-      toValue = calculateDerivedCategoryTotals(toColumn, metricType, categoryName);
+      fromValue = calculateDerivedCategoryTotals(fromColumn, metricType, categoryName, categoryType);
+      toValue = calculateDerivedCategoryTotals(toColumn, metricType, categoryName, categoryType);
     }
     
     if (fromValue === 0 || isNaN(fromValue) || isNaN(toValue)) {
@@ -467,7 +609,7 @@ const ProductGroupTable = () => {
 
   // Helper function to format delta values with arrows
   const formatDelta = (delta) => {
-    if (isNaN(delta) || delta === 0) return 'N/A';
+    if (isNaN(delta) || delta === 0) return '';
     
     let arrow = '';
     let color = '#000000';
@@ -495,7 +637,7 @@ const ProductGroupTable = () => {
     return {
       backgroundColor: '#f8f9fa',
       textAlign: 'center',
-      color: deltaFormatted === 'N/A' ? '#000000' : deltaFormatted.color,
+      color: deltaFormatted === '' ? '#000000' : deltaFormatted.color,
       fontWeight: 'bold',
       fontSize: '11px',
       lineHeight: '1.2',
@@ -519,9 +661,9 @@ const ProductGroupTable = () => {
   };
 
   // Helper function to calculate percentage of sales for each category
-  const calculateCategorySalesPercentage = (categoryName, column) => {
+  const calculateCategorySalesPercentage = (categoryName, column, categoryType = 'process') => {
     // Get sales for this category
-    const categorySales = calculateCategoryTotals(column, 'Sales', categoryName);
+    const categorySales = calculateCategoryTotals(column, 'Sales', categoryName, categoryType);
     
     // Get total sales across all product groups
     const totalSales = calculateColumnTotals(column, 'Sales');
@@ -533,16 +675,27 @@ const ProductGroupTable = () => {
     return 0;
   };
 
-      return (
-      <div className="table-view">
-        <ProductGroupPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
-        <div className="table-header">
-          <div className="header-center">
-            <h3 className="table-title">Product Group</h3>
-            <div className="table-subtitle">(AED)</div>
-          </div>
+  // Helper to get user-friendly division name
+  const getDivisionDisplayName = () => {
+    const divisionNames = {
+      'FP': 'Flexible Packaging',
+      'SB': 'Shopping Bags',
+      'TF': 'Thermoforming Products',
+      'HCM': 'Preforms and Closures'
+    };
+    return divisionNames[selectedDivision] || selectedDivision;
+  };
+
+  return (
+    <div className="table-view">
+      <ProductGroupPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
+      <div className="table-header">
+        <div className="header-center">
+          <h3 className="table-title">Product Group - {getDivisionDisplayName()}</h3>
+          <div className="table-subtitle">(AED)</div>
         </div>
-        <div className="table-container" ref={tableRef}>
+      </div>
+      <div className="table-container" ref={tableRef}>
         <table className="financial-table product-group-table">
           <colgroup>
             <col style={{ width: '192px' }}/>
@@ -610,7 +763,7 @@ const ProductGroupTable = () => {
             </tr>
           </thead>
                       <tbody>
-              {productGroups.map((productGroup, pgIndex) => (
+              {visibleProductGroups.map((productGroup, pgIndex) => (
                 <React.Fragment key={`product-group-${pgIndex}`}>
                   {/* Product Group Header Row */}
                   <tr className="product-header-row">
@@ -627,7 +780,7 @@ const ProductGroupTable = () => {
                           <td key={`header-delta-${pgIndex}-${colIndex}`} 
                               className="product-header-cell" 
                               style={getDeltaCellStyle(deltaFormatted)}>
-                            {deltaFormatted === 'N/A' ? 'N/A' : (
+                            {deltaFormatted === '' ? '' : (
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                 <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
                                 <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
@@ -675,7 +828,7 @@ const ProductGroupTable = () => {
                             <td key={`delta-${metricType}-${colIndex}`} 
                                 className="metric-cell delta-cell" 
                                 style={getDeltaCellStyle(deltaFormatted)}>
-                              {deltaFormatted === 'N/A' ? 'N/A' : (
+                              {deltaFormatted === '' ? '' : (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                   <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
                                   <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
@@ -711,7 +864,7 @@ const ProductGroupTable = () => {
                   }).filter(Boolean)}
                   
                   {/* Separator between product groups */}
-                  {pgIndex < productGroups.length - 1 && (
+                  {pgIndex < visibleProductGroups.length - 1 && (
                     <tr className="separator-row">
                       <td colSpan={extendedColumns.length + 1} className="separator-cell"></td>
                     </tr>
@@ -751,7 +904,7 @@ const ProductGroupTable = () => {
                           <td key={`total-delta-${metricType}-${colIndex}`} 
                               className="metric-cell total-metric-cell delta-cell" 
                               style={getDeltaCellStyle(deltaFormatted)}>
-                            {deltaFormatted === 'N/A' ? 'N/A' : (
+                            {deltaFormatted === '' ? '' : (
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                 <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
                                 <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
@@ -787,8 +940,8 @@ const ProductGroupTable = () => {
                 ))}
               </React.Fragment>
               
-              {/* Category Breakdown Rows */}
-              {['UnPrinted', 'Printed', 'Non-PE', 'PE'].map((categoryName, categoryIndex) => (
+              {/* Category Breakdown Rows - Dynamic based on Column C (Process) */}
+              {visibleProcessCategories.map((categoryName, categoryIndex) => (
                 <React.Fragment key={`category-${categoryName}`}>
                   <tr className="separator-row">
                     <td colSpan={extendedColumns.length + 1} className="separator-cell"></td>
@@ -809,7 +962,7 @@ const ProductGroupTable = () => {
                           <td key={`${categoryName}-header-delta-${colIndex}`} 
                               className="product-header-cell category-header-cell" 
                               style={getDeltaCellStyle(deltaFormatted)}>
-                            {deltaFormatted === 'N/A' ? 'N/A' : (
+                            {deltaFormatted === '' ? '' : (
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                 <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
                                 <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
@@ -850,7 +1003,7 @@ const ProductGroupTable = () => {
                             <td key={`${categoryName}-delta-${metricType}-${colIndex}`} 
                                 className="metric-cell category-metric-cell delta-cell" 
                                 style={getDeltaCellStyle(deltaFormatted)}>
-                              {deltaFormatted === 'N/A' ? 'N/A' : (
+                              {deltaFormatted === '' ? '' : (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                   <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
                                   <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
@@ -872,6 +1025,108 @@ const ProductGroupTable = () => {
                           
                           return (
                             <td key={`${categoryName}-${metricType}-${colIndex}`} 
+                                className="metric-cell category-metric-cell" 
+                                style={{ 
+                                  backgroundColor: getCellBackgroundColor(col), 
+                                  textAlign: 'center',
+                                  fontWeight: 'bold',
+                                  fontStyle: 'normal'
+                                }}>
+                              {formatNumber(value, metricType)}
+                            </td>
+                          );
+                        }
+                      })}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+              
+              {/* Material Category Breakdown Rows - Dynamic based on Column B (Material) */}
+              {visibleMaterialCategories.map((materialName, materialIndex) => (
+                <React.Fragment key={`material-${materialName}`}>
+                  <tr className="separator-row">
+                    <td colSpan={extendedColumns.length + 1} className="separator-cell"></td>
+                  </tr>
+                  
+                  {/* Material Category Header Row */}
+                  <tr className="product-header-row category-header-row">
+                    <td className="row-label product-header category-header">{materialName}</td>
+                    {extendedColumns.map((col, colIndex) => {
+                      if (col.columnType === 'delta') {
+                        // Calculate delta for material category sales percentage between periods
+                        const fromPercentage = calculateCategorySalesPercentage(materialName, col.fromColumn, 'material');
+                        const toPercentage = calculateCategorySalesPercentage(materialName, col.toColumn, 'material');
+                        const delta = toPercentage - fromPercentage;
+                        const deltaFormatted = formatDelta(delta);
+                        
+                        return (
+                          <td key={`${materialName}-header-delta-${colIndex}`} 
+                              className="product-header-cell category-header-cell" 
+                              style={getDeltaCellStyle(deltaFormatted)}>
+                            {deltaFormatted === '' ? '' : (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
+                                <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      } else {
+                        // Regular period column - show % of Sales for material category
+                        const materialSalesPercentage = calculateCategorySalesPercentage(materialName, col, 'material');
+                        return (
+                          <td key={`${materialName}-header-${colIndex}`} 
+                              className="product-header-cell category-header-cell" 
+                              style={{ 
+                                backgroundColor: getCellBackgroundColor(col),
+                                textAlign: 'center',
+                                fontSize: '13px',
+                                color: '#000',
+                                fontWeight: 'bold'
+                              }}>
+                            {materialSalesPercentage.toFixed(2)}% of Sls
+                          </td>
+                        );
+                      }
+                    })}
+                  </tr>
+                  
+                  {/* Material Category Metrics Rows */}
+                  {metricsToShow.map((metricType, metricIndex) => (
+                    <tr key={`${materialName}-${metricType}`} className="metric-row category-metric-row">
+                      <td className="row-label metric-label category-metric-label">{metricType}</td>
+                      {extendedColumns.map((col, colIndex) => {
+                        if (col.columnType === 'delta') {
+                          // Delta column for material categories
+                          const delta = calculateCategoryDelta(metricType, materialName, col.fromColumn, col.toColumn, 'material');
+                          const deltaFormatted = formatDelta(delta);
+                          return (
+                            <td key={`${materialName}-delta-${metricType}-${colIndex}`} 
+                                className="metric-cell category-metric-cell delta-cell" 
+                                style={getDeltaCellStyle(deltaFormatted)}>
+                              {deltaFormatted === '' ? '' : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '0 0 auto' }}>{deltaFormatted.arrow}</span>
+                                  <span style={{ fontSize: '12px', color: deltaFormatted.color, flex: '1', textAlign: 'center' }}>{deltaFormatted.percentage}</span>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        } else {
+                          // Regular material category column
+                          // Calculate material category values based on Column B (Material)
+                          let value;
+                          if (['KGS', 'Sales', 'MoRM'].includes(metricType)) {
+                            // Raw material category totals from sales data
+                            value = calculateCategoryTotals(col, metricType, materialName, 'material');
+                          } else {
+                            // Calculated material category metrics
+                            value = calculateDerivedCategoryTotals(col, metricType, materialName, 'material');
+                          }
+                          
+                          return (
+                            <td key={`${materialName}-${metricType}-${colIndex}`} 
                                 className="metric-cell category-metric-cell" 
                                 style={{ 
                                   backgroundColor: getCellBackgroundColor(col), 

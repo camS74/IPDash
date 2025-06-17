@@ -782,13 +782,9 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
       </div>
 
       <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 60 }}>
-          <div className="modern-margin-gauge-panel">
-            <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
-          </div>
-          <div className="modern-margin-gauge-panel">
-            <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
-          </div>
+        <div className="modern-margin-gauge-panel" style={{ padding: 0, margin: 0, backgroundColor: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderRadius: '8px', width: '95%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box' }}>
+          <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
+          <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
         </div>
       </div>
     </div>
