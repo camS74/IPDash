@@ -1,85 +1,89 @@
 {
   "chartVisibleColumns": [
-    "2022-CUSTOM_January_February_March_April-Actual",
-    "2023-CUSTOM_January_February_March_April-Actual",
-    "2024-CUSTOM_January_February_March_April-Actual",
-    "2025-CUSTOM_January_February_March_April-Actual",
-    "2021-CUSTOM_January_February_March_April-Actual"
+    "2022-CUSTOM_January_February_March_April_May-Actual",
+    "2023-CUSTOM_January_February_March_April_May-Actual",
+    "2024-CUSTOM_January_February_March_April_May-Actual",
+    "2025-CUSTOM_January_February_March_April_May-Actual",
+    "2025-CUSTOM_January_February_March_April_May-Budget"
   ],
   "standardColumnSelection": [
     {
       "year": "2022",
-      "month": "CUSTOM_January_February_March_April",
+      "month": "CUSTOM_January_February_March_April_May",
       "type": "Actual",
       "months": [
         "January",
         "February",
         "March",
-        "April"
+        "April",
+        "May"
       ],
-      "displayName": "Jan-Apr",
+      "displayName": "Jan-May",
       "isCustomRange": true,
-      "id": "2022-CUSTOM_January_February_March_April-Actual",
+      "id": "2022-CUSTOM_January_February_March_April_May-Actual",
       "customColor": "yellow"
     },
     {
       "year": "2023",
-      "month": "CUSTOM_January_February_March_April",
+      "month": "CUSTOM_January_February_March_April_May",
       "type": "Actual",
       "months": [
         "January",
         "February",
         "March",
-        "April"
+        "April",
+        "May"
       ],
-      "displayName": "Jan-Apr",
+      "displayName": "Jan-May",
       "isCustomRange": true,
-      "id": "2023-CUSTOM_January_February_March_April-Actual",
-      "customColor": "blue"
+      "id": "2023-CUSTOM_January_February_March_April_May-Actual"
     },
     {
       "year": "2024",
-      "month": "CUSTOM_January_February_March_April",
+      "month": "CUSTOM_January_February_March_April_May",
       "type": "Actual",
       "months": [
         "January",
         "February",
         "March",
-        "April"
+        "April",
+        "May"
       ],
-      "displayName": "Jan-Apr",
+      "displayName": "Jan-May",
       "isCustomRange": true,
-      "id": "2024-CUSTOM_January_February_March_April-Actual",
-      "customColor": "orange"
+      "id": "2024-CUSTOM_January_February_March_April_May-Actual",
+      "customColor": "yellow"
     },
     {
       "year": "2025",
-      "month": "CUSTOM_January_February_March_April",
+      "month": "CUSTOM_January_February_March_April_May",
       "type": "Actual",
       "months": [
         "January",
         "February",
         "March",
-        "April"
+        "April",
+        "May"
       ],
-      "displayName": "Jan-Apr",
+      "displayName": "Jan-May",
       "isCustomRange": true,
-      "id": "2025-CUSTOM_January_February_March_April-Actual",
+      "id": "2025-CUSTOM_January_February_March_April_May-Actual",
       "customColor": "green"
     },
     {
-      "year": "2021",
-      "month": "CUSTOM_January_February_March_April",
-      "type": "Actual",
+      "year": "2025",
+      "month": "CUSTOM_January_February_March_April_May",
+      "type": "Budget",
       "months": [
         "January",
         "February",
         "March",
-        "April"
+        "April",
+        "May"
       ],
-      "displayName": "Jan-Apr",
+      "displayName": "Jan-May",
       "isCustomRange": true,
-      "id": "2021-CUSTOM_January_February_March_April-Actual",
+      "id": "2025-CUSTOM_January_February_March_April_May-Budget",
       "customColor": "boldContrast"
     }
   ],

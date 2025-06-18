@@ -160,7 +160,7 @@ const Profitchart = ({ tableData, selectedPeriods, computeCellValue, style }) =>
                       justifyContent: 'center',
                     }}>
                       {variances[idx + 1] === null || isNaN(variances[idx + 1]) ? (
-                        <span style={{ color: '#888', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>N/A</span>
+                        <span style={{ color: '#888', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}></span>
                       ) : (
                         <>
                           <span style={{

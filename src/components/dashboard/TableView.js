@@ -193,8 +193,8 @@ const TableView = () => {
       const value = computeCellValue(rowIndex, column);
       const salesValue = computeCellValue(3, column);
 
-                  // If either is empty or error, return empty string
-            if (value === '' || value === 'Error' || salesValue === '' || salesValue === 'Error') return '';
+      // If either is empty, return empty string
+      if (value === '' || value === 'Error' || salesValue === '' || salesValue === 'Error') return '';
 
       // Parse the values (remove commas)
       const numValue = parseFloat(value.replace(/,/g, ''));
@@ -234,8 +234,8 @@ const TableView = () => {
       // Get the sales volume value (always from row 7)
       const volumeValue = computeCellValue(7, column); // Sales Volume row
       
-                  // If volume is empty or error, return empty string
-            if (volumeValue === '' || volumeValue === 'Error') return '';
+      // If volume is empty, return empty string
+      if (volumeValue === '') return '';
       
       // Parse the volume value
       const numVolumeValue = parseFloat(volumeValue.replace(/,/g, ''));
@@ -246,8 +246,8 @@ const TableView = () => {
       // Get the value for the current row
       const currentValue = computeCellValue(rowIndex, column);
       
-                  // If the current row value is empty or error, return empty string
-            if (currentValue === '' || currentValue === 'Error') return '';
+      // If the current row value is empty, return empty string
+      if (currentValue === '') return '';
       
       // Parse the current row value
       const numCurrentValue = parseFloat(currentValue.replace(/,/g, ''));
@@ -358,23 +358,12 @@ const TableView = () => {
     return colorSchemes.find(s => s.name === 'blue').light;
   };
 
-  // Helper to get user-friendly division name
-  const getDivisionDisplayName = () => {
-    const divisionNames = {
-      'FP': 'Flexible Packaging',
-      'SB': 'Shopping Bags',
-      'TF': 'Thermoforming Products',
-      'HCM': 'Preforms and Closures'
-    };
-    return divisionNames[selectedDivision] || selectedDivision;
-  };
-
   return (
     <div className="table-view" ref={tableRef}>
       <PDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
         <div className="table-header">
           <div className="header-center">
-            <h3 className="table-title">Financial - {getDivisionDisplayName()}</h3>
+            <h3 className="table-title">{selectedDivision} Financials</h3>
             <div className="table-subtitle">(AED)</div>
           </div>
         </div>
@@ -487,8 +476,8 @@ const TableView = () => {
                         const materialValue = computeCellValue(5, column);
 
                         // Convert string values with commas back to numbers for calculation
-                                    const salesNum = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-            const materialNum = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        const salesNum = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const materialNum = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
 
                         // Calculate the result
                         const result = salesNum - materialNum;
@@ -509,10 +498,10 @@ const TableView = () => {
                         const value13 = computeCellValue(13, column);
 
                         // Convert string values with commas back to numbers for calculation
-                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
-                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
-                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
-                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+                        const num9 = value9 === '' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === '' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === '' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === '' ? 0 : parseFloat(value13.replace(/,/g, ''));
 
                         // Calculate the sum
                         const result = num9 + num10 + num12 + num13;
@@ -529,17 +518,17 @@ const TableView = () => {
                         const value12 = computeCellValue(12, column);
                         const value13 = computeCellValue(13, column);
 
-                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
-                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
-                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
-                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+                        const num9 = value9 === '' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === '' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === '' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === '' ? 0 : parseFloat(value13.replace(/,/g, ''));
 
                         // Value for row 14
                         const num14 = num9 + num10 + num12 + num13;
 
                         // Get row 15 value
                         const value15 = computeCellValue(15, column);
-                        const num15 = value15 === 'N/A' ? 0 : parseFloat(value15.replace(/,/g, ''));
+                        const num15 = value15 === '' ? 0 : parseFloat(value15.replace(/,/g, ''));
 
                         // Calculate row 16 = row 14 + row 15
                         const result = num14 + num15;
@@ -557,24 +546,24 @@ const TableView = () => {
                         const value12 = computeCellValue(12, column);
                         const value13 = computeCellValue(13, column);
                         
-                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
-                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
-                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
-                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+                        const num9 = value9 === '' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === '' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === '' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === '' ? 0 : parseFloat(value13.replace(/,/g, ''));
 
                         // Value for row 14
                         const num14 = num9 + num10 + num12 + num13;
                         
                         // Get row 15 value
                         const value15 = computeCellValue(15, column);
-                        const num15 = value15 === 'N/A' ? 0 : parseFloat(value15.replace(/,/g, ''));
+                        const num15 = value15 === '' ? 0 : parseFloat(value15.replace(/,/g, ''));
 
                         // Calculate row 16 = row 14 + row 15
                         const num16 = num14 + num15;
 
                         // Get Material value (row 4)
                         const materialValue = computeCellValue(4, column);
-                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        const material = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
 
                         // Calculate row 16 as percentage of row 4 (Material)
                         let percentResult = 0;
@@ -590,11 +579,11 @@ const TableView = () => {
                       } else if (row.formula === 'calc19-3-4') {
                         // Get Sales value (row 3)
                         const salesValue = computeCellValue(3, column);
-                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const sales = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
                         
                         // Get Material value (row 4)
                         const materialValue = computeCellValue(4, column);
-                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        const material = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
                         
                         // Calculate row 19 = Sales - Material
                         const result = sales - material;
@@ -609,14 +598,14 @@ const TableView = () => {
                         const salesValue = computeCellValue(3, column);
                         const materialValue = computeCellValue(4, column);
                         
-                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        const sales = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
                         
                         const row19 = sales - material;
                         
                         // Get Row 10 value
                         const row10Value = computeCellValue(10, column);
-                        const row10 = row10Value === 'N/A' ? 0 : parseFloat(row10Value.replace(/,/g, ''));
+                        const row10 = row10Value === '' ? 0 : parseFloat(row10Value.replace(/,/g, ''));
                         
                         // Calculate Row 21 = Row 19 + Row 10
                         const result = row19 + row10;
@@ -637,15 +626,15 @@ const TableView = () => {
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
 
-                        // Convert to numbers, handling 'N/A' values as 0
-                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
-                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
-                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
-                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
-                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
-                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
-                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
-                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        // Convert to numbers, handling '' values as 0
+                        const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === '' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === '' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === '' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === '' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
 
                         // Calculate the sum of all rows
                         const result = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
@@ -663,10 +652,10 @@ const TableView = () => {
                         const value13 = computeCellValue(13, column);
 
                         // Parse values to numbers
-                        const num9 = value9 === 'N/A' ? 0 : parseFloat(value9.replace(/,/g, ''));
-                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
-                        const num12 = value12 === 'N/A' ? 0 : parseFloat(value12.replace(/,/g, ''));
-                        const num13 = value13 === 'N/A' ? 0 : parseFloat(value13.replace(/,/g, ''));
+                        const num9 = value9 === '' ? 0 : parseFloat(value9.replace(/,/g, ''));
+                        const num10 = value10 === '' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num12 = value12 === '' ? 0 : parseFloat(value12.replace(/,/g, ''));
+                        const num13 = value13 === '' ? 0 : parseFloat(value13.replace(/,/g, ''));
 
                         // Calculate Row 14 as sum of rows 9, 10, 12, 13
                         const row14 = num9 + num10 + num12 + num13;
@@ -682,14 +671,14 @@ const TableView = () => {
                         const value50 = computeCellValue(50, column);
 
                         // Parse values to numbers
-                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
-                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
-                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
-                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
-                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
-                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
-                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
-                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === '' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === '' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === '' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === '' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
 
                         // Calculate Row 52 as sum of rows 31, 32, 40, 42, 43, 44, 49, 50
                         const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
@@ -707,8 +696,8 @@ const TableView = () => {
                         const salesValue = computeCellValue(3, column);
                         const materialValue = computeCellValue(4, column);
                         
-                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        const sales = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
                         
                         const row19 = sales - material;
                         
@@ -722,14 +711,14 @@ const TableView = () => {
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
 
-                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
-                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
-                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
-                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
-                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
-                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
-                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
-                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === '' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === '' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === '' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === '' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
 
                         const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
                         
@@ -749,10 +738,10 @@ const TableView = () => {
                         const value44 = computeCellValue(44, column);
 
                         // Parse values to numbers
-                        const num54 = value54 === 'N/A' ? 0 : parseFloat(value54.replace(/,/g, ''));
-                        const num10 = value10 === 'N/A' ? 0 : parseFloat(value10.replace(/,/g, ''));
-                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
-                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num54 = value54 === '' ? 0 : parseFloat(value54.replace(/,/g, ''));
+                        const num10 = value10 === '' ? 0 : parseFloat(value10.replace(/,/g, ''));
+                        const num42 = value42 === '' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
 
                         // Calculate EBITDA as sum of rows 54, 10, 42, and 44
                         const result = num54 + num10 + num42 + num44;
@@ -768,8 +757,8 @@ const TableView = () => {
                         const salesValue = computeCellValue(3, column);
                         const materialValue = computeCellValue(4, column);
                         
-                        const sales = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-                        const material = materialValue === 'N/A' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
+                        const sales = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
+                        const material = materialValue === '' ? 0 : parseFloat(materialValue.replace(/,/g, ''));
                         
                         const row19 = sales - material;
                         
@@ -783,14 +772,14 @@ const TableView = () => {
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
 
-                        const num31 = value31 === 'N/A' ? 0 : parseFloat(value31.replace(/,/g, ''));
-                        const num32 = value32 === 'N/A' ? 0 : parseFloat(value32.replace(/,/g, ''));
-                        const num40 = value40 === 'N/A' ? 0 : parseFloat(value40.replace(/,/g, ''));
-                        const num42 = value42 === 'N/A' ? 0 : parseFloat(value42.replace(/,/g, ''));
-                        const num43 = value43 === 'N/A' ? 0 : parseFloat(value43.replace(/,/g, ''));
-                        const num44 = value44 === 'N/A' ? 0 : parseFloat(value44.replace(/,/g, ''));
-                        const num49 = value49 === 'N/A' ? 0 : parseFloat(value49.replace(/,/g, ''));
-                        const num50 = value50 === 'N/A' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
+                        const num32 = value32 === '' ? 0 : parseFloat(value32.replace(/,/g, ''));
+                        const num40 = value40 === '' ? 0 : parseFloat(value40.replace(/,/g, ''));
+                        const num42 = value42 === '' ? 0 : parseFloat(value42.replace(/,/g, ''));
+                        const num43 = value43 === '' ? 0 : parseFloat(value43.replace(/,/g, ''));
+                        const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
+                        const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
 
                         const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
                         
@@ -814,7 +803,7 @@ const TableView = () => {
                           className="calculated-cell"
                           style={{ backgroundColor: bgColor }}
                         >
-                          {formattedResult}
+                          {formattedResult === '' ? '' : formattedResult}
                         </td>,
                         <td
                           key={`percent-${row.key}-${colIndex}`}
@@ -822,21 +811,14 @@ const TableView = () => {
                           style={{ backgroundColor: bgColor }}
                         >
                           {(() => {
-                            // For Direct cost as % of C.O.G.S (index -5), show empty cell
                             if (row.index === -5) return '';
-                            
                             try {
-                              // Convert formattedResult to number for calculation
-                              const cellNum = formattedResult === 'N/A' ? 0 : parseFloat(formattedResult.replace(/,/g, ''));
-                              const salesValue = computeCellValue(3, column); // Row 3 is Sales
-                              const salesNum = salesValue === 'N/A' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
-                              
-                              // Calculate percentage
+                              if (formattedResult === '') return '';
+                              const cellNum = parseFloat(formattedResult.replace(/,/g, ''));
+                              const salesValue = computeCellValue(3, column);
+                              const salesNum = salesValue === '' ? 0 : parseFloat(salesValue.replace(/,/g, ''));
                               if (salesNum === 0) return '0.00%';
-                              
                               const percentValue = (cellNum / salesNum) * 100;
-                              
-                              // Format with exactly 2 decimal places
                               return percentValue.toFixed(2) + '%';
                             } catch (error) {
                               console.error('Error computing percent of sales for calculated cell:', error);
@@ -847,30 +829,17 @@ const TableView = () => {
                         <td
                           key={`perkg-${row.key}-${colIndex}`}
                           className="calculated-cell"
-                          style={{ 
-                            backgroundColor: bgColor, 
-                            color: row.index === 3 ? '#2E865F' : 'inherit', 
-                            fontWeight: row.index === 3 ? 'bold' : 'inherit' 
-                          }}
+                          style={{ backgroundColor: bgColor }}
                         >
-                          {/* Handle calculated fields specifically */}
                           {(() => {
-                            // Skip for rows with specific logic
-                            if (row.index === -5) return ''; // Direct cost as % of C.O.G.S
-                            
+                            if (row.index === -5) return '';
                             try {
-                              // Convert formattedResult to number for calculation
-                              const cellNum = formattedResult === 'N/A' ? 0 : parseFloat(formattedResult.replace(/,/g, ''));
-                              const volumeValue = computeCellValue(7, column); // Row 7 is Sales Volume
-                              const volumeNum = volumeValue === 'N/A' ? 0 : parseFloat(volumeValue.replace(/,/g, ''));
-                              
-                              // Check for valid numbers and non-zero volume
+                              if (formattedResult === '') return '';
+                              const cellNum = parseFloat(formattedResult.replace(/,/g, ''));
+                              const volumeValue = computeCellValue(7, column);
+                              const volumeNum = volumeValue === '' ? 0 : parseFloat(volumeValue.replace(/,/g, ''));
                               if (isNaN(cellNum) || isNaN(volumeNum) || volumeNum === 0) return '0.00';
-                              
-                              // Calculate sales per kg
                               const perKgValue = cellNum / volumeNum;
-                              
-                              // Format with exactly 2 decimal places
                               return perKgValue.toFixed(2);
                             } catch (error) {
                               console.error('Error computing sales per kg for calculated cell:', error);
