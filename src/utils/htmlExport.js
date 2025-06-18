@@ -28,7 +28,13 @@ const captureElementAsBase64 = async (element, options = {}) => {
       backgroundColor: '#ffffff',
       useCORS: true,
       allowTaint: true,
-      logging: true,
+      logging: false,
+      removeContainer: true,
+      ignoreElements: (element) => {
+        // Ignore elements that might cause gray artifacts
+        return element.classList?.contains('pdf-export-button') || 
+               element.style?.boxShadow?.includes('inset');
+      },
       ...options
     });
     
@@ -241,31 +247,32 @@ const getEmbeddedCSSNoWriteup = () => `
   .nav-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    max-width: 900px;
-    width: 100%;
+    gap: 25px;
+    max-width: 1200px;
+    width: 90%;
     margin: 0 auto;
     flex: 1;
     align-content: center;
-    padding: 0 20px;
+    padding: 20px;
     overflow-y: auto;
   }
   
   .nav-tab {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 15px;
+    border-radius: 15px;
+    padding: 12px 10px;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     text-align: center;
-    min-height: 90px;
+    min-height: 60px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     word-break: break-word;
+    aspect-ratio: 1.5;
   }
   
   .nav-tab:hover {
@@ -276,11 +283,12 @@ const getEmbeddedCSSNoWriteup = () => `
   }
   
   .nav-tab h3 {
-    font-size: 0.95rem;
-    margin: 6px 0 4px 0;
+    font-size: 1.1rem;
+    margin: 8px 0 6px 0;
     color: white;
     transition: color 0.3s ease;
     word-break: break-word;
+    font-weight: 600;
   }
 
   .nav-tab:hover h3 {
@@ -288,12 +296,13 @@ const getEmbeddedCSSNoWriteup = () => `
   }
 
   .nav-tab p {
-    font-size: 0.75rem;
-    opacity: 0.8;
+    font-size: 0.85rem;
+    opacity: 0.9;
     color: white;
     transition: opacity 0.3s ease;
     margin: 0;
     word-break: break-word;
+    line-height: 1.3;
   }
 
   .nav-tab:hover p {
@@ -301,14 +310,14 @@ const getEmbeddedCSSNoWriteup = () => `
   }
   
   .nav-tab .icon {
-    font-size: 1.8rem;
-    margin-bottom: 6px;
+    font-size: 2.2rem;
+    margin-bottom: 10px;
     display: block;
     transition: transform 0.3s ease;
   }
 
   .nav-tab:hover .icon {
-    transform: scale(1.2);
+    transform: scale(1.15);
   }
   
   .content-section {
@@ -427,22 +436,98 @@ const getEmbeddedCSSNoWriteup = () => `
     box-shadow: 0 6px 20px rgba(0,51,102,0.4);
   }
 
-  @media (max-width: 768px) {
+  /* Large screens (1200px and up) */
+  @media (min-width: 1200px) {
     .nav-tabs {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      padding: 0 8px;
-      max-width: 100vw;
-      overflow-y: auto;
+      max-width: 1400px;
+      gap: 30px;
+      padding: 30px;
     }
     
     .nav-tab {
       min-height: 70px;
-      padding: 8px;
+      padding: 15px 12px;
     }
     
     .nav-tab h3 {
-      font-size: 0.8rem;
+      font-size: 1.2rem;
+    }
+    
+    .nav-tab p {
+      font-size: 0.9rem;
+    }
+    
+    .nav-tab .icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .nav-tabs {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      padding: 15px;
+      max-width: 95vw;
+      width: 95%;
+      overflow-y: auto;
+    }
+    
+    .nav-tab {
+      min-height: 50px;
+      padding: 8px 6px;
+      aspect-ratio: 1.3;
+    }
+    
+    .nav-tab h3 {
+      font-size: 0.9rem;
+      margin: 6px 0 4px 0;
+    }
+    
+    .nav-tab p {
+      font-size: 0.7rem;
+    }
+    
+    .nav-tab .icon {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+    
+    .title-page h1 {
+      font-size: 1.6rem;
+    }
+    
+    .title-page h2 {
+      font-size: 1rem;
+    }
+
+    .back-button {
+      padding: 8px 14px;
+      font-size: 11px;
+      top: 15px;
+      right: 15px;
+      min-width: 55px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .nav-tabs {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 10px;
+      max-width: 95vw;
+      width: 95%;
+      overflow-y: auto;
+    }
+    
+    .nav-tab {
+      min-height: 40px;
+      padding: 6px 4px;
+      aspect-ratio: 3;
+    }
+    
+    .nav-tab h3 {
+      font-size: 0.85rem;
     }
     
     .nav-tab p {
@@ -450,46 +535,16 @@ const getEmbeddedCSSNoWriteup = () => `
     }
     
     .nav-tab .icon {
-      font-size: 1.3rem;
+      font-size: 1.4rem;
+      margin-bottom: 6px;
     }
     
     .title-page h1 {
-      font-size: 1.3rem;
+      font-size: 1.4rem;
     }
     
     .title-page h2 {
-      font-size: 0.85rem;
-    }
-
-    .back-button {
-      padding: 6px 12px;
-      font-size: 10px;
-      top: 15px;
-      right: 15px;
-      min-width: 50px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .nav-tabs {
-      grid-template-columns: 1fr;
-      gap: 6px;
-      padding: 0 4px;
-      max-width: 100vw;
-      overflow-y: auto;
-    }
-    
-    .nav-tab {
-      min-height: 55px;
-      padding: 4px;
-    }
-    
-    .title-page h1 {
-      font-size: 1.1rem;
-    }
-    
-    .title-page h2 {
-      font-size: 0.7rem;
+      font-size: 0.9rem;
     }
   }
 </style>
@@ -567,31 +622,32 @@ const getEmbeddedCSSWithWriteup = () => `
   .nav-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    max-width: 900px;
-    width: 100%;
+    gap: 25px;
+    max-width: 1200px;
+    width: 90%;
     margin: 0 auto;
     flex: 1;
     align-content: center;
-    padding: 0 20px;
+    padding: 20px;
     overflow-y: auto;
   }
   
   .nav-tab {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 15px;
+    border-radius: 15px;
+    padding: 12px 10px;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     text-align: center;
-    min-height: 90px;
+    min-height: 60px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     word-break: break-word;
+    aspect-ratio: 1.5;
   }
   
   .nav-tab:hover {
@@ -602,11 +658,12 @@ const getEmbeddedCSSWithWriteup = () => `
   }
   
   .nav-tab h3 {
-    font-size: 0.95rem;
-    margin: 6px 0 4px 0;
+    font-size: 1.1rem;
+    margin: 8px 0 6px 0;
     color: white;
     transition: color 0.3s ease;
     word-break: break-word;
+    font-weight: 600;
   }
 
   .nav-tab:hover h3 {
@@ -614,12 +671,13 @@ const getEmbeddedCSSWithWriteup = () => `
   }
 
   .nav-tab p {
-    font-size: 0.75rem;
-    opacity: 0.8;
+    font-size: 0.85rem;
+    opacity: 0.9;
     color: white;
     transition: opacity 0.3s ease;
     margin: 0;
     word-break: break-word;
+    line-height: 1.3;
   }
 
   .nav-tab:hover p {
@@ -627,14 +685,14 @@ const getEmbeddedCSSWithWriteup = () => `
   }
   
   .nav-tab .icon {
-    font-size: 1.8rem;
-    margin-bottom: 6px;
+    font-size: 2.2rem;
+    margin-bottom: 10px;
     display: block;
     transition: transform 0.3s ease;
   }
 
   .nav-tab:hover .icon {
-    transform: scale(1.2);
+    transform: scale(1.15);
   }
   
   .content-section {
@@ -873,8 +931,8 @@ const getEmbeddedCSSWithWriteup = () => `
     }
     
     .nav-tab {
-      min-height: 80px;
-      padding: 12px;
+      min-height: 40px;
+      padding: 8px;
     }
     
     .nav-tab h3 {
@@ -923,8 +981,8 @@ const getEmbeddedCSSWithWriteup = () => `
     }
     
     .nav-tab {
-      min-height: 70px;
-      padding: 10px;
+      min-height: 35px;
+      padding: 6px;
     }
     
     .title-page h1 {
@@ -1193,11 +1251,16 @@ const captureChartsAndTable = async () => {
           cleanContainer.appendChild(tableContainer.cloneNode(true));
         }
         
-        // Position off-screen for capture
+        // Position off-screen for capture and ensure clean white background
         cleanContainer.style.position = 'absolute';
         cleanContainer.style.left = '-9999px';
         cleanContainer.style.top = '-9999px';
         cleanContainer.style.zIndex = '-1';
+        cleanContainer.style.backgroundColor = '#ffffff';
+        cleanContainer.style.boxShadow = 'none';
+        cleanContainer.style.border = 'none';
+        cleanContainer.style.padding = '20px';
+        cleanContainer.style.margin = '0';
         document.body.appendChild(cleanContainer);
         
         const plTableImage = await captureElementAsBase64(cleanContainer, {
@@ -1257,11 +1320,16 @@ const captureChartsAndTable = async () => {
           cleanContainer.appendChild(tableContainer.cloneNode(true));
         }
         
-        // Position off-screen for capture
+        // Position off-screen for capture and ensure clean white background
         cleanContainer.style.position = 'absolute';
         cleanContainer.style.left = '-9999px';
         cleanContainer.style.top = '-9999px';
         cleanContainer.style.zIndex = '-1';
+        cleanContainer.style.backgroundColor = '#ffffff';
+        cleanContainer.style.boxShadow = 'none';
+        cleanContainer.style.border = 'none';
+        cleanContainer.style.padding = '20px';
+        cleanContainer.style.margin = '0';
         document.body.appendChild(cleanContainer);
         
         const productGroupTableImage = await captureElementAsBase64(cleanContainer, {
@@ -1331,11 +1399,16 @@ const captureChartsAndTable = async () => {
           cleanContainer.appendChild(tableContainer.cloneNode(true));
         }
         
-        // Position off-screen for capture
+        // Position off-screen for capture and ensure clean white background
         cleanContainer.style.position = 'absolute';
         cleanContainer.style.left = '-9999px';
         cleanContainer.style.top = '-9999px';
         cleanContainer.style.zIndex = '-1';
+        cleanContainer.style.backgroundColor = '#ffffff';
+        cleanContainer.style.boxShadow = 'none';
+        cleanContainer.style.border = 'none';
+        cleanContainer.style.padding = '20px';
+        cleanContainer.style.margin = '0';
         document.body.appendChild(cleanContainer);
         
         const salesCountryTableImage = await captureElementAsBase64(cleanContainer, {
@@ -1410,11 +1483,16 @@ const captureChartsAndTable = async () => {
             cleanContainer.appendChild(tableContainer.cloneNode(true));
           }
           
-          // Position off-screen for capture
+          // Position off-screen for capture and ensure clean white background
           cleanContainer.style.position = 'absolute';
           cleanContainer.style.left = '-9999px';
           cleanContainer.style.top = '-9999px';
           cleanContainer.style.zIndex = '-1';
+          cleanContainer.style.backgroundColor = '#ffffff';
+          cleanContainer.style.boxShadow = 'none';
+          cleanContainer.style.border = 'none';
+          cleanContainer.style.padding = '20px';
+          cleanContainer.style.margin = '0';
           document.body.appendChild(cleanContainer);
           
           const salesCustomerTableImage = await captureElementAsBase64(cleanContainer, {
