@@ -1,10 +1,10 @@
 {
   "chartVisibleColumns": [
+    "2022-CUSTOM_January_February_March_April_May-Actual",
+    "2023-CUSTOM_January_February_March_April_May-Actual",
     "2024-CUSTOM_January_February_March_April_May-Actual",
     "2025-CUSTOM_January_February_March_April_May-Actual",
-    "2025-CUSTOM_January_February_March_April_May-Budget",
-    "2022-CUSTOM_January_February_March_April_May-Actual",
-    "2023-CUSTOM_January_February_March_April_May-Actual"
+    "2025-CUSTOM_January_February_March_April_May-Budget"
   ],
   "standardColumnSelection": [
     {
