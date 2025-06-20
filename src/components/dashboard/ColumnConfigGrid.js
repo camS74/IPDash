@@ -259,7 +259,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
       }
     }
   };
-  
+
   return (
     <div className="column-config-container">
       <div className="column-config-header">
@@ -431,6 +431,7 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
         >
           HTML Report with Writeup
         </button>
+
       </div>
     </div>
   );

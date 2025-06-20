@@ -202,7 +202,7 @@ const getEmbeddedCSSNoWriteup = () => `
   .title-page {
     background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);
     color: white;
-    padding: 40px 20px;
+    padding: 24px 10px 24px 10px; /* tighter spacing */
     text-align: center;
     min-height: 100vh;
     display: flex;
@@ -215,14 +215,14 @@ const getEmbeddedCSSNoWriteup = () => `
   }
 
   .logo-container {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
     flex-shrink: 0;
   }
 
   .logo-container img {
-    max-height: 80px;
+    max-height: 144px;
     width: auto;
-    filter: brightness(1.1);
+    filter: brightness(1.1) drop-shadow(0 8px 24px rgba(0,0,0,0.45)); /* strong shadow */
     transition: transform 0.3s ease;
   }
 
@@ -231,60 +231,64 @@ const getEmbeddedCSSNoWriteup = () => `
   }
 
   .title-page h1 {
-    font-size: 2.2rem;
-    margin-bottom: 8px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.25);
     flex-shrink: 0;
+    font-weight: 600;
   }
 
   .title-page h2 {
-    font-size: 1.2rem;
-    margin-bottom: 25px;
+    font-size: 1rem;
+    margin-bottom: 14px;
     opacity: 0.9;
     flex-shrink: 0;
   }
   
   .nav-tabs {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-    max-width: 1200px;
-    width: 90%;
+    grid-template-columns: repeat(5, 1fr); /* more columns, cards are narrower */
+    gap: 12px;
+    max-width: 630px; /* reduced from 900px, 30% less */
+    width: 95%;
     margin: 0 auto;
     flex: 1;
     align-content: center;
-    padding: 20px;
+    padding: 10px;
     overflow-y: auto;
   }
   
   .nav-tab {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 12px 10px;
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 9px;
+    padding: 7px 4px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+    transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+    backdrop-filter: blur(8px);
     text-align: center;
-    min-height: 60px;
+    min-height: 28px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     word-break: break-word;
-    aspect-ratio: 1.5;
+    aspect-ratio: 1.2;
+    font-size: 0.7rem;
+    box-shadow: 0 1.5px 6px rgba(0,0,0,0.08);
   }
   
   .nav-tab:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(0,102,204,0.13), 0 2px 8px rgba(0,0,0,0.10);
   }
   
   .nav-tab h3 {
-    font-size: 1.1rem;
-    margin: 8px 0 6px 0;
+    font-size: 0.8rem;
+    margin: 4px 0 2px 0;
     color: white;
     transition: color 0.3s ease;
     word-break: break-word;
@@ -296,13 +300,13 @@ const getEmbeddedCSSNoWriteup = () => `
   }
 
   .nav-tab p {
-    font-size: 0.85rem;
+    font-size: 0.62rem;
     opacity: 0.9;
     color: white;
     transition: opacity 0.3s ease;
     margin: 0;
     word-break: break-word;
-    line-height: 1.3;
+    line-height: 1.2;
   }
 
   .nav-tab:hover p {
@@ -310,14 +314,14 @@ const getEmbeddedCSSNoWriteup = () => `
   }
   
   .nav-tab .icon {
-    font-size: 2.2rem;
-    margin-bottom: 10px;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
     display: block;
     transition: transform 0.3s ease;
   }
 
   .nav-tab:hover .icon {
-    transform: scale(1.15);
+    transform: scale(1.10);
   }
   
   .content-section {
@@ -577,7 +581,7 @@ const getEmbeddedCSSWithWriteup = () => `
   .title-page {
     background: linear-gradient(135deg, #003366 0%, #0066cc 30%, #4da6ff 70%, #80ccff 100%);
     color: white;
-    padding: 40px 20px;
+    padding: 24px 10px 24px 10px; /* tighter spacing */
     text-align: center;
     min-height: 100vh;
     display: flex;
@@ -590,14 +594,14 @@ const getEmbeddedCSSWithWriteup = () => `
   }
 
   .logo-container {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
     flex-shrink: 0;
   }
 
   .logo-container img {
-    max-height: 80px;
+    max-height: 144px;
     width: auto;
-    filter: brightness(1.1);
+    filter: brightness(1.1) drop-shadow(0 8px 24px rgba(0,0,0,0.45)); /* strong shadow */
     transition: transform 0.3s ease;
   }
 
@@ -606,60 +610,64 @@ const getEmbeddedCSSWithWriteup = () => `
   }
 
   .title-page h1 {
-    font-size: 2.2rem;
-    margin-bottom: 8px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.25);
     flex-shrink: 0;
+    font-weight: 600;
   }
 
   .title-page h2 {
-    font-size: 1.2rem;
-    margin-bottom: 25px;
+    font-size: 1rem;
+    margin-bottom: 14px;
     opacity: 0.9;
     flex-shrink: 0;
   }
   
   .nav-tabs {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-    max-width: 1200px;
-    width: 90%;
+    grid-template-columns: repeat(5, 1fr); /* more columns, cards are narrower */
+    gap: 12px;
+    max-width: 630px; /* reduced from 900px, 30% less */
+    width: 95%;
     margin: 0 auto;
     flex: 1;
     align-content: center;
-    padding: 20px;
+    padding: 10px;
     overflow-y: auto;
   }
   
   .nav-tab {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 12px 10px;
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 9px;
+    padding: 7px 4px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+    transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+    backdrop-filter: blur(8px);
     text-align: center;
-    min-height: 60px;
+    min-height: 28px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     word-break: break-word;
-    aspect-ratio: 1.5;
+    aspect-ratio: 1.2;
+    font-size: 0.7rem;
+    box-shadow: 0 1.5px 6px rgba(0,0,0,0.08);
   }
   
   .nav-tab:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(0,102,204,0.13), 0 2px 8px rgba(0,0,0,0.10);
   }
   
   .nav-tab h3 {
-    font-size: 1.1rem;
-    margin: 8px 0 6px 0;
+    font-size: 0.8rem;
+    margin: 4px 0 2px 0;
     color: white;
     transition: color 0.3s ease;
     word-break: break-word;
@@ -671,13 +679,13 @@ const getEmbeddedCSSWithWriteup = () => `
   }
 
   .nav-tab p {
-    font-size: 0.85rem;
+    font-size: 0.62rem;
     opacity: 0.9;
     color: white;
     transition: opacity 0.3s ease;
     margin: 0;
     word-break: break-word;
-    line-height: 1.3;
+    line-height: 1.2;
   }
 
   .nav-tab:hover p {
@@ -685,14 +693,14 @@ const getEmbeddedCSSWithWriteup = () => `
   }
   
   .nav-tab .icon {
-    font-size: 2.2rem;
-    margin-bottom: 10px;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
     display: block;
     transition: transform 0.3s ease;
   }
 
   .nav-tab:hover .icon {
-    transform: scale(1.15);
+    transform: scale(1.10);
   }
   
   .content-section {
@@ -724,6 +732,11 @@ const getEmbeddedCSSWithWriteup = () => `
     align-items: center;
     justify-content: center;
     padding: 20px;
+  }
+  
+  .chart-wrapper:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
   }
   
   .chart-image {

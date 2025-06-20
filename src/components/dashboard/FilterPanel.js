@@ -145,8 +145,8 @@ const FilterPanel = () => {
       </div>
 
       <div className="filter-section">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-          <h3>Period</h3>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '15px', marginBottom: '8px' }}>
+          <h3 style={{ margin: '0' }}>Period</h3>
           <label style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <input
               type="checkbox"

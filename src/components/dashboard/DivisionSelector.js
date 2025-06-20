@@ -5,25 +5,28 @@ import './DivisionSelector.css';
 const DivisionSelector = () => {
   const { divisions, selectedDivision, setSelectedDivision } = useExcelData();
 
-  const handleDivisionChange = (e) => {
-    setSelectedDivision(e.target.value);
+  const handleDivisionChange = (division) => {
+    setSelectedDivision(division);
   };
 
   return (
     <div className="division-selector">
-      <label htmlFor="division-select">Select Division:</label>
-      <select 
-        id="division-select"
-        value={selectedDivision}
-        onChange={handleDivisionChange}
-        className="division-select"
-      >
+      <div className="division-selector-label">Select Division</div>
+      <div className="division-checkboxes">
         {divisions.map(division => (
-          <option key={division} value={division}>
-            {division}
-          </option>
+          <label key={division} className="division-checkbox-item">
+            <input
+              type="radio"
+              name="division"
+              value={division}
+              checked={selectedDivision === division}
+              onChange={() => handleDivisionChange(division)}
+              className="division-checkbox"
+            />
+            <span className="division-checkbox-label">{division}</span>
+          </label>
         ))}
-      </select>
+      </div>
     </div>
   );
 };

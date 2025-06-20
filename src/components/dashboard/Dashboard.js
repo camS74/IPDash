@@ -96,9 +96,8 @@ const Dashboard = () => {
           }}
         />
         <h1>Interplast Dashboard</h1>
+        <DivisionSelector />
       </div>
-      
-      <DivisionSelector />
       
       {selectedDivision && (
         <div className="dashboard-content">

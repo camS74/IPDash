@@ -482,9 +482,6 @@ const TableView = () => {
                         // Calculate the result
                         const result = salesNum - materialNum;
 
-                        // Debug log for comparison
-                        console.log(`DEBUG: Period: ${column.year} ${column.isCustomRange ? column.displayName : (column.month || '')} ${column.type} | Sales: ${salesNum} | Material: ${materialNum} | Margin over Material: ${result}`);
-
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {
                           minimumFractionDigits: 0,
