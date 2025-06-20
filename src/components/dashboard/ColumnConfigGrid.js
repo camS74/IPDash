@@ -9,8 +9,8 @@ import './ColumnConfigGrid.css';
 const colorSchemesObj = {
   blue: '#288cfa',
   green: '#2E865F', 
-  yellow: '#FFCC33',
-  orange: '#FF9800',
+  yellow: '#FFD700',
+  orange: '#FF6B35',
   boldContrast: '#003366',
 };
 
@@ -18,8 +18,8 @@ const colorSchemesObj = {
 const colorSchemes = [
   { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
   { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
-  { name: 'yellow', label: 'Yellow', primary: '#FFCC33', secondary: '#FFFDE7', isDark: false },
-  { name: 'orange', label: 'Orange', primary: '#FF9800', secondary: '#FFE0B2', isDark: false },
+  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
   { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
 ];
 

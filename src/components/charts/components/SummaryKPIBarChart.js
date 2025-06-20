@@ -9,14 +9,15 @@ const KPI_ROWS = {
   EBITDA: { label: 'EBITDA', rowIndex: 30 },
 };
 
-const colorSchemes = {
-  blue: '#288cfa',
-  green: '#2E865F',
-  yellow: '#FFCC33',
-  orange: '#FF9800',
-  boldContrast: '#003366',
-};
-const defaultColors = ['#FFCC33', '#288cfa', '#003366', '#91cc75', '#5470c6'];
+// Color scheme definitions (MUST MATCH ColumnConfigGrid.js exactly)
+const colorSchemes = [
+  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
+  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
+  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
+  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
+];
+const defaultColors = ['#FFD700', '#288cfa', '#003366', '#91cc75', '#5470c6'];
 
 function calcVariance(current, base) {
   if (base === 0) return null;

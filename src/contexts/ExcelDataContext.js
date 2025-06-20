@@ -17,25 +17,25 @@ export const ExcelDataProvider = ({ children }) => {
   const loadExcelData = useCallback(async (url = '/api/financials.xlsx') => {
     // Prevent loading if we're already loading or already have data
     if (loading || dataLoaded) {
-      console.log('Skipping load - already loading or data loaded:', { loading, dataLoaded });
+      // console.log('Skipping load - already loading or data loaded:', { loading, dataLoaded });
       return;
     }
     
-    console.log('Loading Excel data from:', url);
+    // console.log('Loading Excel data from:', url);
     setLoading(true);
     setError(null);
     
     try {
-      console.log('Fetching data...');
+      // console.log('Fetching data...');
       const res = await fetch(url);
-      console.log('Response status:', res.status);
+      // console.log('Response status:', res.status);
       
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
       const buffer = await res.arrayBuffer();
-      console.log('Received buffer size:', buffer.byteLength);
+      // console.log('Received buffer size:', buffer.byteLength);
       
       if (buffer.byteLength === 0) {
         throw new Error('Received empty file');
@@ -43,7 +43,7 @@ export const ExcelDataProvider = ({ children }) => {
       
       // Parse Excel data using xlsx library
       const workbook = XLSX.read(buffer, { type: 'buffer' });
-      console.log('Workbook sheets:', workbook.SheetNames);
+      // console.log('Workbook sheets:', workbook.SheetNames);
       
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
         throw new Error('No sheets found in Excel file');
@@ -57,16 +57,16 @@ export const ExcelDataProvider = ({ children }) => {
       const parsedData = {};
       sheetNames.forEach(name => {
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1 });
-        console.log(`Sheet ${name} data structure:`, {
-          rowCount: sheetData.length,
-          columnCount: sheetData[0]?.length || 0,
-          headers: sheetData[0],
-          months: sheetData[1],
-          types: sheetData[2],
-          sampleSales: sheetData[3]?.slice(0, 5) // First 5 sales values
-        });
+        // console.log(`Sheet ${name} data structure:`, {
+        //   rowCount: sheetData.length,
+        //   columnCount: sheetData[0]?.length || 0,
+        //   headers: sheetData[0],
+        //   months: sheetData[1],
+        //   types: sheetData[2],
+        //   sampleSales: sheetData[3]?.slice(0, 5) // First 5 sales values
+        // });
         if (!sheetData || sheetData.length === 0) {
-          console.warn(`Warning: Sheet ${name} is empty`);
+          // console.warn(`Warning: Sheet ${name} is empty`);
         }
         parsedData[name] = sheetData;
       });
@@ -81,7 +81,7 @@ export const ExcelDataProvider = ({ children }) => {
       
       return parsedData;
     } catch (err) {
-      console.error('Error loading Excel data:', err);
+      // console.error('Error loading Excel data:', err);
       setError('Failed to load Excel data: ' + err.message);
       throw err; // Re-throw to allow component to handle the error
     } finally {

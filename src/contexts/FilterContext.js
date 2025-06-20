@@ -202,7 +202,7 @@ export const FilterProvider = ({ children }) => {
         });
         
         if (response.ok) {
-          console.log('Standard configuration saved to backend');
+          // console.log('Standard configuration saved to backend');
           return true;
         } else {
           console.error('Failed to save standard configuration to backend');
@@ -224,7 +224,7 @@ export const FilterProvider = ({ children }) => {
       });
       
       if (response.ok) {
-        console.log('Standard configuration cleared from backend');
+        // console.log('Standard configuration cleared from backend');
         return true;
       } else {
         console.error('Failed to clear standard configuration from backend');
@@ -248,7 +248,7 @@ export const FilterProvider = ({ children }) => {
           data: index
         })
       });
-      console.log('Base period saved to backend');
+      // console.log('Base period saved to backend');
     } catch (error) {
       console.error('Failed to save base period to backend:', error);
     }
@@ -261,7 +261,7 @@ export const FilterProvider = ({ children }) => {
       await fetch('http://localhost:3001/api/standard-config/basePeriodIndex', {
         method: 'DELETE'
       });
-      console.log('Base period cleared from backend');
+      // console.log('Base period cleared from backend');
     } catch (error) {
       console.error('Failed to clear base period from backend:', error);
     }
@@ -297,7 +297,7 @@ export const FilterProvider = ({ children }) => {
           const result = await response.json();
           if (result.success && result.data) {
             setColumnOrder(result.data);
-            console.log('Loaded standard configuration from backend');
+            // console.log('Loaded standard configuration from backend');
           }
         }
       } catch (error) {
@@ -312,7 +312,7 @@ export const FilterProvider = ({ children }) => {
           const result = await response.json();
           if (result.success && result.data) {
             setChartVisibleColumns(result.data);
-            console.log('Loaded chart visibility from backend');
+            // console.log('Loaded chart visibility from backend');
           }
         }
       } catch (error) {
@@ -327,7 +327,7 @@ export const FilterProvider = ({ children }) => {
           const result = await response.json();
           if (result.success && result.data !== null) {
             setBasePeriodIndex(result.data);
-            console.log('Loaded base period from backend');
+            // console.log('Loaded base period from backend');
           }
         }
       } catch (error) {

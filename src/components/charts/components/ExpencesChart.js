@@ -1,7 +1,18 @@
 import React from 'react';
 
+// Color scheme definitions (MUST MATCH ColumnConfigGrid.js exactly)
+const colorSchemes = [
+  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
+  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
+  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
+  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
+];
+
+// Default fallback colors in order
+const defaultColors = ['#FFD700', '#288cfa', '#003366', '#91cc75', '#5470c6'];
+
 const KPI_ROWS = [52, 54, 56];
-const cardColors = ['#FFCC33', '#288cfa', '#2E865F', '#FF9800', '#003366'];
 const textColors = ['#333', '#fff', '#fff', '#fff', '#fff'];
 
 function calcVariance(current, prev) {
@@ -30,13 +41,36 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
     const salesVolume = computeCellValue(7, period);
     const percentOfSales = (typeof sales === 'number' && sales !== 0) ? (value / sales) * 100 : 0;
     const perKg = (typeof salesVolume === 'number' && salesVolume !== 0) ? value / salesVolume : 0;
+    
+    // Use period-based colors (same logic as other components)
+    let color;
+    if (period.customColor) {
+      const scheme = colorSchemes.find(s => s.name === period.customColor);
+      if (scheme) {
+        color = scheme.primary;
+      }
+    } else {
+      // Default color assignment based on month/type (same as tables)
+      if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
+        color = '#FF6B35'; // Orange (light red)
+      } else if (period.month === 'January') {
+        color = '#FFD700'; // Yellow
+      } else if (period.month === 'Year') {
+        color = '#288cfa'; // Blue
+      } else if (period.type === 'Budget') {
+        color = '#2E865F'; // Green
+      } else {
+        color = defaultColors[idx % defaultColors.length];
+      }
+    }
+    
     return {
       periodName: `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`.trim(),
       value: typeof value === 'number' && !isNaN(value) ? value : 0,
       percentOfSales: percentOfSales,
       perKg: perKg,
-      color: cardColors[idx % cardColors.length],
-      textColor: textColors[idx % textColors.length],
+      color: color,
+      textColor: color === '#FFD700' ? '#333' : '#fff', // Dark text for yellow, white for others
     };
   });
 
@@ -98,6 +132,16 @@ const ExpencesChart = ({ tableData, selectedPeriods, computeCellValue, style }) 
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.07)';
             }}>
               <div style={{ fontSize: 14, color: card.textColor, fontWeight: 500, marginTop: 4 }}>{card.periodName}</div>
               <div style={{ fontWeight: 'bold', fontSize: 22, color: card.textColor, marginTop: 8 }}>

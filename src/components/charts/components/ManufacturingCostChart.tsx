@@ -11,17 +11,17 @@ const MANUFACTURING_LEDGERS = {
   TOTAL_DIRECT_COST: { label: 'Total Actual Direct Cost', rowIndex: 14 }, // Updated with correct row index
 };
 
-// Color scheme definitions (matching the config grid)
-const colorSchemes = {
-  blue: '#288cfa',
-  green: '#2E865F',
-  yellow: '#FFCC33', // Using #FFCC33 instead of #FFEA00 to match other charts
-  orange: '#FF9800',
-  boldContrast: '#003366',
-};
+// Color scheme definitions (MUST MATCH ColumnConfigGrid.js exactly)
+const colorSchemes = [
+  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
+  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
+  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
+  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
+];
 
 // Default fallback colors in order
-const defaultColors = ['#FFCC33', '#288cfa', '#003366', '#91cc75', '#5470c6'];
+const defaultColors = ['#FFD700', '#288cfa', '#003366', '#91cc75', '#5470c6'];
 
 // Get all ledger items except the total
 const ledgerItems = Object.values(MANUFACTURING_LEDGERS).filter(item => 
@@ -272,12 +272,26 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
     
     console.log(`Creating series for period ${index + 1}/${periodsToUse.length}: ${periodName}`);
     
-    // Get color based on period's customColor or fallback to default
+    // Get color based on period's customColor or fallback to default (same as other components)
     let color;
-    if (period.customColor && colorSchemes[period.customColor]) {
-      color = colorSchemes[period.customColor];
+    if (period.customColor) {
+      const scheme = colorSchemes.find(s => s.name === period.customColor);
+      if (scheme) {
+        color = scheme.primary;
+      }
     } else {
-      color = defaultColors[index % defaultColors.length];
+      // Default color assignment based on month/type (same as tables)
+      if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
+        color = '#FF6B35'; // Orange (light red)
+      } else if (period.month === 'January') {
+        color = '#FFD700'; // Yellow
+      } else if (period.month === 'Year') {
+        color = '#288cfa'; // Blue
+      } else if (period.type === 'Budget') {
+        color = '#2E865F'; // Green
+      } else {
+        color = defaultColors[index % defaultColors.length];
+      }
     }
     
     // Function to determine if a color is dark (for text contrast)
@@ -496,12 +510,26 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           const formattedPercent = totals.percentOfSales.toFixed(1);
           const formattedPerKg = totals.perKg.toFixed(1);
           
-          // Get color for period
+          // Get color for period (same logic as above)
           let color;
-          if (period.customColor && colorSchemes[period.customColor]) {
-            color = colorSchemes[period.customColor];
+          if (period.customColor) {
+            const scheme = colorSchemes.find(s => s.name === period.customColor);
+            if (scheme) {
+              color = scheme.primary;
+            }
           } else {
-            color = defaultColors[index % defaultColors.length];
+            // Default color assignment based on month/type (same as tables)
+            if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
+              color = '#FF6B35'; // Orange (light red)
+            } else if (period.month === 'January') {
+              color = '#FFD700'; // Yellow
+            } else if (period.month === 'Year') {
+              color = '#288cfa'; // Blue
+            } else if (period.type === 'Budget') {
+              color = '#2E865F'; // Green
+            } else {
+              color = defaultColors[index % defaultColors.length];
+            }
           }
           
           // Function to determine if a color is dark (for text contrast)
@@ -529,7 +557,17 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
               flex: '1',
               textAlign: 'center',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.07)';
             }}>
               {/* No need for color strip at top since the entire card has the color */}
               

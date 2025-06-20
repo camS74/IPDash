@@ -11,12 +11,6 @@ const CountryReference = () => {
   const [filterType, setFilterType] = useState('all');
   const [excelCountries, setExcelCountries] = useState(new Map()); // Store both original and matched names
 
-  // Debug logging
-  console.log('🐛 CountryReference Component Debug:');
-  console.log('  - selectedDivision from ExcelData:', selectedDivision);
-  console.log('  - salesLoading:', salesLoading);
-  console.log('  - salesData keys:', Object.keys(salesData || {}));
-
   // Enhanced country name matching using fuzzy logic
   const findBestCountryMatch = (excelCountryName) => {
     if (!excelCountryName) return null;
@@ -122,32 +116,19 @@ const CountryReference = () => {
     const countriesMap = new Map(); // originalName -> matchedName
     
     if (!salesData || Object.keys(salesData).length === 0) {
-      console.log('⚠️ No sales data available');
       return countriesMap;
     }
     
     if (!selectedDivision) {
-      console.log('⚠️ No division selected');
       return countriesMap;
     }
     
-    console.log('🔍 Processing sales data from SalesDataContext');
-    console.log('📊 Available sheets:', Object.keys(salesData));
-    console.log('🎯 Selected division from ExcelData:', selectedDivision);
-    
-    // selectedDivision from ExcelData is just the division name (e.g., "SB")
-    // We need to construct the countries sheet name
     const divisionName = selectedDivision; // Already just the division name
     const countriesSheetName = `${divisionName}-Countries`;
-    
-    console.log(`🔍 Looking for countries sheet: ${countriesSheetName}`);
     
     const countriesData = salesData[countriesSheetName];
     
     if (countriesData && countriesData.length > 0) {
-      console.log(`✅ Processing ${countriesSheetName} with ${countriesData.length} rows`);
-      
-      // Extract countries using the same logic as SalesCountryGlobe
       const countries = [];
       for (let i = 3; i < countriesData.length; i++) { // Starting from row 3 (index 3)
         const row = countriesData[i];
@@ -159,54 +140,23 @@ const CountryReference = () => {
         }
       }
       
-      console.log(`📋 Found ${countries.length} countries in ${countriesSheetName}:`);
-      countries.forEach(country => console.log(`  📍 ${country}`));
-      
-      // Try to match each country with global coordinates
       countries.forEach(countryName => {
-        console.log(`🔍 Attempting to match: "${countryName}"`);
-        
         const matchedCountry = findBestCountryMatch(countryName);
         if (matchedCountry) {
           countriesMap.set(countryName, matchedCountry);
-          console.log(`✅ Matched: "${countryName}" → "${matchedCountry}"`);
-        } else {
-          console.log(`❌ No match found for: "${countryName}"`);
         }
       });
       
-      console.log(`\n📊 Final Country Matching Summary for ${divisionName}:`);
-      console.log(`Total unique countries found in Excel: ${countries.length}`);
-      console.log(`Successfully matched with coordinates: ${countriesMap.size}`);
-      console.log(`Excel country names:`, countries);
-      console.log(`Matched standard names:`, Array.from(countriesMap.values()));
-      console.log(`❌ Countries without coordinates:`, countries.filter(c => !Array.from(countriesMap.keys()).includes(c)));
-      
       return countriesMap;
-    } else {
-      console.log(`⏭️ No data for ${countriesSheetName} in division ${divisionName}`);
     }
     
     return countriesMap;
   };
 
   useEffect(() => {
-    console.log('🔄 CountryReference useEffect triggered!');
-    console.log('  - salesLoading:', salesLoading);
-    console.log('  - salesData available:', !!(salesData && Object.keys(salesData).length > 0));
-    console.log('  - selectedDivision:', selectedDivision);
-    console.log('  - Available sheets:', Object.keys(salesData || {}));
-    
     if (!salesLoading && salesData && Object.keys(salesData).length > 0 && selectedDivision) {
-      console.log('🔄 Sales data loaded, extracting countries for division:', selectedDivision);
       const countriesMap = getAllCountriesFromExcel();
-      console.log('🗺️ Setting excelCountries map with size:', countriesMap.size);
       setExcelCountries(countriesMap);
-    } else {
-      console.log('⏸️ Conditions not met for country extraction:');
-      console.log('  - salesLoading:', salesLoading);
-      console.log('  - salesData exists:', !!(salesData && Object.keys(salesData).length > 0));
-      console.log('  - selectedDivision exists:', !!selectedDivision);
     }
   }, [salesData, salesLoading, selectedDivision]);
 

@@ -58,7 +58,7 @@
 }
 
 .stat-box.not-in-excel {
-  border-left: 4px solid #ff9800;
+  border-left: 4px solid #FF6B35;
 }
 
 .stat-number {
@@ -153,8 +153,8 @@
 }
 
 .filter-btn.not-in-excel.active {
-  background: #ff9800;
-  border-color: #ff9800;
+  background: #FF6B35;
+  border-color: #FF6B35;
   color: white;
 }
 
@@ -206,7 +206,7 @@
 }
 
 .country-row.not-in-excel {
-  border-left: 3px solid #ff9800;
+  border-left: 3px solid #FF6B35;
 }
 
 .countries-table td {
@@ -229,7 +229,7 @@
 }
 
 .status-indicator.not-in-excel {
-  color: #ff9800;
+  color: #FF6B35;
 }
 
 .country-name-cell {

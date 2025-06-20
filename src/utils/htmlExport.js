@@ -53,12 +53,12 @@ const captureElementAsBase64 = async (element, options = {}) => {
 // Function to capture actual AI writeup content from the app
 const captureAIWriteupContent = async () => {
   try {
-    console.log('Attempting to capture AI writeup content...');
+    // console.log('Attempting to capture AI writeup content...');
     
     const aiWriteupContainer = document.querySelector('.ai-writeup-content');
     
     if (!aiWriteupContainer) {
-      console.log('AI writeup container (.ai-writeup-content) not found');
+      // console.log('AI writeup container (.ai-writeup-content) not found');
       return {
         text: 'No Analysis Content Available',
         html: '<p>No Analysis Content Available</p>',
@@ -66,12 +66,12 @@ const captureAIWriteupContent = async () => {
       };
     }
     
-    console.log('Found AI writeup container');
+    // console.log('Found AI writeup container');
     
     const contentEditableDiv = aiWriteupContainer.querySelector('.ai-writeup-contenteditable');
     
     if (!contentEditableDiv) {
-      console.log('Content editable div not found');
+      // console.log('Content editable div not found');
       return {
         text: 'No Analysis Content Available',
         html: '<p>No Analysis Content Available</p>',
@@ -79,7 +79,7 @@ const captureAIWriteupContent = async () => {
       };
     }
     
-    console.log('Found content editable div');
+    // console.log('Found content editable div');
     
     const clonedDiv = contentEditableDiv.cloneNode(true);
     
@@ -106,8 +106,8 @@ const captureAIWriteupContent = async () => {
     
     const textContent = clonedDiv.textContent || clonedDiv.innerText || '';
     
-    console.log('Cleaned content length:', textContent.length);
-    console.log('Cleaned content preview:', textContent.substring(0, 200));
+    // console.log('Cleaned content length:', textContent.length);
+    // console.log('Cleaned content preview:', textContent.substring(0, 200));
     
     const isPlaceholder = textContent.toLowerCase().includes('click "generate" to create') ||
                          textContent.toLowerCase().includes('generate ai-powered') ||
@@ -116,7 +116,7 @@ const captureAIWriteupContent = async () => {
                          textContent.trim().length < 100;
     
     if (isPlaceholder) {
-      console.log('Content is placeholder text or too short');
+      // console.log('Content is placeholder text or too short');
       return {
         text: 'No Analysis Content Available',
         html: '<p>No Analysis Content Available</p>',
@@ -132,7 +132,7 @@ const captureAIWriteupContent = async () => {
                                textContent.toLowerCase().includes('cost');
     
     if (!hasAnalysisKeywords) {
-      console.log('Content does not contain analysis keywords');
+      // console.log('Content does not contain analysis keywords');
       return {
         text: 'No Analysis Content Available',
         html: '<p>No Analysis Content Available</p>',
@@ -157,7 +157,7 @@ const captureAIWriteupContent = async () => {
       .replace(/\s+/g, ' ')
       .trim();
     
-    console.log(`✅ Successfully captured clean AI content: ${cleanedText.length} characters`);
+    // console.log(`✅ Successfully captured clean AI content: ${cleanedText.length} characters`);
     
     return {
       text: cleanedText,
@@ -356,7 +356,7 @@ const getEmbeddedCSSNoWriteup = () => `
   }
   
   .chart-wrapper:hover {
-    transform: scale(1.02);
+    transform: scale(1.05);
     box-shadow: 0 15px 40px rgba(0,0,0,0.15);
   }
   
@@ -375,10 +375,22 @@ const getEmbeddedCSSNoWriteup = () => `
     overflow: hidden;
     height: auto;
     min-height: 100vh;
+    position: relative;
+    transition: all 0.3s ease;
   }
   
   .content-section[id*="table"].active {
     display: block;
+  }
+  
+  .content-section[id*="table"]:hover {
+    overflow-y: auto;
+    max-height: 100vh;
+    cursor: grab;
+  }
+  
+  .content-section[id*="table"]:hover:active {
+    cursor: grabbing;
   }
   
   .content-section[id*="table"] .chart-wrapper {
@@ -394,6 +406,22 @@ const getEmbeddedCSSNoWriteup = () => `
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+  
+  .content-section[id*="table"]:hover .chart-wrapper {
+    overflow: visible;
+    align-items: flex-start;
+    transform: scale(1.05) !important;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+    transform-origin: top center !important;
+  }
+  
+  .content-section[id*="table"] .chart-wrapper:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+    transform-origin: top center !important;
   }
   
   .content-section[id*="table"] .chart-image {
@@ -403,6 +431,18 @@ const getEmbeddedCSSNoWriteup = () => `
     object-fit: contain;
     display: block;
     margin: 0 auto;
+    transition: all 0.3s ease;
+  }
+  
+  .content-section[id*="table"]:hover .chart-image {
+    max-width: none;
+    width: auto;
+    min-width: 100%;
+    cursor: grab;
+  }
+  
+  .content-section[id*="table"]:hover .chart-image:active {
+    cursor: grabbing;
   }
   
   .back-button {
@@ -735,7 +775,7 @@ const getEmbeddedCSSWithWriteup = () => `
   }
   
   .chart-wrapper:hover {
-    transform: scale(1.02);
+    transform: scale(1.05);
     box-shadow: 0 15px 40px rgba(0,0,0,0.15);
   }
   
@@ -754,10 +794,22 @@ const getEmbeddedCSSWithWriteup = () => `
     overflow: hidden;
     height: auto;
     min-height: 100vh;
+    position: relative;
+    transition: all 0.3s ease;
   }
   
   .content-section[id*="table"].active {
     display: block;
+  }
+  
+  .content-section[id*="table"]:hover {
+    overflow-y: auto;
+    max-height: 100vh;
+    cursor: grab;
+  }
+  
+  .content-section[id*="table"]:hover:active {
+    cursor: grabbing;
   }
   
   .content-section[id*="table"] .chart-wrapper {
@@ -773,6 +825,22 @@ const getEmbeddedCSSWithWriteup = () => `
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+  
+  .content-section[id*="table"]:hover .chart-wrapper {
+    overflow: visible;
+    align-items: flex-start;
+    transform: scale(1.05) !important;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+    transform-origin: top center !important;
+  }
+  
+  .content-section[id*="table"] .chart-wrapper:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+    transform-origin: top center !important;
   }
   
   .content-section[id*="table"] .chart-image {
@@ -782,6 +850,18 @@ const getEmbeddedCSSWithWriteup = () => `
     object-fit: contain;
     display: block;
     margin: 0 auto;
+    transition: all 0.3s ease;
+  }
+  
+  .content-section[id*="table"]:hover .chart-image {
+    max-width: none;
+    width: auto;
+    min-width: 100%;
+    cursor: grab;
+  }
+  
+  .content-section[id*="table"]:hover .chart-image:active {
+    cursor: grabbing;
   }
   
   .writeup-section {
@@ -1011,6 +1091,16 @@ const getEmbeddedCSSWithWriteup = () => `
       padding: 10px;
     }
   }
+
+  /* Specific rules for each table to ensure absolute consistency */
+  #pl-table .chart-wrapper:hover,
+  #product-group-table .chart-wrapper:hover,
+  #sales-country-table .chart-wrapper:hover,
+  #sales-customer-table .chart-wrapper:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+    transform-origin: center center !important;
+  }
 </style>
 `;
 
@@ -1018,7 +1108,7 @@ const getEmbeddedCSSWithWriteup = () => `
 const getNavigationScript = (capturedCharts, capturedTables, actualWriteupContent) => `
 <script>
   window.showSection = function(sectionId) {
-    console.log('showSection called with:', sectionId);
+    // console.log('showSection called with:', sectionId);
     
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.classList.remove('active'));
@@ -1042,7 +1132,7 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
   };
   
   window.showHomePage = function() {
-    console.log('showHomePage called');
+    // console.log('showHomePage called');
     
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.classList.remove('active'));
@@ -1061,7 +1151,7 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
   let currentContent = '';
 
   function loadWriteupContent() {
-    console.log('loadWriteupContent called');
+    // console.log('loadWriteupContent called');
     const container = document.querySelector('.writeup-editor');
     
     if (!container) {
@@ -1087,7 +1177,7 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
   }
 
   window.saveWriteup = function() {
-    console.log('saveWriteup called');
+    // console.log('saveWriteup called');
     const textarea = document.getElementById('writeup-content');
     const saveStatus = document.querySelector('.save-status');
     
@@ -1139,10 +1229,10 @@ const getNavigationScript = (capturedCharts, capturedTables, actualWriteupConten
     }
   }
 
-  console.log('=== NAVIGATION SCRIPT LOADED ===');
+  // console.log('=== NAVIGATION SCRIPT LOADED ===');
   
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded - navigation ready');
+    // console.log('DOM loaded - navigation ready');
   });
 </script>
 `;
@@ -1171,11 +1261,19 @@ const captureChartsAndTable = async () => {
   }
 
   try {
+    // More targeted approach for capturing charts
+    const chartTitles = [
+      'Sales and Volume Analysis',
+      'Margin over Material Cost', 
+      'Manufacturing Cost Breakdown',
+      'Below Gross Profit Expenses',
+      'Expenses Trends & Profit Analysis'
+    ];
+
+    // Find the main chart container
     const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
 
     if (mainContainer) {
-      console.log('Found main chart container');
-
       const children = Array.from(mainContainer.children).filter(child => {
         const rect = child.getBoundingClientRect();
         const hasStyle = child.style.marginTop;
@@ -1184,17 +1282,48 @@ const captureChartsAndTable = async () => {
         return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
       });
 
-      console.log(`Found ${children.length} chart containers`);
+      // Special handling for the first chart (Sales and Volume Analysis)
+      if (children.length > 0) {
+        const salesVolumeContainer = children[0]; // This should be the BarChart container
+        
+        // Hide any tooltips and resize charts
+        const echartsElements = salesVolumeContainer.querySelectorAll('.echarts-for-react');
+        echartsElements.forEach(echartsEl => {
+          if (typeof echartsEl.getEchartsInstance === 'function') {
+            const inst = echartsEl.getEchartsInstance();
+            if (inst) {
+              inst.dispatchAction({ type: 'hideTip' });
+              inst.resize();
+            }
+          }
+        });
 
-      const chartTitles = [
-        'Sales and Volume Analysis',
-        'Margin over Material Cost', 
-        'Manufacturing Cost Breakdown',
-        'Below Gross Profit Expenses',
-        'Expenses Trends & Profit Analysis'
-      ];
+        await new Promise(r => setTimeout(r, 500));
 
-      for (let i = 0; i < children.length && i < chartTitles.length; i++) {
+        // Capture just the Sales and Volume Analysis chart with targeted settings
+        const salesVolumeImage = await captureElementAsBase64(salesVolumeContainer, {
+          scale: 1.5, // Same scale as our test button
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          removeContainer: true, // Same settings as test button
+          width: salesVolumeContainer.offsetWidth,
+          height: salesVolumeContainer.offsetHeight,
+          windowWidth: window.innerWidth,
+          windowHeight: window.innerHeight
+        });
+
+        if (salesVolumeImage) {
+          capturedCharts.push({
+            title: chartTitles[0],
+            image: salesVolumeImage,
+            id: 'chart-1'
+          });
+        }
+      }
+
+      // Handle remaining charts with targeted approach for ECharts components
+      for (let i = 1; i < children.length && i < chartTitles.length; i++) {
         const container = children[i];
 
         const echartsElements = container.querySelectorAll('.echarts-for-react');
@@ -1210,13 +1339,28 @@ const captureChartsAndTable = async () => {
 
         await new Promise(r => setTimeout(r, 500));
 
-        const chartImage = await captureElementAsBase64(container, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          allowTaint: true,
-          logging: true
-        });
+        // Use targeted approach for ECharts components (Manufacturing Cost and Below GP Expenses)
+        const isEChartsComponent = i === 2 || i === 3; // Charts 3 and 4 (0-indexed as 2 and 3)
+        
+        const chartImage = await captureElementAsBase64(container, 
+          isEChartsComponent ? {
+            scale: 1.5, // Same scale as Sales and Volume chart
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            removeContainer: true,
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight
+          } : {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: true
+          }
+        );
 
         if (chartImage) {
           capturedCharts.push({
@@ -1224,21 +1368,18 @@ const captureChartsAndTable = async () => {
             image: chartImage,
             id: `chart-${i + 1}`
           });
-          console.log(`Captured chart: ${chartTitles[i]}`);
-        } else {
-          console.warn(`Failed to capture chart: ${chartTitles[i]}`);
         }
       }
     }
 
-    console.log('Starting table capture...');
+    // console.log('Starting table capture...');
 
     try {
-      console.log('Capturing P&L Financial table...');
+      // console.log('Capturing P&L Financial table...');
       const plTab = Array.from(allTabs).find(tab => tab.textContent.includes('P&L'));
       
       if (plTab && !plTab.classList.contains('active')) {
-        console.log('Switching to P&L tab...');
+        // console.log('Switching to P&L tab...');
         plTab.click();
         await new Promise(r => setTimeout(r, 300));
       }
@@ -1246,7 +1387,7 @@ const captureChartsAndTable = async () => {
       // Create a clean container for table capture without PDF export controls
       const originalTableView = document.querySelector('.table-view');
       if (originalTableView) {
-        console.log('Creating clean table container for P&L...');
+        // console.log('Creating clean table container for P&L...');
         
         // Create a clean container
         const cleanContainer = document.createElement('div');
@@ -1293,21 +1434,21 @@ const captureChartsAndTable = async () => {
             image: plTableImage,
             id: 'pl-table'
           });
-          console.log('P&L Financial table captured successfully');
+          // console.log('P&L Financial table captured successfully');
         } else {
-          console.warn('Failed to capture P&L Financial table');
+          // console.warn('Failed to capture P&L Financial table');
         }
       }
     } catch (plErr) {
-      console.error('Error capturing P&L Financial table:', plErr);
+      // console.error('Error capturing P&L Financial table:', plErr);
     }
 
     try {
-      console.log('Capturing Product Group table...');
+      // console.log('Capturing Product Group table...');
       const productGroupTab = Array.from(allTabs).find(tab => tab.textContent.includes('Product Group'));
       
       if (productGroupTab && !productGroupTab.classList.contains('active')) {
-        console.log('Switching to Product Group tab...');
+        // console.log('Switching to Product Group tab...');
         productGroupTab.click();
         await new Promise(r => setTimeout(r, 300));
       }
@@ -1315,7 +1456,7 @@ const captureChartsAndTable = async () => {
       // Create a clean container for table capture without PDF export controls
       const originalTableView = document.querySelector('.table-view');
       if (originalTableView) {
-        console.log('Creating clean table container for Product Group...');
+        // console.log('Creating clean table container for Product Group...');
         
         // Create a clean container
         const cleanContainer = document.createElement('div');
@@ -1362,21 +1503,21 @@ const captureChartsAndTable = async () => {
             image: productGroupTableImage,
             id: 'product-group-table'
           });
-          console.log('Product Group table captured successfully');
+          // console.log('Product Group table captured successfully');
         } else {
-          console.warn('Failed to capture Product Group table');
+          // console.warn('Failed to capture Product Group table');
         }
       }
     } catch (pgErr) {
-      console.error('Error capturing Product Group table:', pgErr);
+      // console.error('Error capturing Product Group table:', pgErr);
     }
 
     try {
-      console.log('Capturing Sales by Country table...');
+      // console.log('Capturing Sales by Country table...');
       const salesCountryTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Country'));
       
       if (salesCountryTab && !salesCountryTab.classList.contains('active')) {
-        console.log('Switching to Sales by Country tab...');
+        // console.log('Switching to Sales by Country tab...');
         salesCountryTab.click();
         await new Promise(r => setTimeout(r, 300));
       }
@@ -1386,7 +1527,7 @@ const captureChartsAndTable = async () => {
       );
       
       if (tableSubTab && !tableSubTab.classList.contains('active')) {
-        console.log('Switching to Table sub-tab...');
+        // console.log('Switching to Table sub-tab...');
         tableSubTab.click();
         await new Promise(r => setTimeout(r, 300));
       }
@@ -1394,7 +1535,7 @@ const captureChartsAndTable = async () => {
       // Create a clean container for table capture without PDF export controls
       const originalTableView = document.querySelector('.table-view');
       if (originalTableView) {
-        console.log('Creating clean table container for Sales by Country...');
+        // console.log('Creating clean table container for Sales by Country...');
         
         // Create a clean container
         const cleanContainer = document.createElement('div');
@@ -1441,25 +1582,25 @@ const captureChartsAndTable = async () => {
             image: salesCountryTableImage,
             id: 'sales-country-table'
           });
-          console.log('Sales by Country table captured successfully');
+          // console.log('Sales by Country table captured successfully');
         } else {
-          console.warn('Failed to capture Sales by Country table');
+          // console.warn('Failed to capture Sales by Country table');
         }
       }
     } catch (scErr) {
-      console.error('Error capturing Sales by Country table:', scErr);
+      // console.error('Error capturing Sales by Country table:', scErr);
     }
 
     // Capture Sales by Customer table
     try {
-      console.log('Capturing Sales by Customer table...');
+      // console.log('Capturing Sales by Customer table...');
       
       // Check if there's a Sales by Customer tab - if not, we'll skip this capture
       const salesCustomerTab = Array.from(allTabs).find(tab => tab.textContent.includes('Sales by Customer'));
       
       if (salesCustomerTab) {
         if (!salesCustomerTab.classList.contains('active')) {
-          console.log('Switching to Sales by Customer tab...');
+          // console.log('Switching to Sales by Customer tab...');
           salesCustomerTab.click();
           await new Promise(r => setTimeout(r, 300));
         }
@@ -1470,7 +1611,7 @@ const captureChartsAndTable = async () => {
         );
         
         if (customerTableSubTab && !customerTableSubTab.classList.contains('active')) {
-          console.log('Switching to Customer Table sub-tab...');
+          // console.log('Switching to Customer Table sub-tab...');
           customerTableSubTab.click();
           await new Promise(r => setTimeout(r, 300));
         }
@@ -1478,7 +1619,7 @@ const captureChartsAndTable = async () => {
         // Create a clean container for table capture without PDF export controls
         const originalTableView = document.querySelector('.table-view');
         if (originalTableView) {
-          console.log('Creating clean table container for Sales by Customer...');
+          // console.log('Creating clean table container for Sales by Customer...');
           
           // Create a clean container
           const cleanContainer = document.createElement('div');
@@ -1525,16 +1666,16 @@ const captureChartsAndTable = async () => {
               image: salesCustomerTableImage,
               id: 'sales-customer-table'
             });
-            console.log('Sales by Customer table captured successfully');
+            // console.log('Sales by Customer table captured successfully');
           } else {
-            console.warn('Failed to capture Sales by Customer table');
+            // console.warn('Failed to capture Sales by Customer table');
           }
         }
       } else {
-        console.log('Sales by Customer tab not found, skipping capture');
+        // console.log('Sales by Customer tab not found, skipping capture');
       }
     } catch (customerErr) {
-      console.error('Error capturing Sales by Customer table:', customerErr);
+      // console.error('Error capturing Sales by Customer table:', customerErr);
     }
 
     if (chartsTabElement) {
@@ -1551,7 +1692,7 @@ const captureChartsAndTable = async () => {
 // HTML export function WITHOUT writeup
 export const exportHTMLReportNoWriteup = async (exportData) => {
   try {
-    console.log('Starting HTML report generation (NO writeup)...');
+    // console.log('Starting HTML report generation (NO writeup)...');
 
     const divisionNames = {
       FP: 'Flexible Packaging',
@@ -1605,7 +1746,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${divisionFullName} Financial Report</title>
+    <title>${divisionFullName} Comprehensive Report</title>
     ${getEmbeddedCSSNoWriteup()}
 </head>
 <body>
@@ -1618,7 +1759,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
                 <img src="${logoBase64}" alt="Company Logo" />
             </div>
             ` : ''}
-            <h1>${divisionFullName} Financial Report</h1>
+            <h1>${divisionFullName} Comprehensive Report</h1>
             <h2>Period: ${exportData.basePeriod || 'No Period Set'}</h2>
             
             <div class="nav-tabs">
@@ -1654,11 +1795,11 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
     
     URL.revokeObjectURL(url);
     
-    console.log(`✅ HTML report generated (NO writeup): ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
+    // console.log(`✅ HTML report generated (NO writeup): ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
     
     return true;
   } catch (error) {
-    console.error('Error generating HTML report (no writeup):', error);
+    // console.error('Error generating HTML report (no writeup):', error);
     alert('Failed to generate HTML report. Please check console for details.');
     return false;
   }
@@ -1667,7 +1808,7 @@ export const exportHTMLReportNoWriteup = async (exportData) => {
 // HTML export function WITH writeup
 export const exportHTMLReportWithWriteup = async (exportData) => {
   try {
-    console.log('Starting HTML report with writeup generation...');
+    // console.log('Starting HTML report with writeup generation...');
 
     const divisionNames = {
       FP: 'Flexible Packaging',
@@ -1765,7 +1906,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${divisionFullName} Financial Report</title>
+    <title>${divisionFullName} Comprehensive Report</title>
     ${getEmbeddedCSSWithWriteup()}
 </head>
 <body>
@@ -1778,7 +1919,7 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
                 <img src="${logoBase64}" alt="Company Logo" />
             </div>
             ` : ''}
-            <h1>${divisionFullName} Financial Report</h1>
+            <h1>${divisionFullName} Comprehensive Report</h1>
             <h2>Period: ${exportData.basePeriod || 'No Period Set'}</h2>
             
             <div class="nav-tabs">
@@ -1816,11 +1957,11 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
     
     URL.revokeObjectURL(url);
     
-    console.log(`✅ Interactive HTML report with writeup generated: ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
+    // console.log(`✅ Interactive HTML report with writeup generated: ${capturedCharts.length} charts and ${capturedTables.length} tables!`);
     
     return true;
   } catch (error) {
-    console.error('Error generating HTML report with writeup:', error);
+    // console.error('Error generating HTML report with writeup:', error);
     alert('Failed to generate HTML report. Please check console for details.');
     return false;
   }
@@ -1828,6 +1969,39 @@ export const exportHTMLReportWithWriteup = async (exportData) => {
 
 // Backward compatibility
 export const exportHTMLReport = exportHTMLReportNoWriteup;
+
+// New test export function: capture chart at its original size in the DOM
+export const exportNativeChartTest = async (chartSelector = '.echarts-for-react') => {
+  try {
+    // Find the first chart element in the DOM
+    const chartElement = document.querySelector(chartSelector);
+    if (!chartElement) {
+      alert('Chart element not found!');
+      return false;
+    }
+    // Use html2canvas to capture the chart as-is
+    const canvas = await html2canvas(chartElement, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      allowTaint: true,
+      logging: true
+    });
+    if (!canvas) {
+      alert('Failed to capture chart!');
+      return false;
+    }
+    // Create a new window/tab to show the image for quick inspection
+    const imgData = canvas.toDataURL('image/png');
+    const win = window.open();
+    win.document.write('<title>Test Native Chart Export</title>');
+    win.document.write('<img src="' + imgData + '" style="max-width:100%;height:auto;display:block;margin:0 auto;" />');
+    return true;
+  } catch (err) {
+    alert('Error during native chart export: ' + err.message);
+    return false;
+  }
+};
 
 export default { 
   exportHTMLReport, 

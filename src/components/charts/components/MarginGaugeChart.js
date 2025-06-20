@@ -2,14 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 import './MarginGaugeChart.css';
 
-// Color scheme definitions (matching the config grid)
-const colorSchemes = {
-  blue: '#288cfa',
-  green: '#2E865F',
-  yellow: '#FFEA00',
-  orange: '#FF9800',
-  boldContrast: '#003366',
-};
+// Color scheme definitions (MUST MATCH ColumnConfigGrid.js exactly)
+const colorSchemes = [
+  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
+  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
+  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
+  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
+];
 
 const MarginGaugeChart = ({ data, periods, basePeriod }) => {
   const gaugeRefs = useRef([]);
@@ -53,18 +53,32 @@ const MarginGaugeChart = ({ data, periods, basePeriod }) => {
 
       console.log(`Gauge ${index} (${periodKey}): Sales=${salesValue}, Material=${materialCost}, Margin=${marginOverMaterial.toLocaleString()}, Margin%=${marginPercentage.toFixed(2)}%`);
 
-      // Get the same color as used for this period's bar
+      // Get the same color as used for this period's bar (same logic as other components)
       let gaugeColor;
-      if (period.customColor && colorSchemes[period.customColor]) {
-        gaugeColor = colorSchemes[period.customColor];
-      } else if (index === 0) {
-        gaugeColor = '#FFCC33'; // 2024 Q1 Actual - yellow
-      } else if (index === 1) {
-        gaugeColor = '#288cfa'; // 2025 Q1 Actual - blue
-      } else if (index === 2) {
-        gaugeColor = '#003366'; // 2025 Q1 Budget - dark blue
+      if (period.customColor) {
+        const scheme = colorSchemes.find(s => s.name === period.customColor);
+        if (scheme) {
+          gaugeColor = scheme.primary;
+        }
       } else {
-        gaugeColor = '#91cc75'; // Default
+        // Default color assignment based on month/type (same as tables)
+        if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
+          gaugeColor = '#FF6B35'; // Orange (light red)
+        } else if (period.month === 'January') {
+          gaugeColor = '#FFD700'; // Yellow
+        } else if (period.month === 'Year') {
+          gaugeColor = '#288cfa'; // Blue
+        } else if (period.type === 'Budget') {
+          gaugeColor = '#2E865F'; // Green
+        } else if (index === 0) {
+          gaugeColor = '#FFD700'; // Default first period - yellow
+        } else if (index === 1) {
+          gaugeColor = '#288cfa'; // Default second period - blue
+        } else if (index === 2) {
+          gaugeColor = '#003366'; // Default third period - dark blue
+        } else {
+          gaugeColor = '#91cc75'; // Default fallback
+        }
       }
 
       // Get the percentage text element above the gauge

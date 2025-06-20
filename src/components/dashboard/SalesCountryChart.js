@@ -20,8 +20,8 @@ const SalesCountryChart = () => {
   const colorSchemes = [
     { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
     { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
-    { name: 'yellow', label: 'Yellow', primary: '#FFCC33', secondary: '#FFFDE7', isDark: false },
-    { name: 'orange', label: 'Orange', primary: '#FF9800', secondary: '#FFE0B2', isDark: false },
+    { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+    { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
     { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
   ];
 
@@ -566,7 +566,7 @@ const SalesCountryChart = () => {
                     borderRadius: '6px',
                     border: '1px solid rgba(255,255,255,0.3)',
                     backgroundColor: buttonColor,
-                    color: buttonColor === '#FFEA00' ? '#000' : '#fff',
+                                          color: (buttonColor === '#FFD700' || buttonColor === '#FF6B35') ? '#000' : '#fff',
                     fontSize: '13px',
                     fontWeight: '500',
                     cursor: 'pointer',

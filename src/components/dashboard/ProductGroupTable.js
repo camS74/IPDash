@@ -440,8 +440,8 @@ const ProductGroupTable = () => {
   const colorSchemes = [
     { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', light: '#E3F2FD', isDark: true },
     { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', light: '#E8F5E9', isDark: true },
-    { name: 'yellow', label: 'Yellow', primary: '#FFEA00', secondary: '#FFFDE7', light: '#FFFDE7', isDark: false },
-    { name: 'orange', label: 'Orange', primary: '#FF9800', secondary: '#FFE0B2', light: '#FFF3E0', isDark: false },
+    { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', light: '#FFFDE7', isDark: false },
+    { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', light: '#FFF3E0', isDark: false },
     { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#E6EEF5', light: '#E6EEF5', isDark: true }
   ];
 
@@ -471,13 +471,13 @@ const ProductGroupTable = () => {
     // Default color assignment based on month/type
     if (column.month === 'Q1' || column.month === 'Q2' || column.month === 'Q3' || column.month === 'Q4') {
       return {
-        backgroundColor: '#FF9800', // Orange
+        backgroundColor: '#FF6B35', // Orange (light red)
         color: '#000000',
         fontWeight: 'bold'
       };
     } else if (column.month === 'January') {
       return {
-        backgroundColor: '#FFEA00', // Yellow
+        backgroundColor: '#FFD700', // Yellow
         color: '#000000',
         fontWeight: 'bold'
       };

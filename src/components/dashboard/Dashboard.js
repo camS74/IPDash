@@ -32,7 +32,6 @@ const Dashboard = () => {
   
   // Use useCallback to memoize the function to prevent it from changing on every render
   const loadData = useCallback(() => {
-    console.log('Dashboard mounted, attempting to load Excel data...');
     // Load Excel data when component mounts - pointing to our backend server
     loadExcelData('/api/financials.xlsx')
       .catch(err => {

@@ -2,16 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts';
 import './BarChart.css';
 
-// Color scheme definitions (should match the config grid)
-const colorSchemes = {
-  blue: '#288cfa',
-  green: '#2E865F',
-  yellow: '#FFEA00',
-  orange: '#FF9800',
-  boldContrast: '#003366',
-};
+// Color scheme definitions (MUST MATCH ColumnConfigGrid.js exactly)
+const colorSchemes = [
+  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
+  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
+  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
+  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
+  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
+];
 const salesVolumeColor = '#8e44ad'; // purple
-const productionVolumeColor = '#ff9800'; // orange
+const productionVolumeColor = '#FF6B35'; // orange
 
 // Debounce function to limit frequency of function calls
 const debounce = (func, delay) => {
@@ -21,6 +21,9 @@ const debounce = (func, delay) => {
     timer = setTimeout(() => func(...args), delay);
   };
 };
+
+// Global reference for chart export
+window.mainBarChartInstance = null;
 
 const BarChart = ({ data, periods, basePeriod }) => {
   const chartRef = useRef(null);
@@ -74,26 +77,29 @@ const BarChart = ({ data, periods, basePeriod }) => {
       
       const myChart = echarts.init(chartRef.current);
       chartInstance.current = myChart;
+      
+      // Store globally for export access
+      window.mainBarChartInstance = myChart;
 
-        console.log('Rendering chart with data:', { data, periods, basePeriod });
-        
-        const periodLabels = periods.map(period => {
-          if (period.isCustomRange) {
-            // For custom ranges, use displayName for clean display
-            return `${period.year}-${period.displayName}-${period.type}`;
-          } else if (period.month) {
-            return `${period.year}-${period.month}-${period.type}`;
-          }
-          return `${period.year}-${period.type}`;
-        });
-        
-        const seriesData = periods.map(period => {
-          // Use the same key format as in ChartContainer
-          const periodKey = createPeriodKey(period);
-          const value = data[periodKey]?.sales || 0;
-          console.log(`Period ${periodKey}: ${value}`);
-          return value;
-        });
+      console.log('Rendering chart with data:', { data, periods, basePeriod });
+      
+      const periodLabels = periods.map(period => {
+        if (period.isCustomRange) {
+          // For custom ranges, use displayName for clean display
+          return `${period.year}-${period.displayName}-${period.type}`;
+        } else if (period.month) {
+          return `${period.year}-${period.month}-${period.type}`;
+        }
+        return `${period.year}-${period.type}`;
+      });
+      
+      const seriesData = periods.map(period => {
+        // Use the same key format as in ChartContainer
+        const periodKey = createPeriodKey(period);
+        const value = data[periodKey]?.sales || 0;
+        console.log(`Period ${periodKey}: ${value}`);
+        return value;
+      });
 
       // Sales Volume (row 7)
       const salesVolumeData = periods.map(period => {
@@ -105,9 +111,9 @@ const BarChart = ({ data, periods, basePeriod }) => {
       const productionVolumeData = periods.map(period => {
         const periodKey = createPeriodKey(period);
         return data[periodKey]?.productionVolume || 0;
-        });
+      });
 
-        console.log('Chart series data:', seriesData);
+      console.log('Chart series data:', seriesData);
 
       // Calculate % variance for each bar
       const percentVariance = seriesData.map((value, idx) => {
@@ -116,17 +122,28 @@ const BarChart = ({ data, periods, basePeriod }) => {
         return pct;
       });
 
-      // Get bar color for each column
+      // Get bar color for each column using the EXACT same logic as other components
       const barColors = periods.map((period, idx) => {
-        if (periods[idx].customColor && colorSchemes[periods[idx].customColor]) {
-          return colorSchemes[periods[idx].customColor];
+        if (period.customColor) {
+          const scheme = colorSchemes.find(s => s.name === period.customColor);
+          if (scheme) {
+            return scheme.primary;
+          }
         }
-        // Default: highlight base period, otherwise green
-        const periodKey = createPeriodKey(period);
-        if (periodKey === basePeriod) {
-          return '#5470c6';
+        
+        // Default color assignment based on month/type (same as tables)
+        if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
+          return '#FF6B35'; // Orange (light red)
+        } else if (period.month === 'January') {
+          return '#FFD700'; // Yellow
+        } else if (period.month === 'Year') {
+          return '#288cfa'; // Blue
+        } else if (period.type === 'Budget') {
+          return '#2E865F'; // Green
         }
-        return '#91cc75';
+        
+        // Default to blue
+        return '#288cfa';
       });
 
       // Custom render for % variance and horizontal line
@@ -169,8 +186,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
         }),
       };
 
-        // Set option
-        myChart.setOption({
+      // Set option
+      myChart.setOption({
         legend: {
           show: true,
           data: periodLabels,
@@ -193,136 +210,136 @@ const BarChart = ({ data, periods, basePeriod }) => {
           },
           selectedMode: false // Disable toggling
         },
-    grid: {
-      left: '0%',
-      right: '0%',
-      bottom: 140,
-      top: 25,
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-            data: periodLabels,
+        grid: {
+          left: '0%',
+          right: '0%',
+          bottom: 140,
+          top: 25,
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: periodLabels,
           position: 'bottom',
-            axisLabel: {
-              rotate: 0,
+          axisLabel: {
+            rotate: 0,
             fontWeight: 'bold',
             fontSize: 18,
             color: '#000',
-              formatter: function(value) {
-                const parts = value.split('-');
-                if (parts.length >= 3) {
-                  const year = parts[0];
-                  // Check if this is a custom range (contains more than 3 parts due to hyphen in displayName)
-                  if (parts.length > 3) {
-                    // For custom ranges like "2025-Jan-Apr-Actual"
-                    // Reconstruct the displayName and type
-                    const displayName = parts.slice(1, -1).join('-'); // "Jan-Apr"
-                    const type = parts[parts.length - 1]; // "Actual"
-                    return `${year}\n${displayName}\n${type}`;
+            formatter: function(value) {
+              const parts = value.split('-');
+              if (parts.length >= 3) {
+                const year = parts[0];
+                // Check if this is a custom range (contains more than 3 parts due to hyphen in displayName)
+                if (parts.length > 3) {
+                  // For custom ranges like "2025-Jan-Apr-Actual"
+                  // Reconstruct the displayName and type
+                  const displayName = parts.slice(1, -1).join('-'); // "Jan-Apr"
+                  const type = parts[parts.length - 1]; // "Actual"
+                  return `${year}\n${displayName}\n${type}`;
+                } else {
+                  // Regular periods like "2025-Q1-Actual"
+                  const month = parts[1];
+                  const type = parts[2];
+                  if (month === 'Year') {
+                    return `${year}\n\n${type}`;
                   } else {
-                    // Regular periods like "2025-Q1-Actual"
-                    const month = parts[1];
-                    const type = parts[2];
-                    if (month === 'Year') {
-                      return `${year}\n\n${type}`;
-                    } else {
-                      return `${year}\n${month}\n${type}`;
-                    }
+                    return `${year}\n${month}\n${type}`;
                   }
                 }
-                return value;
-              },
-              margin: 30,
-            },
-            axisLine: {
-              lineStyle: {
-                color: '#000',
-                width: 2
               }
+              return value;
             },
-            axisTick: {
-              alignWithLabel: true,
-              length: 4,
-              lineStyle: {
-                color: '#ccc'
-                }
-              }
-    },
+            margin: 30,
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#000',
+              width: 2
+            }
+          },
+          axisTick: {
+            alignWithLabel: true,
+            length: 4,
+            lineStyle: {
+              color: '#ccc'
+            }
+          }
+        },
         yAxis: [
           {
-      type: 'value',
+            type: 'value',
             show: false,
             scale: true,
             max: function(value) {
               return value.max * 1.15;
-              }
-      }
+            }
+          }
         ],
-    series: [
-      {
+        series: [
+          {
             name: '',
-              data: seriesData,
-        type: 'bar',
-        barMaxWidth: '80%',
-        barWidth: '80%',
-        barCategoryGap: '0%',
-        itemStyle: {
-                color: function(params) {
+            data: seriesData,
+            type: 'bar',
+            barMaxWidth: '80%',
+            barWidth: '80%',
+            barCategoryGap: '0%',
+            itemStyle: {
+              color: function(params) {
                 return barColors[params.dataIndex];
-        }
-      },
-              label: {
-                show: true,
-                position: 'top',
+              }
+            },
+            label: {
+              show: true,
+              position: 'top',
               fontWeight: 'bold',
               fontSize: 18,
               color: '#222',
-                formatter: function(params) {
-                  const value = params.value;
-                  if (value >= 1000000) {
-                    return (value / 1000000).toFixed(1) + 'M';
-                  } else if (value >= 1000) {
-                    return (value / 1000).toFixed(1) + 'K';
-                  }
-                  return value;
+              formatter: function(params) {
+                const value = params.value;
+                if (value >= 1000000) {
+                  return (value / 1000000).toFixed(1) + 'M';
+                } else if (value >= 1000) {
+                  return (value / 1000).toFixed(1) + 'K';
                 }
+                return value;
+              }
             },
             emphasis: {
               focus: 'series'
             },
             z: 2
           },
-      // Custom % variance above each bar
-      {
-        name: 'Percent Difference',
-        type: 'custom',
-        renderItem: function(params, api) {
-          const idx = api.value(0);
-          if (idx === baseIndex) return null;
-          const value = api.value(1);
-          const pct = percentVariance[idx];
-          if (pct === null || pct === undefined) return null;
-          let color = '#888';
-          if (pct > 0) color = '#2E865F';
-          else if (pct < 0) color = '#dc3545';
-          const x = api.coord([idx, value])[0];
-          const y = api.coord([idx, value])[1];
-          return {
-            type: 'text',
-            style: {
-              text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`,
-              fill: color,
-              font: 'bold 16px sans-serif',
-              textAlign: 'center',
-              textVerticalAlign: 'bottom',
+          // Custom % variance above each bar
+          {
+            name: 'Percent Difference',
+            type: 'custom',
+            renderItem: function(params, api) {
+              const idx = api.value(0);
+              if (idx === baseIndex) return null;
+              const value = api.value(1);
+              const pct = percentVariance[idx];
+              if (pct === null || pct === undefined) return null;
+              let color = '#888';
+              if (pct > 0) color = '#2E865F';
+              else if (pct < 0) color = '#dc3545';
+              const x = api.coord([idx, value])[0];
+              const y = api.coord([idx, value])[1];
+              return {
+                type: 'text',
+                style: {
+                  text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`,
+                  fill: color,
+                  font: 'bold 16px sans-serif',
+                  textAlign: 'center',
+                  textVerticalAlign: 'bottom',
+                },
+                position: [x, y - 36],
+              };
             },
-            position: [x, y - 36],
-          };
-        },
-        data: periods.map((_, idx) => [idx, seriesData[idx]]),
-        z: 3
-      },
+            data: periods.map((_, idx) => [idx, seriesData[idx]]),
+            z: 3
+          },
         ],
         tooltip: {
           show: false, // Completely disable tooltips to prevent white panel
@@ -335,13 +352,12 @@ const BarChart = ({ data, periods, basePeriod }) => {
       myChart.resize();
       setTimeout(() => {
         if (myChart && !myChart.isDisposed()) {
-        myChart.resize();
+          myChart.resize();
         }
       }, 300);
-        
-      } catch (error) {
-        console.error('Error rendering chart:', error);
-        }
+    } catch (error) {
+      console.error('Error rendering chart:', error);
+    }
   };
 
   // Function to update bar positions using ECharts API
@@ -428,8 +444,9 @@ const BarChart = ({ data, periods, basePeriod }) => {
     <div className="bar-chart-container" style={{ 
       position: 'relative', 
       width: '100%', 
-      height: '1080px', // Increased by 20%
-      minHeight: '840px', // Increased by 20%
+      height: '80vh', // Balanced responsive height
+      minHeight: '600px', // Minimum height for small screens
+      maxHeight: '1000px', // Maximum height for large screens
       backgroundColor: '#fff',
       borderRadius: '8px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -464,17 +481,25 @@ const BarChart = ({ data, periods, basePeriod }) => {
           marginTop: '10px',
         }}>
           {periods.map((period, idx) => {
-            // Use the same color logic as the bars
+            // Use the EXACT same color logic as the bars
             let color;
-            if (period.customColor && colorSchemes[period.customColor]) {
-              color = colorSchemes[period.customColor];
+            if (period.customColor) {
+              const scheme = colorSchemes.find(s => s.name === period.customColor);
+              if (scheme) {
+                color = scheme.primary;
+              }
             } else {
-              // Default: highlight base period, otherwise green
-              const periodKey = createPeriodKey(period);
-              if (periodKey === basePeriod) {
-                color = '#5470c6';
+              // Default color assignment based on month/type (same as bars and tables)
+              if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
+                color = '#FF6B35'; // Orange (light red)
+              } else if (period.month === 'January') {
+                color = '#FFD700'; // Yellow
+              } else if (period.month === 'Year') {
+                color = '#288cfa'; // Blue
+              } else if (period.type === 'Budget') {
+                color = '#2E865F'; // Green
               } else {
-                color = '#91cc75';
+                color = '#288cfa'; // Default to blue
               }
             }
             // Use the same label as the x-axis
@@ -583,7 +608,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
                     left: barPositions[idx] - 50,
                     width: 100,
                     textAlign: 'center',
-                    color: '#ff9800',
+                    color: '#FF6B35',
                     fontWeight: 'bold',
                     fontSize: 18,
                     bottom: 30 // Tighter spacing
@@ -616,7 +641,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
           <div style={{ fontWeight: 'bold', fontSize: 16 }}>Sales per Kg</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '16px', height: '16px', backgroundColor: '#ff9800', borderRadius: '4px' }}></div>
+          <div style={{ width: '16px', height: '16px', backgroundColor: '#FF6B35', borderRadius: '4px' }}></div>
           <div style={{ fontWeight: 'bold', fontSize: 16 }}>Production Volume</div>
         </div>
       </div>
