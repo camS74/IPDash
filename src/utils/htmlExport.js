@@ -1354,11 +1354,11 @@ const captureChartsAndTable = async () => {
             windowWidth: window.innerWidth,
             windowHeight: window.innerHeight
           } : {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            allowTaint: true,
-            logging: true
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+          logging: true
           }
         );
 

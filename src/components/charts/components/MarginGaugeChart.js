@@ -70,13 +70,13 @@ const MarginGaugeChart = ({ data, periods, basePeriod }) => {
           gaugeColor = '#288cfa'; // Blue
         } else if (period.type === 'Budget') {
           gaugeColor = '#2E865F'; // Green
-        } else if (index === 0) {
+      } else if (index === 0) {
           gaugeColor = '#FFD700'; // Default first period - yellow
-        } else if (index === 1) {
+      } else if (index === 1) {
           gaugeColor = '#288cfa'; // Default second period - blue
-        } else if (index === 2) {
+      } else if (index === 2) {
           gaugeColor = '#003366'; // Default third period - dark blue
-        } else {
+      } else {
           gaugeColor = '#91cc75'; // Default fallback
         }
       }

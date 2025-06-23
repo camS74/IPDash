@@ -2,14 +2,15 @@ import React, { useRef } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
-import ProductGroupPDFExport from './ProductGroupPDFExport';
+
 import './ProductGroupTable.css';
 
-const ProductGroupTable = () => {
+const ProductGroupTable = React.forwardRef((props, ref) => {
   const { salesData, getProductGroups } = useSalesData();
   const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
   const { columnOrder, dataGenerated } = useFilter();
-  const tableRef = useRef(null);
+  const internalTableRef = useRef(null);
+  const tableRef = ref || internalTableRef;
 
   // Only show data if Generate button has been clicked
   if (!dataGenerated) {
@@ -688,7 +689,6 @@ const ProductGroupTable = () => {
 
       return (
       <div className="table-view">
-        <ProductGroupPDFExport tableRef={tableRef} selectedDivision={selectedDivision} />
         <div className="table-header">
           <div className="header-center">
           <h3 className="table-title">Product Group - {getDivisionDisplayName()}</h3>
@@ -1148,6 +1148,6 @@ const ProductGroupTable = () => {
       </div>
     </div>
   );
-};
+});
 
 export default ProductGroupTable; 

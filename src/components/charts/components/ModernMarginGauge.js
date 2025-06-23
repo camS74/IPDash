@@ -175,14 +175,14 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
         color = '#288cfa'; // Blue
       } else if (period.type === 'Budget') {
         color = '#2E865F'; // Green
-      } else if (index === 0) {
+    } else if (index === 0) {
         color = '#FFD700'; // Default first period - yellow
-      } else if (index === 1) {
+    } else if (index === 1) {
         color = '#288cfa'; // Default second period - blue
-      } else if (index === 2) {
+    } else if (index === 2) {
         color = '#003366'; // Default third period - dark blue
-      } else {
-        color = defaultColors[index % defaultColors.length]; // Cycle through default colors
+    } else {
+      color = defaultColors[index % defaultColors.length]; // Cycle through default colors
       }
     }
     

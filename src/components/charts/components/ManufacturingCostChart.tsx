@@ -289,8 +289,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
         color = '#288cfa'; // Blue
       } else if (period.type === 'Budget') {
         color = '#2E865F'; // Green
-      } else {
-        color = defaultColors[index % defaultColors.length];
+    } else {
+      color = defaultColors[index % defaultColors.length];
       }
     }
     
@@ -527,8 +527,8 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
               color = '#288cfa'; // Blue
             } else if (period.type === 'Budget') {
               color = '#2E865F'; // Green
-            } else {
-              color = defaultColors[index % defaultColors.length];
+          } else {
+            color = defaultColors[index % defaultColors.length];
             }
           }
           

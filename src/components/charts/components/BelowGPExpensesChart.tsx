@@ -240,8 +240,8 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
         color = '#288cfa'; // Blue
       } else if (period.type === 'Budget') {
         color = '#2E865F'; // Green
-      } else {
-        color = defaultColors[index % defaultColors.length];
+    } else {
+      color = defaultColors[index % defaultColors.length];
       }
     }
     
@@ -467,8 +467,8 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
               color = '#288cfa'; // Blue
             } else if (period.type === 'Budget') {
               color = '#2E865F'; // Green
-            } else {
-              color = defaultColors[idx % defaultColors.length];
+          } else {
+            color = defaultColors[idx % defaultColors.length];
             }
           }
           const isColorDark = (hexColor: string) => {

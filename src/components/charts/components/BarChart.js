@@ -81,25 +81,25 @@ const BarChart = ({ data, periods, basePeriod }) => {
       // Store globally for export access
       window.mainBarChartInstance = myChart;
 
-      console.log('Rendering chart with data:', { data, periods, basePeriod });
-      
-      const periodLabels = periods.map(period => {
-        if (period.isCustomRange) {
-          // For custom ranges, use displayName for clean display
-          return `${period.year}-${period.displayName}-${period.type}`;
-        } else if (period.month) {
-          return `${period.year}-${period.month}-${period.type}`;
-        }
-        return `${period.year}-${period.type}`;
-      });
-      
-      const seriesData = periods.map(period => {
-        // Use the same key format as in ChartContainer
-        const periodKey = createPeriodKey(period);
-        const value = data[periodKey]?.sales || 0;
-        console.log(`Period ${periodKey}: ${value}`);
-        return value;
-      });
+        console.log('Rendering chart with data:', { data, periods, basePeriod });
+        
+        const periodLabels = periods.map(period => {
+          if (period.isCustomRange) {
+            // For custom ranges, use displayName for clean display
+            return `${period.year}-${period.displayName}-${period.type}`;
+          } else if (period.month) {
+            return `${period.year}-${period.month}-${period.type}`;
+          }
+          return `${period.year}-${period.type}`;
+        });
+        
+        const seriesData = periods.map(period => {
+          // Use the same key format as in ChartContainer
+          const periodKey = createPeriodKey(period);
+          const value = data[periodKey]?.sales || 0;
+          console.log(`Period ${periodKey}: ${value}`);
+          return value;
+        });
 
       // Sales Volume (row 7)
       const salesVolumeData = periods.map(period => {
@@ -111,9 +111,9 @@ const BarChart = ({ data, periods, basePeriod }) => {
       const productionVolumeData = periods.map(period => {
         const periodKey = createPeriodKey(period);
         return data[periodKey]?.productionVolume || 0;
-      });
+        });
 
-      console.log('Chart series data:', seriesData);
+        console.log('Chart series data:', seriesData);
 
       // Calculate % variance for each bar
       const percentVariance = seriesData.map((value, idx) => {
@@ -128,7 +128,7 @@ const BarChart = ({ data, periods, basePeriod }) => {
           const scheme = colorSchemes.find(s => s.name === period.customColor);
           if (scheme) {
             return scheme.primary;
-          }
+        }
         }
         
         // Default color assignment based on month/type (same as tables)
@@ -186,8 +186,8 @@ const BarChart = ({ data, periods, basePeriod }) => {
         }),
       };
 
-      // Set option
-      myChart.setOption({
+        // Set option
+        myChart.setOption({
         legend: {
           show: true,
           data: periodLabels,
@@ -210,136 +210,136 @@ const BarChart = ({ data, periods, basePeriod }) => {
           },
           selectedMode: false // Disable toggling
         },
-        grid: {
-          left: '0%',
-          right: '0%',
-          bottom: 140,
-          top: 25,
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: periodLabels,
+    grid: {
+      left: '0%',
+      right: '0%',
+      bottom: 140,
+      top: 25,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+            data: periodLabels,
           position: 'bottom',
-          axisLabel: {
-            rotate: 0,
+            axisLabel: {
+              rotate: 0,
             fontWeight: 'bold',
             fontSize: 18,
             color: '#000',
-            formatter: function(value) {
-              const parts = value.split('-');
-              if (parts.length >= 3) {
-                const year = parts[0];
-                // Check if this is a custom range (contains more than 3 parts due to hyphen in displayName)
-                if (parts.length > 3) {
-                  // For custom ranges like "2025-Jan-Apr-Actual"
-                  // Reconstruct the displayName and type
-                  const displayName = parts.slice(1, -1).join('-'); // "Jan-Apr"
-                  const type = parts[parts.length - 1]; // "Actual"
-                  return `${year}\n${displayName}\n${type}`;
-                } else {
-                  // Regular periods like "2025-Q1-Actual"
-                  const month = parts[1];
-                  const type = parts[2];
-                  if (month === 'Year') {
-                    return `${year}\n\n${type}`;
+              formatter: function(value) {
+                const parts = value.split('-');
+                if (parts.length >= 3) {
+                  const year = parts[0];
+                  // Check if this is a custom range (contains more than 3 parts due to hyphen in displayName)
+                  if (parts.length > 3) {
+                    // For custom ranges like "2025-Jan-Apr-Actual"
+                    // Reconstruct the displayName and type
+                    const displayName = parts.slice(1, -1).join('-'); // "Jan-Apr"
+                    const type = parts[parts.length - 1]; // "Actual"
+                    return `${year}\n${displayName}\n${type}`;
                   } else {
-                    return `${year}\n${month}\n${type}`;
+                    // Regular periods like "2025-Q1-Actual"
+                    const month = parts[1];
+                    const type = parts[2];
+                    if (month === 'Year') {
+                      return `${year}\n\n${type}`;
+                    } else {
+                      return `${year}\n${month}\n${type}`;
+                    }
                   }
                 }
-              }
-              return value;
+                return value;
+              },
+              margin: 30,
             },
-            margin: 30,
-          },
-          axisLine: {
-            lineStyle: {
-              color: '#000',
-              width: 2
-            }
-          },
-          axisTick: {
-            alignWithLabel: true,
-            length: 4,
-            lineStyle: {
-              color: '#ccc'
-            }
-          }
-        },
+            axisLine: {
+              lineStyle: {
+                color: '#000',
+                width: 2
+              }
+            },
+            axisTick: {
+              alignWithLabel: true,
+              length: 4,
+              lineStyle: {
+                color: '#ccc'
+                }
+              }
+    },
         yAxis: [
           {
-            type: 'value',
+      type: 'value',
             show: false,
             scale: true,
             max: function(value) {
               return value.max * 1.15;
-            }
-          }
-        ],
-        series: [
-          {
-            name: '',
-            data: seriesData,
-            type: 'bar',
-            barMaxWidth: '80%',
-            barWidth: '80%',
-            barCategoryGap: '0%',
-            itemStyle: {
-              color: function(params) {
-                return barColors[params.dataIndex];
               }
-            },
-            label: {
-              show: true,
-              position: 'top',
+      }
+        ],
+    series: [
+      {
+            name: '',
+              data: seriesData,
+        type: 'bar',
+        barMaxWidth: '80%',
+        barWidth: '80%',
+        barCategoryGap: '0%',
+        itemStyle: {
+                color: function(params) {
+                return barColors[params.dataIndex];
+        }
+      },
+              label: {
+                show: true,
+                position: 'top',
               fontWeight: 'bold',
               fontSize: 18,
               color: '#222',
-              formatter: function(params) {
-                const value = params.value;
-                if (value >= 1000000) {
-                  return (value / 1000000).toFixed(1) + 'M';
-                } else if (value >= 1000) {
-                  return (value / 1000).toFixed(1) + 'K';
+                formatter: function(params) {
+                  const value = params.value;
+                  if (value >= 1000000) {
+                    return (value / 1000000).toFixed(1) + 'M';
+                  } else if (value >= 1000) {
+                    return (value / 1000).toFixed(1) + 'K';
+                  }
+                  return value;
                 }
-                return value;
-              }
             },
             emphasis: {
               focus: 'series'
             },
             z: 2
           },
-          // Custom % variance above each bar
-          {
-            name: 'Percent Difference',
-            type: 'custom',
-            renderItem: function(params, api) {
-              const idx = api.value(0);
-              if (idx === baseIndex) return null;
-              const value = api.value(1);
-              const pct = percentVariance[idx];
-              if (pct === null || pct === undefined) return null;
-              let color = '#888';
-              if (pct > 0) color = '#2E865F';
-              else if (pct < 0) color = '#dc3545';
-              const x = api.coord([idx, value])[0];
-              const y = api.coord([idx, value])[1];
-              return {
-                type: 'text',
-                style: {
-                  text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`,
-                  fill: color,
-                  font: 'bold 16px sans-serif',
-                  textAlign: 'center',
-                  textVerticalAlign: 'bottom',
-                },
-                position: [x, y - 36],
-              };
+      // Custom % variance above each bar
+      {
+        name: 'Percent Difference',
+        type: 'custom',
+        renderItem: function(params, api) {
+          const idx = api.value(0);
+          if (idx === baseIndex) return null;
+          const value = api.value(1);
+          const pct = percentVariance[idx];
+          if (pct === null || pct === undefined) return null;
+          let color = '#888';
+          if (pct > 0) color = '#2E865F';
+          else if (pct < 0) color = '#dc3545';
+          const x = api.coord([idx, value])[0];
+          const y = api.coord([idx, value])[1];
+          return {
+            type: 'text',
+            style: {
+              text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`,
+              fill: color,
+              font: 'bold 16px sans-serif',
+              textAlign: 'center',
+              textVerticalAlign: 'bottom',
             },
-            data: periods.map((_, idx) => [idx, seriesData[idx]]),
-            z: 3
-          },
+            position: [x, y - 36],
+          };
+        },
+        data: periods.map((_, idx) => [idx, seriesData[idx]]),
+        z: 3
+      },
         ],
         tooltip: {
           show: false, // Completely disable tooltips to prevent white panel
@@ -352,12 +352,12 @@ const BarChart = ({ data, periods, basePeriod }) => {
       myChart.resize();
       setTimeout(() => {
         if (myChart && !myChart.isDisposed()) {
-          myChart.resize();
+        myChart.resize();
         }
       }, 300);
-    } catch (error) {
-      console.error('Error rendering chart:', error);
-    }
+      } catch (error) {
+        console.error('Error rendering chart:', error);
+        }
   };
 
   // Function to update bar positions using ECharts API

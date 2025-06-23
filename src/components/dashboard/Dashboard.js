@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useFilter } from '../../contexts/FilterContext';
@@ -16,6 +16,8 @@ import MapSwitcher from './MapSwitcher';
 import ChartView from './ChartView';
 import WriteUpView from './WriteUpView';
 import MasterData from './MasterData';
+import HTMLReportView from './HTMLReportView';
+import HTMLExportV2View from './HTMLExportV2View';
 import './Dashboard.css';
 // Import logo directly to embed it in the bundle
 import interplastLogo from '../../assets/Ip Logo.png';
@@ -29,6 +31,7 @@ const Dashboard = () => {
   const [selectedPeriods, setSelectedPeriods] = useState([]);
   const [chartExportFunction, setChartExportFunction] = useState(null);
   const [logoSrc, setLogoSrc] = useState(interplastLogo);
+  const productGroupTableRef = useRef(null);
   
   // Use useCallback to memoize the function to prevent it from changing on every render
   const loadData = useCallback(() => {
@@ -103,14 +106,14 @@ const Dashboard = () => {
           <FilterPanel />
           
           {/* Add the column configuration grid here */}
-          <ColumnConfigGrid exportPdfFunction={chartExportFunction} />
+          <ColumnConfigGrid exportPdfFunction={chartExportFunction} productGroupTableRef={productGroupTableRef} />
           
           <TabsComponent>
                           <Tab label="P&L">
               <TableView />
             </Tab>
                           <Tab label="Product Group">
-              <ProductGroupTable />
+              <ProductGroupTable ref={productGroupTableRef} />
             </Tab>
             <Tab label="Sales by Country">
               <TabsComponent variant="secondary">
@@ -155,6 +158,12 @@ const Dashboard = () => {
             </Tab>
             <Tab label="Master Data">
               <MasterData />
+            </Tab>
+            <Tab label="HTML Reports">
+              <HTMLReportView />
+            </Tab>
+            <Tab label="HTML Export V2">
+              <HTMLExportV2View />
             </Tab>
           </TabsComponent>
         </div>

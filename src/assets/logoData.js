@@ -1,4 +1,4 @@
-// Base64 encoded Interplast logo data for embedding
+﻿// Base64 encoded Interplast logo data for embedding
 export const INTERPLAST_LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAN1wAADdcBQiibeAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAABUYSURBVHic7Z1tjFXHfcafZ2Yud8HG2GuSxsY4sYnjOm3SpqHdqFVe3KRq80HpB79I+VRLL9V/aT+0H9qq/dBKrVSpjdpGbSo1aprGSf2tUROnDa2t1E6Txmmc2Mm';
 
 // Alternative: For very small logos, we can use a minimal SVG version

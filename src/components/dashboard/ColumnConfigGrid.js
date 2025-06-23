@@ -3,6 +3,7 @@ import { useFilter } from '../../contexts/FilterContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { exportHTMLReportNoWriteup, exportHTMLReportWithWriteup } from '../../utils/htmlExport';
 import { computeCellValue as sharedComputeCellValue } from '../../utils/computeCellValue';
+import ComprehensiveHTMLExport from './ComprehensiveHTMLExport';
 import './ColumnConfigGrid.css';
 
 // Color scheme definitions (same as charts)
@@ -23,7 +24,7 @@ const colorSchemes = [
   { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
 ];
 
-const ColumnConfigGrid = ({ exportPdfFunction }) => {
+const ColumnConfigGrid = ({ exportPdfFunction, productGroupTableRef }) => {
   const { 
     columnOrder, 
     updateColumnOrder, 
@@ -431,6 +432,9 @@ const ColumnConfigGrid = ({ exportPdfFunction }) => {
         >
           HTML Report with Writeup
         </button>
+        {productGroupTableRef && (
+          <ComprehensiveHTMLExport tableRef={productGroupTableRef} />
+        )}
 
       </div>
     </div>

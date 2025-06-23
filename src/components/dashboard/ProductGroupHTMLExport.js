@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import jsPDF from 'jspdf';
-import './PDFExport.css';
+import './HTMLExport.css';
 
-const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
+const ProductGroupHTMLExport = ({ tableRef, selectedDivision }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -228,15 +228,10 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
     <div class="container">
         <div class="page-header">
             <h1>Product Group Table - ${selectedDivision.split('-')[0]}</h1>
-            <p>Interactive table with frozen headers - scroll to navigate</p>
         </div>
         
         <div class="table-container">
             ${tableHTML}
-        </div>
-        
-        <div class="scroll-indicator">
-            ↕ ↔ Scroll to navigate
         </div>
     </div>
     
@@ -493,7 +488,7 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
   };
 
   return (
-    <div className="pdf-export-controls">
+    <div className="html-export-controls">
         <button 
           onClick={handleExportCanvas}
           disabled={isExporting}
@@ -523,4 +518,4 @@ const ProductGroupPDFExport = ({ tableRef, selectedDivision }) => {
   );
 };
 
-export default ProductGroupPDFExport;
+export default ProductGroupHTMLExport;

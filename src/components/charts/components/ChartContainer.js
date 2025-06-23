@@ -755,38 +755,38 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
    * -------------------------------------------------- */
   return (
     <div className="chart-container-root">
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: 16, background: '#f5f5f5', borderRadius: 12 }}>
-        {/* CHARTS */}
-        <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 20 }}>
-          <BarChart data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} />
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: 16, background: '#f5f5f5', borderRadius: 12 }}>
+      {/* CHARTS */}
+      <div ref={barChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 20 }}>
+        <BarChart data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} />
+      </div>
 
-        <div ref={modernMarginGaugeRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
-          <ModernMarginGauge data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
-        </div>
+      <div ref={modernMarginGaugeRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
+        <ModernMarginGauge data={chartData} periods={visiblePeriods} basePeriod={basePeriod ? (basePeriod.isCustomRange ? `${basePeriod.year}-${basePeriod.month}-${basePeriod.type}` : `${basePeriod.year}-${basePeriod.month || 'Year'}-${basePeriod.type}`) : ''} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
+      </div>
 
-        <div ref={manufacturingCostChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
-          <ManufacturingCostChart 
-            tableData={tableData} 
-            selectedPeriods={visiblePeriods} 
-            computeCellValue={computeCellValue}
-            style={isPDFExporting ? { padding: '8px', marginTop: '0', margin: 0, backgroundColor: 'transparent', boxShadow: 'none' } : { margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
-          />
-        </div>
+      <div ref={manufacturingCostChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
+        <ManufacturingCostChart 
+          tableData={tableData} 
+          selectedPeriods={visiblePeriods} 
+          computeCellValue={computeCellValue}
+          style={isPDFExporting ? { padding: '8px', marginTop: '0', margin: 0, backgroundColor: 'transparent', boxShadow: 'none' } : { margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
+        />
+      </div>
 
-        <div ref={belowGPExpensesChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
-          <BelowGPExpensesChart 
-            tableData={tableData} 
-            selectedPeriods={visiblePeriods} 
-            computeCellValue={computeCellValue}
-            style={isPDFExporting ? { padding: '8px', marginTop: '0', margin: 0, backgroundColor: 'transparent', boxShadow: 'none' } : { margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
-          />
-        </div>
+      <div ref={belowGPExpensesChartRef} className="modern-margin-gauge-panel" style={{ marginTop: 40 }}>
+        <BelowGPExpensesChart 
+          tableData={tableData} 
+          selectedPeriods={visiblePeriods} 
+          computeCellValue={computeCellValue}
+          style={isPDFExporting ? { padding: '8px', marginTop: '0', margin: 0, backgroundColor: 'transparent', boxShadow: 'none' } : { margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}
+        />
+      </div>
 
-        <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
+      <div ref={combinedTrendsRef} style={{ marginTop: 40 }}>
           <div className="modern-margin-gauge-panel" style={{ padding: 0, margin: 0, backgroundColor: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderRadius: '8px', width: '95%', marginLeft: 'auto', marginRight: 'auto', boxSizing: 'border-box', paddingBottom: '5%' }}>
-            <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
-            <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
+          <ExpencesChart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
+          <Profitchart tableData={tableData} selectedPeriods={visiblePeriods} computeCellValue={computeCellValue} style={{ margin: 0, backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }} />
           </div>
         </div>
       </div>
