@@ -45,18 +45,23 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     return 'No Base Period Selected';
   };
 
-  // Card configuration for 10 cards (5 per row)
+  // Card configuration: KPI Summary first, then Charts, then Tables
   const cardConfigs = [
+    // KPI Summary - First Row
+    { id: 'kpi-summary', title: 'KPI Summary', icon: '📈', description: 'Key performance indicators' },
+    
+    // Charts - Second Row
+    { id: 'sales-volume-analysis', title: 'Sales & Volume Analysis', icon: '📊', description: 'Sales and volume trends visualization' },
+    { id: 'margin-analysis', title: 'Margin Analysis', icon: '📋', description: 'Profit margin insights' },
+    { id: 'manufacturing-cost', title: 'Manufacturing Cost', icon: '🏭', description: 'Direct cost analysis' },
+    { id: 'below-gp-expenses', title: 'Below GP Expenses', icon: '📊', description: 'Operating expenses breakdown' },
+    { id: 'cost-profitability-trend', title: 'Cost & Profitability Trend', icon: '📈', description: 'Profitability trend analysis' },
+    
+    // Tables - Third Row
     { id: 'product-group', title: 'Product Group', icon: '📊', description: 'Product group analysis and metrics' },
     { id: 'sales-country', title: 'Sales by Country', icon: '🌍', description: 'Geographic sales distribution' },
     { id: 'sales-customer', title: 'Sales by Customer', icon: '👥', description: 'Customer sales analysis' },
-    { id: 'financial-pl', title: 'P&L Financial', icon: '💰', description: 'Profit & Loss statement' },
-    { id: 'kpi-summary', title: 'KPI Summary', icon: '📈', description: 'Key performance indicators' },
-    { id: 'expense-analysis', title: 'Expense Analysis', icon: '📉', description: 'Cost breakdown analysis' },
-    { id: 'margin-analysis', title: 'Margin Analysis', icon: '📋', description: 'Profit margin insights' },
-    { id: 'trend-analysis', title: 'Trend Analysis', icon: '📊', description: 'Historical trend overview' },
-    { id: 'variance-report', title: 'Variance Report', icon: '⚖️', description: 'Budget vs actual comparison' },
-    { id: 'executive-summary', title: 'Executive Summary', icon: '🎯', description: 'High-level overview' }
+    { id: 'financial-pl', title: 'P&L Financial', icon: '💰', description: 'Profit & Loss statement' }
   ];
 
   // Capture Product Group table HTML
@@ -258,6 +263,490 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     }
     
     throw new Error('Sales by Customer table not found. Please visit the Sales by Customer tab first.');
+  };
+
+  // Helper function to capture element as base64 image (same as htmlExport.js)
+  const captureElementAsBase64 = async (element, options = {}) => {
+    try {
+      // Import html2canvas dynamically 
+      const html2canvas = (await import('html2canvas')).default;
+      
+      const canvas = await html2canvas(element, {
+        scale: 1.5,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        removeContainer: true,
+        ignoreElements: (element) => {
+          // Ignore elements that might cause artifacts
+          return element.classList?.contains('pdf-export-button') || 
+                 element.style?.boxShadow?.includes('inset');
+        },
+        ...options
+      });
+      
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        console.warn('Canvas capture resulted in empty image');
+        return null;
+      }
+      
+      return canvas.toDataURL('image/jpeg', 0.95);
+    } catch (error) {
+      console.error('Error capturing element:', error);
+      return null;
+    }
+  };
+
+  // Capture Sales & Volume Chart (Bar Chart) - Following htmlExport.js approach
+  const captureSalesVolumeChart = async () => {
+    console.log('🔍 Capturing Sales & Volume Chart using htmlExport.js approach...');
+    
+    try {
+      // Find the main chart container - following exact same logic as htmlExport.js
+      const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+      
+      if (!mainContainer) {
+        console.warn('Main chart container not found');
+        // Fallback: look for the specific bar chart container
+        const fallbackContainer = document.querySelector('.modern-margin-gauge-panel');
+        if (fallbackContainer) {
+          console.log('Using fallback container');
+          const chartImage = await captureElementAsBase64(fallbackContainer, {
+            scale: 1.5,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            removeContainer: true,
+            width: fallbackContainer.offsetWidth,
+            height: fallbackContainer.offsetHeight,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight
+          });
+          
+          if (chartImage) {
+            return `<div class="chart-container">
+                      <img src="${chartImage}" alt="Sales & Volume Chart" style="width: 100%; height: auto; max-width: 100%;">
+                    </div>`;
+          }
+        }
+        throw new Error('Chart container not found');
+      }
+
+      // Get the first child (Sales and Volume Analysis chart) - same as htmlExport.js
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
+                        !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+      });
+
+      if (children.length === 0) {
+        throw new Error('No valid chart containers found');
+      }
+
+      const salesVolumeContainer = children[0]; // First chart = Sales & Volume Analysis
+      
+      // Hide the internal chart title before capture
+      const titleElements = salesVolumeContainer.querySelectorAll('span');
+      const originalTitleDisplays = [];
+      
+      titleElements.forEach((element, index) => {
+        const textContent = element.textContent?.trim().toLowerCase();
+        const style = element.style;
+        
+        // Target the specific title spans: "Sales and Volume" (fontSize: 28) and "(AED)" (fontSize: 18)
+        if ((textContent === 'sales and volume' && style.fontSize === '28px') ||
+            (textContent === '(aed)' && style.fontSize === '18px')) {
+          originalTitleDisplays[index] = element.style.display;
+          element.style.display = 'none';
+          console.log('🚫 Hiding chart title element:', textContent);
+        }
+      });
+      
+      // Hide tooltips and resize charts - same as htmlExport.js
+      const echartsElements = salesVolumeContainer.querySelectorAll('.echarts-for-react');
+      echartsElements.forEach(echartsEl => {
+        if (typeof echartsEl.getEchartsInstance === 'function') {
+          const inst = echartsEl.getEchartsInstance();
+          if (inst) {
+            inst.dispatchAction({ type: 'hideTip' });
+            inst.resize();
+          }
+        }
+      });
+
+      // Wait for chart to settle
+      await new Promise(r => setTimeout(r, 500));
+
+      // Capture with exact same settings as htmlExport.js
+      const salesVolumeImage = await captureElementAsBase64(salesVolumeContainer, {
+        scale: 1.5,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        removeContainer: true,
+        width: salesVolumeContainer.offsetWidth,
+        height: salesVolumeContainer.offsetHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight
+      });
+
+      // Restore chart title visibility
+      titleElements.forEach((element, index) => {
+        if (originalTitleDisplays[index] !== undefined) {
+          element.style.display = originalTitleDisplays[index];
+          console.log('✅ Restored chart title element visibility');
+        }
+      });
+
+      if (salesVolumeImage) {
+        console.log('✅ Successfully captured Sales & Volume chart');
+        return `<div class="chart-container">
+                  <img src="${salesVolumeImage}" alt="Sales & Volume Chart" style="width: 100%; height: auto; max-width: 100%;">
+                </div>`;
+      } else {
+        throw new Error('Failed to capture chart image');
+      }
+
+    } catch (error) {
+      console.error('Error capturing Sales & Volume chart:', error);
+      throw new Error(`Sales & Volume Chart capture failed: ${error.message}`);
+    }
+  };
+
+  // Capture Margin over Material Chart (Gauge Chart) - Following htmlExport.js approach
+  const captureMarginAnalysisChart = async () => {
+    console.log('🔍 Capturing Margin over Material Chart using htmlExport.js approach...');
+    
+    try {
+      // Find the main chart container - following exact same logic as htmlExport.js
+      const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+      
+      if (!mainContainer) {
+        console.warn('Main chart container not found');
+        // Fallback: look for the specific margin gauge container
+        const fallbackContainer = document.querySelector('.modern-margin-gauge-panel');
+        if (fallbackContainer) {
+          console.log('Using fallback container for margin chart');
+          const chartImage = await captureElementAsBase64(fallbackContainer, {
+            scale: 1.5,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            removeContainer: true,
+            width: fallbackContainer.offsetWidth,
+            height: fallbackContainer.offsetHeight,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight
+          });
+          
+          if (chartImage) {
+            return `<div class="chart-container">
+                      <img src="${chartImage}" alt="Margin over Material Chart" style="width: 100%; height: auto; max-width: 100%;">
+                    </div>`;
+          }
+        }
+        throw new Error('Margin chart container not found');
+      }
+
+      // Get the second child (Margin over Material chart) - same as htmlExport.js
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
+                        !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+      });
+
+      if (children.length < 2) {
+        throw new Error('Margin chart container not found - need at least 2 chart containers');
+      }
+
+      const marginContainer = children[1]; // Second chart = Margin over Material
+      
+      // Hide the internal chart title before capture
+      const titleElements = marginContainer.querySelectorAll('h2.modern-gauge-heading');
+      const originalTitleDisplays = [];
+      
+      titleElements.forEach((element, index) => {
+        const textContent = element.textContent?.trim().toLowerCase();
+        
+        // Target the specific title: "Margin over Material"
+        if (textContent === 'margin over material') {
+          originalTitleDisplays[index] = element.style.display;
+          element.style.display = 'none';
+          console.log('🚫 Hiding margin chart title element:', textContent);
+        }
+      });
+      
+      // Hide tooltips and resize charts - same as htmlExport.js
+      const echartsElements = marginContainer.querySelectorAll('.echarts-for-react');
+      echartsElements.forEach(echartsEl => {
+        if (typeof echartsEl.getEchartsInstance === 'function') {
+          const inst = echartsEl.getEchartsInstance();
+          if (inst) {
+            inst.dispatchAction({ type: 'hideTip' });
+            inst.resize();
+          }
+        }
+      });
+
+      // Wait for chart to settle
+      await new Promise(r => setTimeout(r, 500));
+
+      // Capture with exact same settings as htmlExport.js
+      const marginImage = await captureElementAsBase64(marginContainer, {
+        scale: 1.5,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        removeContainer: true,
+        width: marginContainer.offsetWidth,
+        height: marginContainer.offsetHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight
+      });
+
+      // Restore chart title visibility
+      titleElements.forEach((element, index) => {
+        if (originalTitleDisplays[index] !== undefined) {
+          element.style.display = originalTitleDisplays[index];
+          console.log('✅ Restored margin chart title element visibility');
+        }
+      });
+
+      if (marginImage) {
+        console.log('✅ Successfully captured Margin over Material chart');
+        return `<div class="chart-container">
+                  <img src="${marginImage}" alt="Margin over Material Chart" style="width: 100%; height: auto; max-width: 100%;">
+                </div>`;
+      } else {
+        throw new Error('Failed to capture margin chart image');
+      }
+
+    } catch (error) {
+      console.error('Error capturing Margin over Material chart:', error);
+      throw new Error(`Margin over Material Chart capture failed: ${error.message}`);
+    }
+  };
+
+  // Capture Manufacturing Cost Chart - Following htmlExport.js approach  
+  const captureManufacturingCostChart = async () => {
+    console.log('🔍 Capturing Manufacturing Cost Chart using htmlExport.js approach...');
+    
+    try {
+      // Find the main chart container - following exact same logic as htmlExport.js
+      const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+      
+      if (!mainContainer) {
+        console.warn('Main chart container not found');
+        // Fallback: look for the specific manufacturing cost container
+        const fallbackContainer = document.querySelector('.modern-margin-gauge-panel');
+        if (fallbackContainer) {
+          console.log('Using fallback container for manufacturing cost chart');
+          const chartImage = await captureElementAsBase64(fallbackContainer, {
+            scale: 1.5,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            removeContainer: true,
+            width: fallbackContainer.offsetWidth,
+            height: fallbackContainer.offsetHeight,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight
+          });
+          
+          if (chartImage) {
+            return `<div class="chart-container">
+                      <img src="${chartImage}" alt="Manufacturing Cost Chart" style="width: 100%; height: auto; max-width: 100%;">
+                    </div>`;
+          }
+        }
+        throw new Error('Manufacturing Cost chart container not found');
+      }
+
+      // Get the third child (Manufacturing Cost chart)
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && 
+                        !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+      });
+
+      if (children.length < 3) {
+        throw new Error('Manufacturing Cost chart container not found - need at least 3 chart containers');
+      }
+
+      const manufacturingContainer = children[2]; // Third chart = Manufacturing Cost
+      
+      // Hide the internal chart title before capture
+      const titleElements = manufacturingContainer.querySelectorAll('h2.modern-gauge-heading');
+      const originalTitleDisplays = [];
+      
+      titleElements.forEach((element, index) => {
+        const textContent = element.textContent?.trim().toLowerCase();
+        
+        // Target the specific title: "Manufacturing Cost"
+        if (textContent === 'manufacturing cost') {
+          originalTitleDisplays[index] = element.style.display;
+          element.style.display = 'none';
+          console.log('🚫 Hiding manufacturing cost chart title element:', textContent);
+        }
+      });
+      
+      // Hide tooltips and resize charts - same as htmlExport.js
+      const echartsElements = manufacturingContainer.querySelectorAll('.echarts-for-react');
+      echartsElements.forEach(echartsEl => {
+        if (typeof echartsEl.getEchartsInstance === 'function') {
+          const inst = echartsEl.getEchartsInstance();
+          if (inst) {
+            inst.dispatchAction({ type: 'hideTip' });
+            inst.resize();
+          }
+        }
+      });
+
+      // Wait for chart to settle
+      await new Promise(r => setTimeout(r, 500));
+
+      // Capture with exact same settings as htmlExport.js
+      const manufacturingImage = await captureElementAsBase64(manufacturingContainer, {
+        scale: 1.5,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        removeContainer: true,
+        width: manufacturingContainer.offsetWidth,
+        height: manufacturingContainer.offsetHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight
+      });
+
+      // Restore chart title visibility
+      titleElements.forEach((element, index) => {
+        if (originalTitleDisplays[index] !== undefined) {
+          element.style.display = originalTitleDisplays[index];
+          console.log('✅ Restored manufacturing cost chart title element visibility');
+        }
+      });
+
+      if (manufacturingImage) {
+        console.log('✅ Successfully captured Manufacturing Cost chart');
+        return `<div class="chart-container">
+                  <img src="${manufacturingImage}" alt="Manufacturing Cost Chart" style="width: 100%; height: auto; max-width: 100%;">
+                </div>`;
+      } else {
+        throw new Error('Failed to capture manufacturing cost chart image');
+      }
+
+    } catch (error) {
+      console.error('Error capturing Manufacturing Cost chart:', error);
+      throw new Error(`Manufacturing Cost Chart capture failed: ${error.message}`);
+    }
+  };
+
+  // Capture Below GP Expenses Chart (Index 3) - Following htmlExport.js approach
+  const captureBelowGPExpensesChart = async () => {
+    console.log('🔍 Capturing Below GP Expenses Chart...');
+    try {
+      const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+      if (!mainContainer) throw new Error('Main chart container not found');
+
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+      });
+
+      if (children.length < 4) throw new Error('Below GP Expenses chart not found - need at least 4 containers');
+      const container = children[3]; // Fourth chart
+
+      // Hide internal title
+      const titleElements = container.querySelectorAll('h2.modern-gauge-heading');
+      const originalDisplays = [];
+      titleElements.forEach((el, idx) => {
+        if (el.textContent?.trim().toLowerCase() === 'below gross profit expenses') {
+          originalDisplays[idx] = el.style.display;
+          el.style.display = 'none';
+        }
+      });
+
+      await new Promise(r => setTimeout(r, 500));
+      const image = await captureElementAsBase64(container, {
+        scale: 1.5, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, removeContainer: true,
+        width: container.offsetWidth, height: container.offsetHeight, windowWidth: window.innerWidth, windowHeight: window.innerHeight
+      });
+
+      // Restore titles
+      titleElements.forEach((el, idx) => {
+        if (originalDisplays[idx] !== undefined) el.style.display = originalDisplays[idx];
+      });
+
+      if (image) {
+        console.log('✅ Below GP Expenses chart captured');
+        return `<div class="chart-container"><img src="${image}" alt="Below GP Expenses Chart" style="width: 100%; height: auto; max-width: 100%;"></div>`;
+      } else {
+        throw new Error('Failed to capture image');
+      }
+    } catch (error) {
+      console.error('Below GP Expenses capture error:', error);
+      throw new Error(`Below GP Expenses capture failed: ${error.message}`);
+    }
+  };
+
+  // Capture Cost & Profitability Trend Chart (Index 4) - Following htmlExport.js approach
+  const captureCostProfitabilityTrendChart = async () => {
+    console.log('🔍 Capturing Cost & Profitability Trend Chart...');
+    try {
+      const mainContainer = document.querySelector('[style*="display: flex"][style*="flex-direction: column"][style*="padding: 16"]');
+      if (!mainContainer) throw new Error('Main chart container not found');
+
+      const children = Array.from(mainContainer.children).filter(child => {
+        const rect = child.getBoundingClientRect();
+        const hasStyle = child.style.marginTop;
+        const isNotAI = !child.textContent.toLowerCase().includes('ai') && !child.innerHTML.toLowerCase().includes('writeup');
+        return rect.width > 300 && rect.height > 200 && hasStyle && isNotAI;
+      });
+
+      if (children.length < 5) throw new Error('Cost & Profitability chart not found - need at least 5 containers');
+      const container = children[4]; // Fifth chart (combinedTrendsRef contains both ExpencesChart + Profitchart)
+
+      // Hide internal titles for both ExpencesChart and Profitchart
+      const titleElements = container.querySelectorAll('h2.modern-gauge-heading');
+      const originalDisplays = [];
+      titleElements.forEach((el, idx) => {
+        const text = el.textContent?.trim().toLowerCase();
+        if (text?.includes('trend') || text?.includes('expense') || text?.includes('profit')) {
+          originalDisplays[idx] = el.style.display;
+          el.style.display = 'none';
+        }
+      });
+
+      await new Promise(r => setTimeout(r, 500));
+      const image = await captureElementAsBase64(container, {
+        scale: 1.5, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, removeContainer: true,
+        width: container.offsetWidth, height: container.offsetHeight, windowWidth: window.innerWidth, windowHeight: window.innerHeight
+      });
+
+      // Restore titles
+      titleElements.forEach((el, idx) => {
+        if (originalDisplays[idx] !== undefined) el.style.display = originalDisplays[idx];
+      });
+
+      if (image) {
+        console.log('✅ Cost & Profitability Trend chart captured');
+        return `<div class="chart-container"><img src="${image}" alt="Cost & Profitability Trend Chart" style="width: 100%; height: auto; max-width: 100%;"></div>`;
+      } else {
+        throw new Error('Failed to capture image');
+      }
+    } catch (error) {
+      console.error('Cost & Profitability Trend capture error:', error);
+      throw new Error(`Cost & Profitability Trend capture failed: ${error.message}`);
+    }
   };
 
   // Generate KPI Summary from captured table data
@@ -560,6 +1049,41 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     return Promise.resolve();
   };
 
+  // Helper function to ensure Charts tab is active
+  const ensureChartsTabActive = () => {
+    console.log('🔍 Checking if Charts tab is active...');
+    
+    // Find the Charts tab specifically
+    const allButtons = Array.from(document.querySelectorAll('button, [role="tab"]'));
+    const chartsTab = allButtons.find(el => {
+      const text = el.textContent?.trim();
+      return (text === 'Charts' || text.includes('Chart')) && text.length < 50;
+    });
+    
+    if (!chartsTab) {
+      console.warn('⚠️ Charts tab button not found');
+      console.log('Available tab-like buttons:', allButtons.map(b => b.textContent?.trim()).filter(t => t && t.length < 50));
+      return Promise.resolve();
+    }
+    
+    console.log('🔍 Found Charts tab button:', chartsTab.textContent?.trim());
+    
+    // Check if it's already active
+    const isActive = chartsTab.classList.contains('active') || 
+                    chartsTab.getAttribute('aria-selected') === 'true';
+                    
+    if (!isActive) {
+      console.log('🔄 Clicking Charts tab...');
+      chartsTab.click();
+      // Give it time to mount and render
+      return new Promise(resolve => setTimeout(resolve, 2000)); // Longer wait for charts
+    } else {
+      console.log('✅ Charts tab is already active');
+    }
+    
+    return Promise.resolve();
+  };
+
   // Generate comprehensive HTML export
   const handleComprehensiveExport = async () => {
     setIsExporting(true);
@@ -578,6 +1102,14 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
       
       await ensureSalesCustomerTabActive();
       const salesCustomerTableHTML = await captureSalesCustomerTable();
+      
+      // Capture charts
+      await ensureChartsTabActive();
+      const salesVolumeChartHTML = await captureSalesVolumeChart();
+      const marginAnalysisChartHTML = await captureMarginAnalysisChart();
+      const manufacturingCostChartHTML = await captureManufacturingCostChart();
+      const belowGPExpensesChartHTML = await captureBelowGPExpensesChart();
+      const costProfitabilityTrendChartHTML = await captureCostProfitabilityTrendChart();
       
       const logoBase64 = await getBase64Logo();
       const divisionName = getDivisionDisplayName();
@@ -659,10 +1191,28 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         
         /* Cards Grid */
         .cards-container {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
             margin-bottom: 30px;
+        }
+        
+        .card-row {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .card-row.kpi-row {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+        
+        .card-row.charts-row {
+            grid-template-columns: repeat(5, 1fr);
+        }
+        
+        .card-row.tables-row {
+            grid-template-columns: repeat(4, 1fr);
         }
         
         .report-card {
@@ -726,33 +1276,42 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
             border-bottom: 2px solid #ecf0f1;
         }
         
-        .page-title {
-            font-size: 1.8rem;
-            color: #2c3e50;
-            margin: 0;
+        .page-title-container {
             flex-grow: 1;
             text-align: center;
         }
         
+        .page-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-weight: normal;
+            font-style: italic;
+        }
+        
         .back-button {
-            position: fixed;
-            top: 90px; /* 100px - 10px up */
-            left: calc(5% + 40px); /* 5% from left edge + 40px right */
             background: linear-gradient(135deg, #9b59b6, #8e44ad);
             color: white;
             border: none;
-            width: 80px;
-            height: 105px; /* Covers 3 rows (35px each) */
-            border-radius: 15px;
+            width: 120px;
+            height: 40px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             margin: 0;
             transition: all 0.3s ease;
             flex-shrink: 0;
             z-index: 1000;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             justify-content: center;
             align-items: center;
             line-height: 1.2;
@@ -1036,6 +1595,100 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
             border-left: 3px solid #007bff;
         }
         
+        /* Chart Container Styling */
+        .chart-full-container {
+            width: 100%;
+            height: 95vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Specific styling for margin analysis chart centering */
+        .chart-container .modern-margin-gauge-panel {
+            width: 100% !important;
+            max-width: 90vw !important;
+            margin: 0 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+        }
+        
+        .chart-container .modern-gauge-heading {
+            text-align: center !important;
+            width: 100% !important;
+            margin-bottom: 30px !important;
+        }
+        
+        .chart-container .modern-gauge-container {
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 15px !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+        }
+        
+        .chart-container .modern-gauge-card {
+            flex: 0 0 auto !important;
+            max-width: 200px !important;
+        }
+        
+        .chart-container img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Chart image styling */
+        .chart-container img {
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Text overlays styling */
+        .chart-text-overlays {
+            background: rgba(248, 249, 250, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .text-row {
+            margin-bottom: 8px;
+        }
+        
+        .text-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* For fallback ECharts container */
+        .chart-container .echarts-for-react {
+            width: 100% !important;
+            height: 70vh !important;
+        }
+        
         /* Product group rows with darker colors */
         .product-header-row td:first-child {
             background-color: #1565c0;
@@ -1236,13 +1889,11 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                 top: 155px !important; /* Reduced accordingly */
             }
             
-            /* Adjust floating back button for mobile */
+            /* Adjust back button for mobile */
             .back-button {
-                top: 70px !important; /* 80px - 10px up */
-                width: 70px !important;
-                height: 90px !important; /* Slightly smaller for mobile */
-                font-size: 11px !important;
-                left: calc(5% + 40px) !important; /* 5% + 40px right */
+                width: 100px !important;
+                height: 35px !important;
+                font-size: 12px !important;
             }
         }
     </style>
@@ -1262,13 +1913,38 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
             
             <!-- Cards Grid -->
             <div class="cards-container">
-                ${cardConfigs.map(card => `
-                    <div class="report-card" onclick="showPage('${card.id}')">
-                        <span class="card-icon">${card.icon}</span>
-                        <div class="card-title">${card.title}</div>
-                        <div class="card-description">${card.description}</div>
-                    </div>
-                `).join('')}
+                <!-- KPI Summary Row -->
+                <div class="card-row kpi-row">
+                    ${cardConfigs.filter(card => card.id === 'kpi-summary').map(card => `
+                        <div class="report-card" onclick="showPage('${card.id}')">
+                            <span class="card-icon">${card.icon}</span>
+                            <div class="card-title">${card.title}</div>
+                            <div class="card-description">${card.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="card-row charts-row">
+                    ${cardConfigs.filter(card => ['sales-volume-analysis', 'margin-analysis', 'manufacturing-cost', 'below-gp-expenses', 'cost-profitability-trend'].includes(card.id)).map(card => `
+                        <div class="report-card" onclick="showPage('${card.id}')">
+                            <span class="card-icon">${card.icon}</span>
+                            <div class="card-title">${card.title}</div>
+                            <div class="card-description">${card.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Tables Row -->
+                <div class="card-row tables-row">
+                    ${cardConfigs.filter(card => ['product-group', 'sales-country', 'sales-customer', 'financial-pl'].includes(card.id)).map(card => `
+                        <div class="report-card" onclick="showPage('${card.id}')">
+                            <span class="card-icon">${card.icon}</span>
+                            <div class="card-title">${card.title}</div>
+                            <div class="card-description">${card.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
         </div>
         
@@ -1277,18 +1953,28 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
             <div id="page-${card.id}" class="content-page">
                 <div class="page-header">
                     <button class="back-button" onclick="showDashboard()">
-                        <div>Back</div>
-                        <div>to</div>
-                        <div>Dashboard</div>
+                        ← Back to Dashboard
                     </button>
-                    <h2 class="page-title">${
-                        card.id === 'kpi-summary' ? `Executive Summary - ${divisionName}` :
-                        card.id === 'product-group' ? `Product Group - ${divisionName}` :
-                        card.id === 'financial-pl' ? `${divisionName} Financials` :
-                        card.id === 'sales-country' ? `Sales by Country - ${divisionName}` :
-                        card.id === 'sales-customer' ? `Top 20 Customers - ${divisionName}` :
-                        `${card.icon} ${card.title}`
-                    }</h2>
+                    <div class="page-title-container">
+                        <h2 class="page-title">${
+                            card.id === 'kpi-summary' ? `Executive Summary - ${divisionName}` :
+                            card.id === 'product-group' ? `Product Group - ${divisionName}` :
+                            card.id === 'financial-pl' ? `${divisionName} Financials` :
+                            card.id === 'sales-country' ? `Sales by Country - ${divisionName}` :
+                            card.id === 'sales-customer' ? `Top 20 Customers - ${divisionName}` :
+                            card.id === 'sales-volume-analysis' ? `Sales & Volume Analysis - ${divisionName}` :
+                            card.id === 'margin-analysis' ? `Margin over Material - ${divisionName}` :
+                            card.id === 'manufacturing-cost' ? `Manufacturing Cost - ${divisionName}` :
+                            card.id === 'below-gp-expenses' ? `Below GP Expenses - ${divisionName}` :
+                            card.id === 'cost-profitability-trend' ? `Cost & Profitability Trend - ${divisionName}` :
+                            `${card.icon} ${card.title}`
+                        }</h2>
+                        ${card.id === 'sales-volume-analysis' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                        ${card.id === 'margin-analysis' ? '<div class="page-subtitle">(AED & AED/Kg)</div>' : ''}
+                        ${card.id === 'manufacturing-cost' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                        ${card.id === 'below-gp-expenses' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                        ${card.id === 'cost-profitability-trend' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                    </div>
                     <div style="width: 180px;"></div> <!-- Spacer for balance -->
                 </div>
                 <div class="page-content">
@@ -1315,6 +2001,26 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                         </div>
                         <div class="table-footer-note">
                             ★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods
+                        </div>
+                    ` : card.id === 'sales-volume-analysis' ? `
+                        <div class="chart-full-container">
+                            ${salesVolumeChartHTML}
+                        </div>
+                    ` : card.id === 'margin-analysis' ? `
+                        <div class="chart-full-container">
+                            ${marginAnalysisChartHTML}
+                        </div>
+                    ` : card.id === 'manufacturing-cost' ? `
+                        <div class="chart-full-container">
+                            ${manufacturingCostChartHTML}
+                        </div>
+                    ` : card.id === 'below-gp-expenses' ? `
+                        <div class="chart-full-container">
+                            ${belowGPExpensesChartHTML}
+                        </div>
+                    ` : card.id === 'cost-profitability-trend' ? `
+                        <div class="chart-full-container">
+                            ${costProfitabilityTrendChartHTML}
                         </div>
                     ` : `
                         <div class="coming-soon">

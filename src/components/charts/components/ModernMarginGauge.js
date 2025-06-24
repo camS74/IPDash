@@ -217,14 +217,24 @@ const ModernMarginGauge = ({ data, periods, basePeriod, style }) => {
       backgroundColor: 'white',
       borderRadius: '8px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      width: '95%',
+      width: '100%',
+      maxWidth: '1200px',
       marginLeft: 'auto',
       marginRight: 'auto',
       boxSizing: 'border-box',
       ...(style || {}) // Apply any style props passed from parent component
     }}>
-      <h2 className="modern-gauge-heading">Margin over Material</h2>
-      <div className="modern-gauge-container" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 8 }}>
+      <h2 className="modern-gauge-heading" style={{ textAlign: 'center', marginBottom: '30px' }}>Margin over Material</h2>
+      <div className="modern-gauge-container" style={{ 
+        display: 'flex', 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        alignItems: 'flex-end', 
+        gap: 15,
+        width: '100%',
+        margin: '0 auto',
+        padding: '0 20px'
+      }}>
         {gaugeData.map((gauge, idx) => (
           <React.Fragment key={gauge.title}>
             <SingleGauge
