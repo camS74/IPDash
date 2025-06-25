@@ -389,7 +389,7 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
       const baseData = {
         sales: getKPI(3, basePeriod),
         material: getKPI(5, basePeriod),
-        grossProfit: getKPI(4, basePeriod),
+        grossProfit: getKPI(19, basePeriod),
         mfgExpenses: getKPI(14, basePeriod),
         belowGP: getKPI(52, basePeriod),
         netProfit: getKPI(54, basePeriod),
@@ -558,7 +558,7 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
       if (comparisonPeriods.length > 0) {
         comparisonPeriods.forEach(period => {
           const periodName = getCleanPeriodName(period);
-          const compGrossProfit = getKPI(4, period);
+          const compGrossProfit = getKPI(19, period);
           const compSales = getKPI(3, period);
           const compVolume = getKPI(7, period);
           const compGrossMargin = compSales > 0 ? (compGrossProfit / compSales) * 100 : 0;

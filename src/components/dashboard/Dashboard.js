@@ -16,8 +16,6 @@ import MapSwitcher from './MapSwitcher';
 import ChartView from './ChartView';
 import WriteUpView from './WriteUpView';
 import MasterData from './MasterData';
-import HTMLReportView from './HTMLReportView';
-import HTMLExportV2View from './HTMLExportV2View';
 import KPIExecutiveSummary from './KPIExecutiveSummary';
 import './Dashboard.css';
 // Import logo directly to embed it in the bundle
@@ -162,12 +160,6 @@ const Dashboard = () => {
             </Tab>
             <Tab label="Master Data">
               <MasterData />
-            </Tab>
-            <Tab label="HTML Reports">
-              <HTMLReportView />
-            </Tab>
-            <Tab label="HTML Export V2">
-              <HTMLExportV2View />
             </Tab>
           </TabsComponent>
         </div>
