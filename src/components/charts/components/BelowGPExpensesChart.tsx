@@ -35,6 +35,12 @@ const formatAsReadableNumber = (value) => {
   return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
+const getDynamicFontSize = (periodCount: number) => {
+  if (periodCount <= 2) return 14;
+  if (periodCount <= 4) return 12;
+  return 10;
+};
+
 const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, style }) => {
   // Debug initial props
   useEffect(() => {
@@ -61,6 +67,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
 
   // Limit to 5 periods max
   const periodsToUse = selectedPeriods.slice(0, 5);
+  const dynamicFontSize = getDynamicFontSize(periodsToUse.length);
   console.log('Using periods:', periodsToUse);
 
   // DEBUG: Check if we can find the Sales row
@@ -284,7 +291,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
             `${perKgValue}/kg`
           ].join('\n');
         },
-        fontSize: 14,
+        fontSize: dynamicFontSize,
         fontWeight: 'bold',
         color: textColor,
         backgroundColor: 'transparent',
@@ -361,8 +368,8 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
       }
     },
     grid: {
-      left: '3%',
-      right: '4%',
+      left: '5%',
+      right: '5%',
       bottom: '3%', 
       top: '40px',
       containLabel: true
@@ -435,14 +442,13 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
     return (
       <div style={{ 
         display: 'flex', 
-        flexWrap: 'nowrap', 
+        flexWrap: 'wrap', 
         justifyContent: 'space-around', 
         alignItems: 'flex-end', 
         gap: '5px', 
         marginTop: 20,
         marginBottom: 0,
         width: '100%',
-        padding: '0 24px',
       }}>
         {periodsToUse.map((period, idx) => {
           // Move all variable declarations here for each card
@@ -482,16 +488,16 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
             <React.Fragment key={period.year + period.month + period.type}>
               {/* Card */}
               <div style={{
-              padding: '12px 15px', 
-              borderRadius: '6px',
+                padding: '12px 10px',
+                borderRadius: '6px',
                 backgroundColor: color,
-              border: `1px solid ${color}`,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+                border: `1px solid ${color}`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
                 minWidth: '150px',
                 maxWidth: '180px',
                 flex: '1',
-              textAlign: 'center',
-              position: 'relative',
+                textAlign: 'center',
+                position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
@@ -507,23 +513,25 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
                 e.currentTarget.style.transform = 'translateY(0) scale(1)';
                 e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.07)';
               }}>
-                <div style={{ fontSize: 14, color: textColor, fontWeight: 500, marginTop: 4 }}>{periodName}</div>
+                <div style={{ fontSize: 14, color: textColor, fontWeight: 500, marginTop: 8 }}>{periodName}</div>
                 <div style={{ fontWeight: 'bold', fontSize: 22, color: textColor, marginTop: 8 }}>
-                {formattedMillions}M
-              </div>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 12,
+                  {formattedMillions}M
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  width: '100%',
+                  padding: '0 8px',
+                  fontSize: 12,
                   fontWeight: 'bold',
                   color: textColor,
-                  marginTop: 8,
-                  width: '100%'
-              }}>
-                <div>{formattedPercent}%/Sls</div>
-                <div>{formattedPerKg} per kg</div>
+                  marginTop: 8
+                }}>
+                  <div>{formattedPercent}%/Sls</div>
+                  <div>{formattedPerKg}/kg</div>
+                </div>
               </div>
-            </div>
               {/* Variance badge between cards */}
               {idx < periodsToUse.length - 1 && (() => {
                 // Calculate variance vs next card
@@ -571,72 +579,16 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
   };
 
   return (
-    <div className="modern-margin-gauge-panel" style={{ 
-      marginTop: 60,
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      padding: style?.padding || '20px', // Allow padding override for PDF export
-      width: '95%',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      boxSizing: 'border-box',
-      ...(style || {}) // Apply any style props passed from parent component
-    }}>
-      <h2 className="modern-gauge-heading" style={{
-        textAlign: 'center',
-        fontSize: '18px',
-        marginBottom: '20px',
-        color: '#333',
-        fontWeight: '600'
-      }}>
-        Below Gross Profit Expenses
-      </h2>
-      
-      {ledgerLabels.length > 0 ? (
-        <>
-          <ReactECharts 
-            option={option} 
-            style={{ height: 600, width: '100%' }} // Use full panel width
-            notMerge={true}
-            opts={{ renderer: 'svg' }}
-          />
-          
-          <h3 style={{ 
-            textAlign: 'center', 
-            marginTop: 24, 
-            fontSize: 16,
-            fontWeight: '600',
-            color: '#444',
-            position: 'relative'
-          }}>
-            Total Below GP Expenses
-            <div style={{
-              position: 'absolute',
-              bottom: '-10px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '50px',
-              height: '3px',
-              backgroundColor: '#2E865F',
-              borderRadius: '2px'
-            }} />
-          </h3>
-          
-          {renderTotals()}
-        </>
-      ) : (
-        <div style={{ 
-          padding: 20, 
-          textAlign: 'center',
-          color: '#666',
-          backgroundColor: '#f9f9f9',
-          borderRadius: '4px',
-          marginTop: '20px'
-        }}>
-          <p>No expense data available for the selected periods.</p>
-        </div>
-      )}
+    <div style={{ width: '100%', minWidth: 0, ...style }}>
+      <h2 className="modern-gauge-heading">Below Gross Profit Expenses</h2>
+      <ReactECharts
+        option={option}
+        style={{ width: '100%', minWidth: 0, height: 420 }}
+        notMerge={true}
+        lazyUpdate={true}
+        theme={undefined}
+      />
+      {renderTotals()}
     </div>
   );
 };

@@ -57,11 +57,11 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     { id: 'below-gp-expenses', title: 'Below GP Expenses', icon: '📊', description: 'Operating expenses breakdown' },
     { id: 'cost-profitability-trend', title: 'Cost & Profitability Trend', icon: '📈', description: 'Profitability trend analysis' },
     
-    // Tables - Third Row
+    // Tables - Third Row (P&L Financial first)
+    { id: 'financial-pl', title: 'P&L Financial', icon: '💰', description: 'Profit & Loss statement' },
     { id: 'product-group', title: 'Product Group', icon: '📊', description: 'Product group analysis and metrics' },
     { id: 'sales-country', title: 'Sales by Country', icon: '🌍', description: 'Geographic sales distribution' },
-    { id: 'sales-customer', title: 'Sales by Customer', icon: '👥', description: 'Customer sales analysis' },
-    { id: 'financial-pl', title: 'P&L Financial', icon: '💰', description: 'Profit & Loss statement' }
+    { id: 'sales-customer', title: 'Sales by Customer', icon: '👥', description: 'Customer sales analysis' }
   ];
 
   // Capture Product Group table HTML
@@ -313,7 +313,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         if (fallbackContainer) {
           console.log('Using fallback container');
           const chartImage = await captureElementAsBase64(fallbackContainer, {
-            scale: 1.5,
+            scale: 5.0,
             backgroundColor: '#ffffff',
             useCORS: true,
             allowTaint: true,
@@ -382,7 +382,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
 
       // Capture with exact same settings as htmlExport.js
       const salesVolumeImage = await captureElementAsBase64(salesVolumeContainer, {
-        scale: 1.5,
+        scale: 5.0,
         backgroundColor: '#ffffff',
         useCORS: true,
         allowTaint: true,
@@ -431,7 +431,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         if (fallbackContainer) {
           console.log('Using fallback container for margin chart');
           const chartImage = await captureElementAsBase64(fallbackContainer, {
-            scale: 1.5,
+            scale: 5.0,
             backgroundColor: '#ffffff',
             useCORS: true,
             allowTaint: true,
@@ -498,7 +498,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
 
       // Capture with exact same settings as htmlExport.js
       const marginImage = await captureElementAsBase64(marginContainer, {
-        scale: 1.5,
+        scale: 5.0,
         backgroundColor: '#ffffff',
         useCORS: true,
         allowTaint: true,
@@ -547,7 +547,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         if (fallbackContainer) {
           console.log('Using fallback container for manufacturing cost chart');
           const chartImage = await captureElementAsBase64(fallbackContainer, {
-            scale: 1.5,
+            scale: 5.0, // Increased to 5.0 for ultra-high resolution
             backgroundColor: '#ffffff',
             useCORS: true,
             allowTaint: true,
@@ -609,12 +609,12 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         }
       });
 
-      // Wait for chart to settle
-      await new Promise(r => setTimeout(r, 500));
+      // Wait longer for chart to settle and render properly
+      await new Promise(r => setTimeout(r, 1000));
 
-      // Capture with exact same settings as htmlExport.js
+      // Capture with higher resolution settings
       const manufacturingImage = await captureElementAsBase64(manufacturingContainer, {
-        scale: 1.5,
+        scale: 5.0, // Increased to 5.0 for ultra-high resolution
         backgroundColor: '#ffffff',
         useCORS: true,
         allowTaint: true,
@@ -675,10 +675,31 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         }
       });
 
-      await new Promise(r => setTimeout(r, 500));
+      // Hide tooltips and resize charts
+      const echartsElements = container.querySelectorAll('.echarts-for-react');
+      echartsElements.forEach(echartsEl => {
+        if (typeof echartsEl.getEchartsInstance === 'function') {
+          const inst = echartsEl.getEchartsInstance();
+          if (inst) {
+            inst.dispatchAction({ type: 'hideTip' });
+            inst.resize();
+          }
+        }
+      });
+
+      // Wait longer for chart to settle and render properly
+      await new Promise(r => setTimeout(r, 1000));
+      
       const image = await captureElementAsBase64(container, {
-        scale: 1.5, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, removeContainer: true,
-        width: container.offsetWidth, height: container.offsetHeight, windowWidth: window.innerWidth, windowHeight: window.innerHeight
+        scale: 5.0, // Increased to 5.0 for ultra-high resolution
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        removeContainer: true,
+        width: container.offsetWidth,
+        height: container.offsetHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight
       });
 
       // Restore titles
@@ -728,8 +749,15 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
 
       await new Promise(r => setTimeout(r, 500));
       const image = await captureElementAsBase64(container, {
-        scale: 1.5, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, removeContainer: true,
-        width: container.offsetWidth, height: container.offsetHeight, windowWidth: window.innerWidth, windowHeight: window.innerHeight
+        scale: 5.0,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        removeContainer: true,
+        width: container.offsetWidth,
+        height: container.offsetHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight
       });
 
       // Restore titles
@@ -750,162 +778,158 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
   };
 
   // Generate KPI Summary from captured table data
-  const generateKPISummary = (plTableHTML, countryTableHTML, customerTableHTML, productGroupTableHTML) => {
+  const generateKPISummary = (plTableHTML, countryTableHTML, customerTableHTML, productGroupTableHTML, excelData, selectedDivision, columnOrder, basePeriodIndex) => {
     try {
-      console.log('📊 Generating KPI Summary from captured tables...');
-      
-      // Sample KPIs - In real implementation, we'd parse the HTML tables
-      const kpis = {
-        financial: {
-          revenue: { current: '15.2M', growth: '+12.3%', trend: 'up' },
-          grossProfit: { current: '4.8M', margin: '31.6%', trend: 'up' },
-          netIncome: { current: '2.1M', margin: '13.8%', trend: 'down' },
-          ebitda: { current: '3.2M', margin: '21.1%', trend: 'up' }
-        },
-        geographic: {
-          topCountry: { name: 'UAE', percentage: '51.4%' },
-          secondCountry: { name: 'KSA', percentage: '18.7%' },
-          thirdCountry: { name: 'Egypt', percentage: '12.3%' },
-          concentration: '82.4%'
-        },
-        customer: {
-          topCustomer: { percentage: '15.2%' },
-          concentration: { top3: '38.7%', top5: '52.3%' },
-          diversity: 'Good'
-        },
-        product: {
-          topProduct: 'Flexible Packaging',
-          productCount: 8,
-          diversity: 'High'
+      // Get division data and base period
+      const divisionData = excelData[selectedDivision] || [];
+      const basePeriod = columnOrder[basePeriodIndex];
+      const basePeriodName = basePeriod ? `${basePeriod.year} ${basePeriod.isCustomRange ? basePeriod.displayName : (basePeriod.month || '')} ${basePeriod.type}`.trim() : '';
+      // Find comparison period (immediately to the left)
+      const comparisonPeriod = basePeriodIndex > 0 ? columnOrder[basePeriodIndex - 1] : null;
+      const comparisonPeriodName = comparisonPeriod ? `${comparisonPeriod.year} ${comparisonPeriod.isCustomRange ? comparisonPeriod.displayName : (comparisonPeriod.month || '')} ${comparisonPeriod.type}`.trim() : '';
+      // Helper for formatting
+      const formatM = v => v >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : v.toLocaleString();
+      const percent = v => (v * 100).toFixed(1) + '%';
+      // Financial KPIs
+      const get = (row, col) => window.computeCellValue ? window.computeCellValue(divisionData, row, col) : 0;
+      const sales = get(3, basePeriod);
+      const grossProfit = get(4, basePeriod);
+      const netProfit = get(54, basePeriod);
+      const ebitda = get(56, basePeriod);
+      // Comparison values
+      const salesPrev = comparisonPeriod ? get(3, comparisonPeriod) : null;
+      const grossProfitPrev = comparisonPeriod ? get(4, comparisonPeriod) : null;
+      const netProfitPrev = comparisonPeriod ? get(54, comparisonPeriod) : null;
+      const ebitdaPrev = comparisonPeriod ? get(56, comparisonPeriod) : null;
+      // Margins
+      const grossMargin = sales > 0 ? grossProfit / sales : 0;
+      const netMargin = sales > 0 ? netProfit / sales : 0;
+      const ebitdaMargin = sales > 0 ? ebitda / sales : 0;
+      // Growth/variance
+      const growth = (curr, prev) => prev && prev !== 0 ? ((curr - prev) / Math.abs(prev) * 100).toFixed(1) + '%' : '';
+      // Product Performance
+      // Assume product group sheet is named like 'FP-Product Group', etc.
+      const productSheetName = selectedDivision.replace(/-.*$/, '') + '-Product Group';
+      const productData = excelData[productSheetName] || [];
+      // Find sales column for base period
+      let productSales = [];
+      if (productData.length > 0 && basePeriod) {
+        for (let row = 3; row < productData.length; row++) {
+          const name = productData[row][0];
+          let sum = 0;
+          for (let c = 4; c < productData[0].length; c++) {
+            const year = productData[0][c];
+            const month = productData[1][c];
+            const type = productData[2][c];
+            if (year == basePeriod.year && basePeriod.months.includes(month) && type === basePeriod.type) {
+              const v = parseFloat(productData[row][c]);
+              if (!isNaN(v)) sum += v;
+            }
+          }
+          if (name && sum > 0) productSales.push({ name, value: sum });
         }
-      };
-
+      }
+      productSales.sort((a, b) => b.value - a.value);
+      const topProduct = productSales[0] ? productSales[0].name : '-';
+      const productCount = productSales.length;
+      const productDiversity = productCount > 5 ? 'High' : productCount >= 3 ? 'Moderate' : 'Low';
+      // Geographic Distribution
+      // Assume country sheet is named like 'FP-Countries', etc.
+      const countrySheetName = selectedDivision.replace(/-.*$/, '') + '-Countries';
+      const countryData = excelData[countrySheetName] || [];
+      let countrySales = [];
+      if (countryData.length > 0 && basePeriod) {
+        for (let row = 3; row < countryData.length; row++) {
+          const name = countryData[row][0];
+          let sum = 0;
+          for (let c = 4; c < countryData[0].length; c++) {
+            const year = countryData[0][c];
+            const month = countryData[1][c];
+            const type = countryData[2][c];
+            if (year == basePeriod.year && basePeriod.months.includes(month) && type === basePeriod.type) {
+              const v = parseFloat(countryData[row][c]);
+              if (!isNaN(v)) sum += v;
+            }
+          }
+          if (name && sum > 0) countrySales.push({ name, value: sum });
+        }
+      }
+      const totalCountrySales = countrySales.reduce((a, b) => a + b.value, 0);
+      countrySales.forEach(cs => cs.percent = totalCountrySales > 0 ? (cs.value / totalCountrySales * 100) : 0);
+      countrySales.sort((a, b) => b.percent - a.percent);
+      const topCountries = countrySales.slice(0, 3);
+      const top3Concentration = topCountries.reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
+      // Customer Insights
+      // Assume customer sheet is named like 'FP-Customers', etc.
+      const customerSheetName = selectedDivision.replace(/-.*$/, '') + '-Customers';
+      const customerData = excelData[customerSheetName] || [];
+      let customerSales = [];
+      if (customerData.length > 0 && basePeriod) {
+        for (let row = 3; row < customerData.length; row++) {
+          const name = customerData[row][0];
+          let sum = 0;
+          for (let c = 4; c < customerData[0].length; c++) {
+            const year = customerData[0][c];
+            const month = customerData[1][c];
+            const type = customerData[2][c];
+            if (year == basePeriod.year && basePeriod.months.includes(month) && type === basePeriod.type) {
+              const v = parseFloat(customerData[row][c]);
+              if (!isNaN(v)) sum += v;
+            }
+          }
+          if (name && sum > 0) customerSales.push({ name, value: sum });
+        }
+      }
+      const totalCustomerSales = customerSales.reduce((a, b) => a + b.value, 0);
+      customerSales.forEach(cs => cs.percent = totalCustomerSales > 0 ? (cs.value / totalCustomerSales * 100) : 0);
+      customerSales.sort((a, b) => b.percent - a.percent);
+      const topCustomer = customerSales[0] ? customerSales[0].percent.toFixed(1) + '%' : '-';
+      const top3Customer = customerSales.slice(0, 3).reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
+      const top5Customer = customerSales.slice(0, 5).reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
+      const customerDiversity = customerSales.length > 5 ? 'Good' : customerSales.length >= 3 ? 'Moderate' : 'Low';
+      // Render sections in requested order
       return `
         <div class="kpi-dashboard">
           <div class="kpi-section">
             <h3 class="kpi-section-title">💰 Financial Performance</h3>
             <div class="kpi-cards">
-              <div class="kpi-card">
-                <div class="kpi-icon">📈</div>
-                <div class="kpi-label">Revenue</div>
-                <div class="kpi-value">${kpis.financial.revenue.current}</div>
-                <div class="kpi-trend ${kpis.financial.revenue.trend}">${kpis.financial.revenue.growth}</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">💵</div>
-                <div class="kpi-label">Gross Profit</div>
-                <div class="kpi-value">${kpis.financial.grossProfit.current}</div>
-                <div class="kpi-trend ${kpis.financial.grossProfit.trend}">${kpis.financial.grossProfit.margin}</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">💎</div>
-                <div class="kpi-label">Net Income</div>
-                <div class="kpi-value">${kpis.financial.netIncome.current}</div>
-                <div class="kpi-trend ${kpis.financial.netIncome.trend}">${kpis.financial.netIncome.margin}</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">⚡</div>
-                <div class="kpi-label">EBITDA</div>
-                <div class="kpi-value">${kpis.financial.ebitda.current}</div>
-                <div class="kpi-trend ${kpis.financial.ebitda.trend}">${kpis.financial.ebitda.margin}</div>
-              </div>
+              <div class="kpi-card"><div class="kpi-icon">📈</div><div class="kpi-label">Revenue</div><div class="kpi-value">${formatM(sales)}</div><div class="kpi-trend">${growth(sales, salesPrev)}</div></div>
+              <div class="kpi-card"><div class="kpi-icon">💵</div><div class="kpi-label">Gross Profit</div><div class="kpi-value">${formatM(grossProfit)}</div><div class="kpi-trend">${percent(grossMargin)}</div></div>
+              <div class="kpi-card"><div class="kpi-icon">💎</div><div class="kpi-label">Net Income</div><div class="kpi-value">${formatM(netProfit)}</div><div class="kpi-trend">${percent(netMargin)}</div></div>
+              <div class="kpi-card"><div class="kpi-icon">⚡</div><div class="kpi-label">EBITDA</div><div class="kpi-value">${formatM(ebitda)}</div><div class="kpi-trend">${percent(ebitdaMargin)}</div></div>
             </div>
           </div>
-
-          <div class="kpi-section">
-            <h3 class="kpi-section-title">🌍 Geographic Distribution</h3>
-            <div class="kpi-cards">
-              <div class="kpi-card large">
-                <div class="kpi-icon">🥇</div>
-                <div class="kpi-label">Top Market</div>
-                <div class="kpi-value">${kpis.geographic.topCountry.name}</div>
-                <div class="kpi-trend up">${kpis.geographic.topCountry.percentage}</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">🥈</div>
-                <div class="kpi-label">2nd Market</div>
-                <div class="kpi-value">${kpis.geographic.secondCountry.name}</div>
-                <div class="kpi-trend up">${kpis.geographic.secondCountry.percentage}</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">🥉</div>
-                <div class="kpi-label">3rd Market</div>
-                <div class="kpi-value">${kpis.geographic.thirdCountry.name}</div>
-                <div class="kpi-trend up">${kpis.geographic.thirdCountry.percentage}</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">🎯</div>
-                <div class="kpi-label">Top 3 Concentration</div>
-                <div class="kpi-value">${kpis.geographic.concentration}</div>
-                <div class="kpi-trend neutral">of total sales</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="kpi-section">
-            <h3 class="kpi-section-title">👥 Customer Insights</h3>
-            <div class="kpi-cards">
-              <div class="kpi-card">
-                <div class="kpi-icon">⭐</div>
-                <div class="kpi-label">Top Customer</div>
-                <div class="kpi-value">${kpis.customer.topCustomer.percentage}</div>
-                <div class="kpi-trend neutral">of total sales</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">🔝</div>
-                <div class="kpi-label">Top 3 Customers</div>
-                <div class="kpi-value">${kpis.customer.concentration.top3}</div>
-                <div class="kpi-trend neutral">concentration</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">📊</div>
-                <div class="kpi-label">Top 5 Customers</div>
-                <div class="kpi-value">${kpis.customer.concentration.top5}</div>
-                <div class="kpi-trend neutral">concentration</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">🎨</div>
-                <div class="kpi-label">Customer Diversity</div>
-                <div class="kpi-value">${kpis.customer.diversity}</div>
-                <div class="kpi-trend up">distribution</div>
-              </div>
-            </div>
-          </div>
-
           <div class="kpi-section">
             <h3 class="kpi-section-title">📦 Product Performance</h3>
             <div class="kpi-cards">
-              <div class="kpi-card large">
-                <div class="kpi-icon">🏆</div>
-                <div class="kpi-label">Top Product Group</div>
-                <div class="kpi-value">${kpis.product.topProduct}</div>
-                <div class="kpi-trend up">Leading performer</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">📈</div>
-                <div class="kpi-label">Product Groups</div>
-                <div class="kpi-value">${kpis.product.productCount}</div>
-                <div class="kpi-trend neutral">active groups</div>
-              </div>
-              <div class="kpi-card">
-                <div class="kpi-icon">🌟</div>
-                <div class="kpi-label">Portfolio Diversity</div>
-                <div class="kpi-value">${kpis.product.diversity}</div>
-                <div class="kpi-trend up">diversification</div>
-              </div>
+              <div class="kpi-card large"><div class="kpi-icon">🏆</div><div class="kpi-label">Top Product Group</div><div class="kpi-value">${topProduct}</div><div class="kpi-trend">Leading performer</div></div>
+              <div class="kpi-card"><div class="kpi-icon">📈</div><div class="kpi-label">Product Groups</div><div class="kpi-value">${productCount}</div><div class="kpi-trend">active groups</div></div>
+              <div class="kpi-card"><div class="kpi-icon">🌟</div><div class="kpi-label">Portfolio Diversity</div><div class="kpi-value">${productDiversity}</div><div class="kpi-trend">diversification</div></div>
+            </div>
+          </div>
+          <div class="kpi-section">
+            <h3 class="kpi-section-title">🌍 Geographic Distribution</h3>
+            <div class="kpi-cards">
+              <div class="kpi-card large"><div class="kpi-icon">🥇</div><div class="kpi-label">Top Market</div><div class="kpi-value">${topCountries[0] ? topCountries[0].name : '-'}</div><div class="kpi-trend">${topCountries[0] ? topCountries[0].percent.toFixed(1) + '%' : '-'}</div></div>
+              <div class="kpi-card"><div class="kpi-icon">🥈</div><div class="kpi-label">2nd Market</div><div class="kpi-value">${topCountries[1] ? topCountries[1].name : '-'}</div><div class="kpi-trend">${topCountries[1] ? topCountries[1].percent.toFixed(1) + '%' : '-'}</div></div>
+              <div class="kpi-card"><div class="kpi-icon">🥉</div><div class="kpi-label">3rd Market</div><div class="kpi-value">${topCountries[2] ? topCountries[2].name : '-'}</div><div class="kpi-trend">${topCountries[2] ? topCountries[2].percent.toFixed(1) + '%' : '-'}</div></div>
+              <div class="kpi-card"><div class="kpi-icon">🎯</div><div class="kpi-label">Top 3 Concentration</div><div class="kpi-value">${top3Concentration}</div><div class="kpi-trend">of total sales</div></div>
+            </div>
+          </div>
+          <div class="kpi-section">
+            <h3 class="kpi-section-title">👥 Customer Insights</h3>
+            <div class="kpi-cards">
+              <div class="kpi-card"><div class="kpi-icon">⭐</div><div class="kpi-label">Top Customer</div><div class="kpi-value">${topCustomer}</div><div class="kpi-trend">of total sales</div></div>
+              <div class="kpi-card"><div class="kpi-icon">🔝</div><div class="kpi-label">Top 3 Customers</div><div class="kpi-value">${top3Customer}</div><div class="kpi-trend">concentration</div></div>
+              <div class="kpi-card"><div class="kpi-icon">📊</div><div class="kpi-label">Top 5 Customers</div><div class="kpi-value">${top5Customer}</div><div class="kpi-trend">concentration</div></div>
+              <div class="kpi-card"><div class="kpi-icon">🎨</div><div class="kpi-label">Customer Diversity</div><div class="kpi-value">${customerDiversity}</div><div class="kpi-trend">distribution</div></div>
             </div>
           </div>
         </div>
       `;
     } catch (error) {
       console.error('Error generating KPI Summary:', error);
-      return `
-        <div class="kpi-error">
-          <div class="kpi-icon">⚠️</div>
-          <div class="kpi-error-text">Unable to generate KPIs from table data</div>
-          <div class="kpi-error-details">Please ensure all tables are properly loaded</div>
-        </div>
-      `;
+      return `<div class="kpi-error"><div class="kpi-icon">⚠️</div><div class="kpi-error-text">Unable to generate KPIs from table data</div><div class="kpi-error-details">Please ensure all tables are properly loaded</div></div>`;
     }
   };
 
@@ -1324,6 +1348,51 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
             box-shadow: 0 6px 16px rgba(155, 89, 182, 0.4);
         }
         
+        /* Sticky Back Button Container for Table Pages */
+        .sticky-back-container {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            z-index: 1001;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Table Title Container */
+        .table-title-container {
+            padding: 20px 20px 10px 20px;
+            text-align: center;
+        }
+        
+        .table-title-container .page-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* Chart Title Container */
+        .chart-title-container {
+            padding: 20px 20px 10px 20px;
+            text-align: center;
+        }
+        
+        .chart-title-container .page-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .chart-title-container .page-subtitle {
+            margin: 5px 0 0 0;
+            font-size: 16px;
+            color: #666;
+            font-weight: normal;
+            font-style: italic;
+        }
+        
         /* Table Styles */
         .table-container {
             width: 100%;
@@ -1363,17 +1432,17 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         
         /* Default: Freeze first 3 header rows (for Product Group, Sales by Country, Sales by Customer) */
         thead tr:nth-child(1) th {
-            top: 70px; /* Account for page header height */
+            top: 70px; /* Account for sticky back button container height */
             z-index: 13;
         }
         
         thead tr:nth-child(2) th {
-            top: 105px; /* 70px page header + 35px first row */
+            top: 105px; /* 70px sticky back + 35px first row */
             z-index: 12;
         }
         
         thead tr:nth-child(3) th {
-            top: 140px; /* 70px page header + 70px first two rows */
+            top: 140px; /* 70px sticky back + 70px first two rows */
             z-index: 11;
         }
         
@@ -1395,7 +1464,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         
         /* P&L Financial Table: Freeze first 4 header rows */
         .content-page[id="page-financial-pl"] thead tr:nth-child(4) th {
-            top: 175px; /* 70px page header + 105px first three rows */
+            top: 175px; /* 70px sticky back + 105px first three rows */
             z-index: 10;
             position: sticky;
             font-weight: bold;
@@ -1408,28 +1477,28 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         
         /* Sales by Country Table: Freeze first 4 header rows */
         .content-page[id="page-sales-country"] thead tr:nth-child(1) th {
-            top: 70px; /* Account for page header height */
+            top: 70px; /* Account for sticky back button container height */
             z-index: 13;
             position: sticky;
             font-weight: bold;
         }
         
         .content-page[id="page-sales-country"] thead tr:nth-child(2) th {
-            top: 105px; /* 70px page header + 35px first row */
+            top: 105px; /* 70px sticky back + 35px first row */
             z-index: 12;
             position: sticky;
             font-weight: bold;
         }
         
         .content-page[id="page-sales-country"] thead tr:nth-child(3) th {
-            top: 140px; /* 70px page header + 70px first two rows */
+            top: 140px; /* 70px sticky back + 70px first two rows */
             z-index: 11;
             position: sticky;
             font-weight: bold;
         }
         
         .content-page[id="page-sales-country"] thead tr:nth-child(4) th {
-            top: 175px; /* 70px page header + 105px first three rows */
+            top: 175px; /* 70px sticky back + 105px first three rows */
             z-index: 10;
             position: sticky;
             font-weight: bold;
@@ -1437,28 +1506,28 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         
         /* Sales by Customer Table: Freeze first 4 header rows */
         .content-page[id="page-sales-customer"] thead tr:nth-child(1) th {
-            top: 70px; /* Account for page header height */
+            top: 70px; /* Account for sticky back button container height */
             z-index: 13;
             position: sticky;
             font-weight: bold;
         }
         
         .content-page[id="page-sales-customer"] thead tr:nth-child(2) th {
-            top: 105px; /* 70px page header + 35px first row */
+            top: 105px; /* 70px sticky back + 35px first row */
             z-index: 12;
             position: sticky;
             font-weight: bold;
         }
         
         .content-page[id="page-sales-customer"] thead tr:nth-child(3) th {
-            top: 140px; /* 70px page header + 70px first two rows */
+            top: 140px; /* 70px sticky back + 70px first two rows */
             z-index: 11;
             position: sticky;
             font-weight: bold;
         }
         
         .content-page[id="page-sales-customer"] thead tr:nth-child(4) th {
-            top: 175px; /* 70px page header + 105px first three rows */
+            top: 175px; /* 70px sticky back + 105px first three rows */
             z-index: 10;
             position: sticky;
             font-weight: bold;
@@ -1937,7 +2006,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                 
                 <!-- Tables Row -->
                 <div class="card-row tables-row">
-                    ${cardConfigs.filter(card => ['product-group', 'sales-country', 'sales-customer', 'financial-pl'].includes(card.id)).map(card => `
+                    ${cardConfigs.filter(card => ['financial-pl', 'product-group', 'sales-country', 'sales-customer'].includes(card.id)).map(card => `
                         <div class="report-card" onclick="showPage('${card.id}')">
                             <span class="card-icon">${card.icon}</span>
                             <div class="card-title">${card.title}</div>
@@ -1951,44 +2020,62 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         <!-- Content Pages -->
         ${cardConfigs.map(card => `
             <div id="page-${card.id}" class="content-page">
-                <div class="page-header">
-                    <button class="back-button" onclick="showDashboard()">
-                        ← Back to Dashboard
-                    </button>
-                    <div class="page-title-container">
-                        <h2 class="page-title">${
-                            card.id === 'kpi-summary' ? `Executive Summary - ${divisionName}` :
-                            card.id === 'product-group' ? `Product Group - ${divisionName}` :
-                            card.id === 'financial-pl' ? `${divisionName} Financials` :
-                            card.id === 'sales-country' ? `Sales by Country - ${divisionName}` :
-                            card.id === 'sales-customer' ? `Top 20 Customers - ${divisionName}` :
-                            card.id === 'sales-volume-analysis' ? `Sales & Volume Analysis - ${divisionName}` :
-                            card.id === 'margin-analysis' ? `Margin over Material - ${divisionName}` :
-                            card.id === 'manufacturing-cost' ? `Manufacturing Cost - ${divisionName}` :
-                            card.id === 'below-gp-expenses' ? `Below GP Expenses - ${divisionName}` :
-                            card.id === 'cost-profitability-trend' ? `Cost & Profitability Trend - ${divisionName}` :
-                            `${card.icon} ${card.title}`
-                        }</h2>
-                        ${card.id === 'sales-volume-analysis' ? '<div class="page-subtitle">(AED)</div>' : ''}
-                        ${card.id === 'margin-analysis' ? '<div class="page-subtitle">(AED & AED/Kg)</div>' : ''}
-                        ${card.id === 'manufacturing-cost' ? '<div class="page-subtitle">(AED)</div>' : ''}
-                        ${card.id === 'below-gp-expenses' ? '<div class="page-subtitle">(AED)</div>' : ''}
-                        ${card.id === 'cost-profitability-trend' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                <!-- Sticky Back Button (for table and chart pages) -->
+                ${['product-group', 'financial-pl', 'sales-country', 'sales-customer', 'sales-volume-analysis', 'margin-analysis', 'manufacturing-cost', 'below-gp-expenses', 'cost-profitability-trend'].includes(card.id) ? `
+                    <div class="sticky-back-container">
+                        <button class="back-button" onclick="showDashboard()">
+                            ← Back to Dashboard
+                        </button>
                     </div>
-                    <div style="width: 180px;"></div> <!-- Spacer for balance -->
-                </div>
+                ` : `
+                    <div class="page-header">
+                        <button class="back-button" onclick="showDashboard()">
+                            ← Back to Dashboard
+                        </button>
+                        <div class="page-title-container">
+                            <h2 class="page-title">${
+                                card.id === 'kpi-summary' ? `Executive Summary - ${divisionName}` :
+                                card.id === 'product-group' ? `Product Group - ${divisionName}` :
+                                card.id === 'financial-pl' ? `P&L-${divisionName}` :
+                                card.id === 'sales-country' ? `Sales by Country - ${divisionName}` :
+                                card.id === 'sales-customer' ? `Top 20 Customers - ${divisionName}` :
+                                card.id === 'sales-volume-analysis' ? `Sales & Volume Analysis - ${divisionName}` :
+                                card.id === 'margin-analysis' ? `Margin over Material - ${divisionName}` :
+                                card.id === 'manufacturing-cost' ? `Manufacturing Cost - ${divisionName}` :
+                                card.id === 'below-gp-expenses' ? `Below GP Expenses - ${divisionName}` :
+                                card.id === 'cost-profitability-trend' ? `Cost & Profitability Trend - ${divisionName}` :
+                                `${card.icon} ${card.title}`
+                            }</h2>
+                            ${card.id === 'sales-volume-analysis' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                            ${card.id === 'margin-analysis' ? '<div class="page-subtitle">(AED & AED/Kg)</div>' : ''}
+                            ${card.id === 'manufacturing-cost' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                            ${card.id === 'below-gp-expenses' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                            ${card.id === 'cost-profitability-trend' ? '<div class="page-subtitle">(AED)</div>' : ''}
+                        </div>
+                        <div style="width: 180px;"></div> <!-- Spacer for balance -->
+                    </div>
+                `}
                 <div class="page-content">
                     ${card.id === 'kpi-summary' ? `
-                        ${generateKPISummary(plFinancialTableHTML, salesCountryTableHTML, salesCustomerTableHTML, productGroupTableHTML)}
+                        ${generateKPISummary(plFinancialTableHTML, salesCountryTableHTML, salesCustomerTableHTML, productGroupTableHTML, data, selectedDivision, columnOrder, basePeriodIndex)}
                     ` : card.id === 'product-group' ? `
+                        <div class="table-title-container">
+                            <h2 class="page-title">Product Group - ${divisionName}</h2>
+                        </div>
                         <div class="table-container">
                             ${productGroupTableHTML}
                         </div>
                     ` : card.id === 'financial-pl' ? `
+                        <div class="table-title-container">
+                            <h2 class="page-title">P&L-${divisionName}</h2>
+                        </div>
                         <div class="table-container">
                             ${plFinancialTableHTML}
                         </div>
                     ` : card.id === 'sales-country' ? `
+                        <div class="table-title-container">
+                            <h2 class="page-title">Sales by Country - ${divisionName}</h2>
+                        </div>
                         <div class="table-container">
                             ${salesCountryTableHTML}
                         </div>
@@ -1996,6 +2083,9 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                             ★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods
                         </div>
                     ` : card.id === 'sales-customer' ? `
+                        <div class="table-title-container">
+                            <h2 class="page-title">Top 20 Customers - ${divisionName}</h2>
+                        </div>
                         <div class="table-container">
                             ${salesCustomerTableHTML}
                         </div>
@@ -2003,22 +2093,42 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                             ★ = Sorting by Base Period highest to lowest | Δ% shows percentage change between consecutive periods
                         </div>
                     ` : card.id === 'sales-volume-analysis' ? `
+                        <div class="chart-title-container">
+                            <h2 class="page-title">Sales & Volume Analysis - ${divisionName}</h2>
+                            <div class="page-subtitle">(AED)</div>
+                        </div>
                         <div class="chart-full-container">
                             ${salesVolumeChartHTML}
                         </div>
                     ` : card.id === 'margin-analysis' ? `
+                        <div class="chart-title-container">
+                            <h2 class="page-title">Margin over Material - ${divisionName}</h2>
+                            <div class="page-subtitle">(AED & AED/Kg)</div>
+                        </div>
                         <div class="chart-full-container">
                             ${marginAnalysisChartHTML}
                         </div>
                     ` : card.id === 'manufacturing-cost' ? `
+                        <div class="chart-title-container">
+                            <h2 class="page-title">Manufacturing Cost - ${divisionName}</h2>
+                            <div class="page-subtitle">(AED)</div>
+                        </div>
                         <div class="chart-full-container">
                             ${manufacturingCostChartHTML}
                         </div>
                     ` : card.id === 'below-gp-expenses' ? `
+                        <div class="chart-title-container">
+                            <h2 class="page-title">Below GP Expenses - ${divisionName}</h2>
+                            <div class="page-subtitle">(AED)</div>
+                        </div>
                         <div class="chart-full-container">
                             ${belowGPExpensesChartHTML}
                         </div>
                     ` : card.id === 'cost-profitability-trend' ? `
+                        <div class="chart-title-container">
+                            <h2 class="page-title">Cost & Profitability Trend - ${divisionName}</h2>
+                            <div class="page-subtitle">(AED)</div>
+                        </div>
                         <div class="chart-full-container">
                             ${costProfitabilityTrendChartHTML}
                         </div>
@@ -2035,27 +2145,30 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     </div>
     
     <script>
-        function showPage(pageId) {
-            // Hide main dashboard
-            document.getElementById('main-dashboard').style.display = 'none';
-            
-            // Hide all content pages
-            const pages = document.querySelectorAll('.content-page');
-            pages.forEach(page => page.classList.remove('active'));
-            
-            // Show selected page
-            document.getElementById('page-' + pageId).classList.add('active');
+        function scrollAllToTop() {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            ['.main-container', '.content-page', '.page-content', '.table-container'].forEach(function(selector) {
+                document.querySelectorAll(selector).forEach(function(el) { el.scrollTop = 0; });
+            });
+            // Scroll the header/title into view as a last resort
+            var header = document.querySelector('.page-header');
+            if (header) header.scrollIntoView({ behavior: 'auto', block: 'start' });
         }
-        
-        function showDashboard() {
-            // Hide all content pages
+        window.onload = scrollAllToTop;
+        function showPage(pageId) {
+            document.getElementById('main-dashboard').style.display = 'none';
             const pages = document.querySelectorAll('.content-page');
             pages.forEach(page => page.classList.remove('active'));
-            
-            // Show main dashboard
+            document.getElementById('page-' + pageId).classList.add('active');
+            scrollAllToTop();
+        }
+        function showDashboard() {
+            const pages = document.querySelectorAll('.content-page');
+            pages.forEach(page => page.classList.remove('active'));
             document.getElementById('main-dashboard').style.display = 'block';
         }
-        
         console.log('✅ Comprehensive Report loaded successfully!');
         console.log('📊 Available reports: ${cardConfigs.length}');
     </script>

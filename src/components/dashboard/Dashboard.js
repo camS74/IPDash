@@ -18,6 +18,7 @@ import WriteUpView from './WriteUpView';
 import MasterData from './MasterData';
 import HTMLReportView from './HTMLReportView';
 import HTMLExportV2View from './HTMLExportV2View';
+import KPIExecutiveSummary from './KPIExecutiveSummary';
 import './Dashboard.css';
 // Import logo directly to embed it in the bundle
 import interplastLogo from '../../assets/Ip Logo.png';
@@ -109,10 +110,13 @@ const Dashboard = () => {
           <ColumnConfigGrid exportPdfFunction={chartExportFunction} productGroupTableRef={productGroupTableRef} />
           
           <TabsComponent>
-                          <Tab label="P&L">
+            <Tab label="KPI">
+              <KPIExecutiveSummary />
+            </Tab>
+            <Tab label="P&L">
               <TableView />
             </Tab>
-                          <Tab label="Product Group">
+            <Tab label="Product Group">
               <ProductGroupTable ref={productGroupTableRef} />
             </Tab>
             <Tab label="Sales by Country">

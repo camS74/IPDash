@@ -35,6 +35,12 @@ const formatAsReadableNumber = (value) => {
   return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
+const getDynamicFontSize = (periodCount: number) => {
+  if (periodCount <= 2) return 14;
+  if (periodCount <= 4) return 12;
+  return 10;
+};
+
 const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, style }) => {
   // Debug initial props
   useEffect(() => {
@@ -61,6 +67,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
 
   // Limit to 5 periods max
   const periodsToUse = selectedPeriods.slice(0, 5);
+  const dynamicFontSize = getDynamicFontSize(periodsToUse.length);
   console.log('ManufacturingCostChart - periodsToUse:', periodsToUse.length, periodsToUse.map(p => ({
     year: p.year,
     month: p.month,
@@ -333,7 +340,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
             `${perKgValue}/kg`
           ].join('\n');
         },
-        fontSize: 14,
+        fontSize: dynamicFontSize,
         fontWeight: 'bold',
         color: textColor, // Dynamic text color based on background
         backgroundColor: 'transparent',
@@ -410,9 +417,9 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
       }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%', 
+      left: '5%',
+      right: '5%',
+      bottom: '3%',
       top: '40px',
       containLabel: true
     },
@@ -480,7 +487,13 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
         show: false
       }
     },
-    series: series
+    series: series.map(s => ({
+      ...s,
+      label: {
+        ...s.label,
+        fontSize: dynamicFontSize
+      }
+    }))
   };
 
   console.log('ManufacturingCostChart - Final chart configuration:', {
@@ -499,17 +512,15 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
         flexWrap: 'wrap', 
         justifyContent: 'space-around', 
         marginTop: 20,
-        gap: '5px' // Reduced gap from 10px to 5px
+        gap: '5px'
       }}>
         {periodsToUse.map((period, index) => {
           const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
           const totals = periodTotals[periodName] || { amount: 0, percentOfSales: 0, perKg: 0 };
-          
           // Format values with proper decimal places
           const formattedMillions = (totals.amount / 1000000).toFixed(2);
           const formattedPercent = totals.percentOfSales.toFixed(1);
           const formattedPerKg = totals.perKg.toFixed(1);
-          
           // Get color for period (same logic as above)
           let color;
           if (period.customColor) {
@@ -518,89 +529,109 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
               color = scheme.primary;
             }
           } else {
-            // Default color assignment based on month/type (same as tables)
             if (period.month === 'Q1' || period.month === 'Q2' || period.month === 'Q3' || period.month === 'Q4') {
-              color = '#FF6B35'; // Orange (light red)
+              color = '#FF6B35';
             } else if (period.month === 'January') {
-              color = '#FFD700'; // Yellow
+              color = '#FFD700';
             } else if (period.month === 'Year') {
-              color = '#288cfa'; // Blue
+              color = '#288cfa';
             } else if (period.type === 'Budget') {
-              color = '#2E865F'; // Green
-          } else {
-            color = defaultColors[index % defaultColors.length];
+              color = '#2E865F';
+            } else {
+              color = defaultColors[index % defaultColors.length];
             }
           }
-          
-          // Function to determine if a color is dark (for text contrast)
           const isColorDark = (hexColor) => {
-            // Convert hex to RGB
             const r = parseInt(hexColor.substring(1, 3), 16);
             const g = parseInt(hexColor.substring(3, 5), 16);
             const b = parseInt(hexColor.substring(5, 7), 16);
-            // Calculate brightness (perceived luminance)
             return (r * 0.299 + g * 0.587 + b * 0.114) < 150;
           };
-          
-          // Get appropriate text color based on background
           const textColor = isColorDark(color) ? '#fff' : '#333';
-          
           return (
-            <div key={index} style={{ 
-              padding: '12px 15px', 
-              borderRadius: '6px',
-              backgroundColor: color, // Use exact same color as bars
-              border: `1px solid ${color}`,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
-              minWidth: '200px',
-              maxWidth: '210px', // Slightly reduced max-width
-              flex: '1',
-              textAlign: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.07)';
-            }}>
-              {/* No need for color strip at top since the entire card has the color */}
-              
-              <div style={{ 
-                fontSize: 14, 
-                color: textColor, // Text color based on background brightness
-                fontWeight: 500,
-                marginTop: 4
-              }}>
-                {periodName}
-              </div>
-              
-              <div style={{ 
-                fontWeight: 'bold', 
-                fontSize: 22,
-                color: textColor, // Text color based on background brightness
-                marginTop: 8
-              }}>
-                {formattedMillions}M
-              </div>
-              
-              <div style={{ 
+            <React.Fragment key={periodName}>
+              <div style={{
+                padding: '12px 10px',
+                borderRadius: '6px',
+                backgroundColor: color,
+                border: `1px solid ${color}`,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+                minWidth: '150px',
+                maxWidth: '180px',
+                flex: '1',
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+                cursor: 'pointer',
                 display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 12,
-                fontWeight: 'bold', // Made bold as requested
-                color: textColor, // Text color based on background brightness
-                marginTop: 8
+                flexDirection: 'column',
+                alignItems: 'center',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px) scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.07)';
               }}>
-                <div>{formattedPercent}%/Sls</div>
-                <div>{formattedPerKg}/kg</div>
+                <div style={{ fontSize: 14, color: textColor, fontWeight: 500, marginTop: 8 }}>{periodName}</div>
+                <div style={{ fontWeight: 'bold', fontSize: 22, color: textColor, marginTop: 8 }}>{formattedMillions}M</div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  width: '100%',
+                  padding: '0 8px',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  color: textColor,
+                  marginTop: 8
+                }}>
+                  <div>{formattedPercent}%/Sls</div>
+                  <div>{formattedPerKg}/kg</div>
+                </div>
               </div>
-            </div>
+              {/* Variance badge between cards */}
+              {index < periodsToUse.length - 1 && (() => {
+                const nextPeriod = periodsToUse[index + 1];
+                const nextPeriodName = `${nextPeriod.year} ${nextPeriod.isCustomRange ? nextPeriod.displayName : (nextPeriod.month || '')} ${nextPeriod.type}`;
+                const nextTotals = periodTotals[nextPeriodName] || { amount: 0 };
+                let variance = null;
+                if (totals.amount !== 0) {
+                  variance = ((nextTotals.amount - totals.amount) / Math.abs(totals.amount)) * 100;
+                }
+                let badgeColor = '#888', arrow = '–';
+                if (variance !== null && !isNaN(variance)) {
+                  if (variance > 0) { badgeColor = '#2E865F'; arrow = '▲'; }
+                  else if (variance < 0) { badgeColor = '#cf1322'; arrow = '▼'; }
+                }
+                return (
+                  <div style={{
+                    alignSelf: 'center',
+                    margin: '0 2px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minWidth: 40,
+                    width: 40,
+                    height: 60,
+                    justifyContent: 'center',
+                  }}>
+                    {variance === null || isNaN(variance) ? (
+                      <span style={{ color: '#888', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>N/A</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 22, fontWeight: 'bold', color: badgeColor, lineHeight: 1 }}>{arrow}</span>
+                        <span style={{ fontSize: 18, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>{Math.abs(variance).toFixed(1)}</span>
+                        <span style={{ fontSize: 16, fontWeight: 'bold', color: badgeColor, lineHeight: 1.1 }}>%</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </React.Fragment>
           );
         })}
       </div>
@@ -608,72 +639,16 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
   };
 
   return (
-    <div className="modern-margin-gauge-panel" style={{ 
-      marginTop: 30,
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      padding: style?.padding || '20px', // Allow padding override for PDF export
-      width: '95%',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      boxSizing: 'border-box',
-      ...(style || {}) // Apply any style props passed from parent component
-    }}>
-      <h2 className="modern-gauge-heading" style={{
-        textAlign: 'center',
-        fontSize: '18px',
-        marginBottom: '20px',
-        color: '#333',
-        fontWeight: '600'
-      }}>
-        Manufacturing Cost
-      </h2>
-      
-      {ledgerLabels.length > 0 ? (
-        <>
-          <ReactECharts 
-            option={option} 
-            style={{ height: 600, width: '100%' }} // Use full panel width
-            notMerge={true}
-            opts={{ renderer: 'svg' }}
-          />
-          
-          <h3 style={{ 
-            textAlign: 'center', 
-            marginTop: 24, 
-            fontSize: 16,
-            fontWeight: '600',
-            color: '#444',
-            position: 'relative'
-          }}>
-            Total Actual Direct Cost
-            <div style={{
-              position: 'absolute',
-              bottom: '-10px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '50px',
-              height: '3px',
-              backgroundColor: '#2E865F',
-              borderRadius: '2px'
-            }} />
-          </h3>
-          
-          {renderTotals()}
-        </>
-      ) : (
-        <div style={{ 
-          padding: 20, 
-          textAlign: 'center',
-          color: '#666',
-          backgroundColor: '#f9f9f9',
-          borderRadius: '4px',
-          marginTop: '20px'
-        }}>
-          <p>No manufacturing cost data available for the selected periods.</p>
-        </div>
-      )}
+    <div style={{ width: '100%', minWidth: 0, ...style }}>
+      <h2 className="modern-gauge-heading">Manufacturing Cost</h2>
+      <ReactECharts
+        option={option}
+        style={{ width: '100%', minWidth: 0, height: 420 }}
+        notMerge={true}
+        lazyUpdate={true}
+        theme={undefined}
+      />
+      {renderTotals()}
     </div>
   );
 };

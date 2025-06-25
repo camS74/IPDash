@@ -6,9 +6,6 @@ const TabsComponent = ({ children, variant = 'primary' }) => {
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const tabRefs = useRef([]);
   
-  // Extract tab labels from children
-  const tabLabels = React.Children.map(children, child => child.props.label);
-  
   const handleTabClick = (index) => {
     setActiveTab(index);
   };
@@ -28,14 +25,14 @@ const TabsComponent = ({ children, variant = 'primary' }) => {
     <div className={`tabs-container ${variant}`}>
       <div className="tabs-header">
         <div className="tabs-nav">
-          {tabLabels.map((label, index) => (
+          {React.Children.map(children, (child, index) => (
             <button 
               key={index}
               ref={el => tabRefs.current[index] = el}
               className={`tab-button ${activeTab === index ? 'active' : ''}`}
               onClick={() => handleTabClick(index)}
             >
-              {label}
+              {child.props.label}
             </button>
           ))}
           <div 

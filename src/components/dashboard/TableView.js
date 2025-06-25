@@ -111,14 +111,14 @@ const TableView = () => {
       { key: 'index44', label: divisionData[44] ? divisionData[44][0] : 'Row 44', index: 44, isHeader: false, isCalculated: false },
       { key: 'index49', label: divisionData[49] ? divisionData[49][0] : 'Row 49', index: 49, isHeader: false, isCalculated: false },
       { key: 'index50', label: divisionData[50] ? divisionData[50][0] : 'Row 50', index: 50, isHeader: false, isCalculated: false },
-      { key: 'separator5', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'index52', label: divisionData[52] ? divisionData[52][0] : 'Row 52 (Sum)', index: -8, isHeader: false, isCalculated: true, formula: 'sum-31-32-40-42-43-44-49-50' },
+      { key: 'index51', label: divisionData[51] ? divisionData[51][0] : 'Row 51', index: 51, isHeader: false, isCalculated: false },
+      { key: 'index52', label: divisionData[52] ? divisionData[52][0] : 'Row 52 (Sum)', index: -8, isHeader: false, isCalculated: true, formula: 'sum-31-32-40-42-43-44-49-50-51' },
       { key: 'separator6', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index59', label: divisionData[59] ? divisionData[59][0] : 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: divisionData[54] ? divisionData[54][0] : 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
       { key: 'ebit', label: 'EBIT', index: -12, isHeader: false, isCalculated: true, formula: 'sum-54-42' },
-      { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44' },
+      { key: 'index56', label: divisionData[56] ? divisionData[56][0] : 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44-51' },
     ];
   } else {
     // Fallback rows if Excel data is not yet loaded
@@ -151,14 +151,14 @@ const TableView = () => {
       { key: 'index44', label: 'Row 44', index: 44, isHeader: false, isCalculated: false },
       { key: 'index49', label: 'Row 49', index: 49, isHeader: false, isCalculated: false },
       { key: 'index50', label: 'Row 50', index: 50, isHeader: false, isCalculated: false },
-      { key: 'separator5', label: '', index: -1, isHeader: false, isSeparator: true },
-      { key: 'index52', label: 'Row 52 (Sum)', index: -8, isHeader: false, isCalculated: true, formula: 'sum-31-32-40-42-43-44-49-50' },
+      { key: 'index51', label: 'Row 51', index: 51, isHeader: false, isCalculated: false },
+      { key: 'index52', label: 'Row 52 (Sum)', index: -8, isHeader: false, isCalculated: true, formula: 'sum-31-32-40-42-43-44-49-50-51' },
       { key: 'separator6', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index59', label: 'Row 59 (Row14+Row52)', index: -11, isHeader: false, isCalculated: true, formula: 'sum-14-52' },
       { key: 'separator7', label: '', index: -1, isHeader: false, isSeparator: true },
       { key: 'index54', label: 'Row 54 (Row19-Row52)', index: -9, isHeader: false, isCalculated: true, formula: 'diff-19-52' },
       { key: 'ebit', label: 'EBIT', index: -12, isHeader: false, isCalculated: true, formula: 'sum-54-42' },
-      { key: 'index56', label: 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44' },
+      { key: 'index56', label: 'Row 56 (EBITDA)', index: -10, isHeader: false, isCalculated: true, formula: 'sum-54-10-42-44-51' },
     ];
   }
 
@@ -612,7 +612,7 @@ const TableView = () => {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-                      } else if (row.formula === 'sum-31-32-40-42-43-44-49-50') {
+                      } else if (row.formula === 'sum-31-32-40-42-43-44-49-50-51') {
                         // Get values for all rows to be summed
                         const value31 = computeCellValue(31, column);
                         const value32 = computeCellValue(32, column);
@@ -622,6 +622,7 @@ const TableView = () => {
                         const value44 = computeCellValue(44, column);
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
+                        const value51 = computeCellValue(51, column);
 
                         // Convert to numbers, handling '' values as 0
                         const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
@@ -632,9 +633,10 @@ const TableView = () => {
                         const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
                         const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
                         const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num51 = value51 === '' ? 0 : parseFloat(value51.replace(/,/g, ''));
 
                         // Calculate the sum of all rows
-                        const result = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        const result = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50 + num51;
                         
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {
@@ -657,7 +659,7 @@ const TableView = () => {
                         // Calculate Row 14 as sum of rows 9, 10, 12, 13
                         const row14 = num9 + num10 + num12 + num13;
                         
-                        // For Row 52, we need to calculate it based on rows 31, 32, 40, 42, 43, 44, 49, 50
+                        // For Row 52, we need to calculate it based on rows 31, 32, 40, 42, 43, 44, 49, 50, 51
                         const value31 = computeCellValue(31, column);
                         const value32 = computeCellValue(32, column);
                         const value40 = computeCellValue(40, column);
@@ -666,6 +668,7 @@ const TableView = () => {
                         const value44 = computeCellValue(44, column);
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
+                        const value51 = computeCellValue(51, column);
 
                         // Parse values to numbers
                         const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
@@ -676,9 +679,10 @@ const TableView = () => {
                         const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
                         const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
                         const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num51 = value51 === '' ? 0 : parseFloat(value51.replace(/,/g, ''));
 
-                        // Calculate Row 52 as sum of rows 31, 32, 40, 42, 43, 44, 49, 50
-                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        // Calculate Row 52 as sum of rows 31, 32, 40, 42, 43, 44, 49, 50, 51
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50 + num51;
                         
                         // Calculate Row 59 as Row 14 + Row 52
                         const result = row14 + row52;
@@ -698,7 +702,7 @@ const TableView = () => {
                         
                         const row19 = sales - material;
                         
-                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50)
+                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50, 51)
                         const value31 = computeCellValue(31, column);
                         const value32 = computeCellValue(32, column);
                         const value40 = computeCellValue(40, column);
@@ -707,6 +711,7 @@ const TableView = () => {
                         const value44 = computeCellValue(44, column);
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
+                        const value51 = computeCellValue(51, column);
 
                         const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
                         const num32 = value32 === '' ? 0 : parseFloat(value32.replace(/,/g, ''));
@@ -716,8 +721,9 @@ const TableView = () => {
                         const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
                         const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
                         const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num51 = value51 === '' ? 0 : parseFloat(value51.replace(/,/g, ''));
 
-                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50 + num51;
                         
                         // Calculate Row 54 = Row 19 - Row 52
                         const result = row19 - row52;
@@ -727,21 +733,23 @@ const TableView = () => {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0
                         });
-                      } else if (row.formula === 'sum-54-10-42-44') {
-                        // Get values for rows 54, 10, 42, and 44
+                      } else if (row.formula === 'sum-54-10-42-44-51') {
+                        // Get values for rows 54, 10, 42, 44, and 51
                         const value54 = computeCellValue(54, column);
                         const value10 = computeCellValue(10, column);
                         const value42 = computeCellValue(42, column);
                         const value44 = computeCellValue(44, column);
+                        const value51 = computeCellValue(51, column);
 
                         // Parse values to numbers
                         const num54 = value54 === '' ? 0 : parseFloat(value54.replace(/,/g, ''));
                         const num10 = value10 === '' ? 0 : parseFloat(value10.replace(/,/g, ''));
                         const num42 = value42 === '' ? 0 : parseFloat(value42.replace(/,/g, ''));
                         const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
+                        const num51 = value51 === '' ? 0 : parseFloat(value51.replace(/,/g, ''));
 
-                        // Calculate EBITDA as sum of rows 54, 10, 42, and 44
-                        const result = num54 + num10 + num42 + num44;
+                        // Calculate EBITDA as sum of rows 54, 10, 42, 44, and 51
+                        const result = num54 + num10 + num42 + num44 + num51;
                         
                         // Format the result with commas
                         formattedResult = result.toLocaleString('en-US', {
@@ -759,7 +767,7 @@ const TableView = () => {
                         
                         const row19 = sales - material;
                         
-                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50)
+                        // Then calculate Row 52 (sum of rows 31, 32, 40, 42, 43, 44, 49, 50, 51)
                         const value31 = computeCellValue(31, column);
                         const value32 = computeCellValue(32, column);
                         const value40 = computeCellValue(40, column);
@@ -768,6 +776,7 @@ const TableView = () => {
                         const value44 = computeCellValue(44, column);
                         const value49 = computeCellValue(49, column);
                         const value50 = computeCellValue(50, column);
+                        const value51 = computeCellValue(51, column);
 
                         const num31 = value31 === '' ? 0 : parseFloat(value31.replace(/,/g, ''));
                         const num32 = value32 === '' ? 0 : parseFloat(value32.replace(/,/g, ''));
@@ -777,8 +786,9 @@ const TableView = () => {
                         const num44 = value44 === '' ? 0 : parseFloat(value44.replace(/,/g, ''));
                         const num49 = value49 === '' ? 0 : parseFloat(value49.replace(/,/g, ''));
                         const num50 = value50 === '' ? 0 : parseFloat(value50.replace(/,/g, ''));
+                        const num51 = value51 === '' ? 0 : parseFloat(value51.replace(/,/g, ''));
 
-                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50;
+                        const row52 = num31 + num32 + num40 + num42 + num43 + num44 + num49 + num50 + num51;
                         
                         // Calculate Net Profit (Row 54) = Row 19 - Row 52
                         const netProfit = row19 - row52;
