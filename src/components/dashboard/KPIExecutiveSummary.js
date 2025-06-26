@@ -3,12 +3,25 @@ import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import { computeCellValue } from '../../utils/computeCellValue';
+import './KPIExecutiveSummary.css';
+import { getRegionForCountry } from './CountryReference';
 
 const divisionNames = {
   'FP': 'Flexible Packaging',
   'SB': 'Shopping Bags',
   'TF': 'Thermoforming Products',
   'HCM': 'Preforms and Closures'
+};
+
+// Country name patterns for fuzzy matching
+const countryPatterns = {
+  'uae': ['emirates', 'uae'],
+  'saudi': ['saudi', 'ksa', 'kingdom of saudi'],
+  'uk': ['united kingdom', 'uk', 'britain'],
+  'usa': ['united states', 'usa', 'america'],
+  'drc': ['democratic republic', 'congo'],
+  'ivory': ['ivory', 'cote d\'ivoire'],
+  'tanzania': ['tanzania']
 };
 
 const KPIExecutiveSummary = () => {
@@ -39,8 +52,15 @@ const KPIExecutiveSummary = () => {
   const growth = (curr, prev) => {
     if (!prev || prev === 0 || !comparisonPeriodName) return '';
     const growthPercent = ((curr - prev) / Math.abs(prev) * 100).toFixed(0);
-    const direction = growthPercent >= 0 ? 'Growth' : 'Decline';
-    return `${Math.abs(growthPercent)}% ${direction} Vs Previous Period`;
+    const isPositive = growthPercent > 0;
+    const arrow = isPositive ? '▲' : '▼';
+    const color = isPositive ? '#007bff' : '#dc3545';
+    const direction = isPositive ? 'Growth' : 'Decline';
+    return (
+      <span>
+        <span style={{color: color}}>{arrow} {Math.abs(growthPercent)}%</span> {direction} Vs Previous Period
+      </span>
+    );
   };
   const formatM = v => {
     if (v == null || v === '') return '0.00M';
@@ -174,17 +194,31 @@ const KPIExecutiveSummary = () => {
     };
   });
   
-  // Sort by growth for better presentation (highest growth first)
-  const top3ProductsSortedByGrowth = top3ProductsWithGrowth.sort((a, b) => b.growth - a.growth);
+  // Keep sales ranking order - DO NOT sort by growth
+  // top3ProductsWithGrowth is already in correct order (by sales %)
   
-  const topProductGroupDisplay = top3ProductsSortedByGrowth.map((p, index) => {
-    const growthIcon = p.growth >= 15 ? '🚀' : p.growth >= 5 ? '📈' : p.growth >= 0 ? '⬆️' : p.growth >= -5 ? '📉' : '🔻';
-    const growthArrow = p.growth >= 0 ? '↗️' : '↘️';
-    const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-    const growthColor = p.growth >= 10 ? '🟢' : p.growth >= 0 ? '🔵' : p.growth >= -5 ? '🟡' : '🔴';
-    
-    return `${rankIcon} ${p.name}\n${p.salesPercent.toFixed(1)}% of sales ${growthArrow} ${Math.abs(p.growth).toFixed(0)}% growth ${growthIcon}`;
-  }).join('\n\n') || '-';
+  // Render as a single, compact, numbered list (one line per product)
+  const topProductGroupDisplay = (
+    <ol style={{ listStyle: 'none' }}>
+      {top3ProductsWithGrowth.map((p, index) => {
+        const isPositive = p.growth > 0;
+        const arrow = isPositive ? '▲' : '▼';
+        const arrowColor = isPositive ? '#007bff' : '#dc3545';
+        const growthWord = isPositive ? 'growth' : 'decline';
+        const rankNumber = index + 1;
+        const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        return (
+          <li key={index}>
+            <span style={{ minWidth: 22 }}>{rankNumber}.</span>
+            <span style={{ marginRight: 6 }}>{rankIcon}</span>
+            <span style={{ marginRight: 8 }}>{p.name}</span>
+            <span style={{ marginRight: 8 }}>{p.salesPercent.toFixed(1)}% of sales</span>
+            <span style={{ color: arrowColor }}>{arrow} {Math.abs(p.growth).toFixed(0)}% {growthWord}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
   
   const totalKgs = productKgs.reduce((sum, p) => sum + p.value, 0);
   const totalMoRM = productMoRM.reduce((sum, p) => sum + p.value, 0);
@@ -336,83 +370,6 @@ const KPIExecutiveSummary = () => {
     return Math.round(value).toString();
   };
   
-  // Regional mapping for geographic distribution
-  const regionalMapping = {
-    'United Arab Emirates': 'UAE',
-    'UAE': 'UAE',
-    
-    // GCC
-    'Saudi Arabia': 'GCC',
-    'Kuwait': 'GCC', 
-    'Qatar': 'GCC',
-    'Bahrain': 'GCC',
-    'Oman': 'GCC',
-    'KSA': 'GCC',
-    
-    // Levant
-    'Lebanon': 'Levant',
-    'Jordan': 'Levant',
-    'Syria': 'Levant', 
-    'Palestine': 'Levant',
-    'Iraq': 'Levant',
-    
-    // North Africa (MENA)
-    'Egypt': 'North Africa',
-    'Libya': 'North Africa',
-    'Tunisia': 'North Africa',
-    'Algeria': 'North Africa',
-    'Morocco': 'North Africa',
-    'Sudan': 'North Africa',
-    
-    // Southern Africa
-    'South Africa': 'Southern Africa',
-    'Botswana': 'Southern Africa',
-    'Namibia': 'Southern Africa',
-    'Zimbabwe': 'Southern Africa',
-    'Kenya': 'Southern Africa',
-    'Nigeria': 'Southern Africa',
-    
-    // Europe
-    'Germany': 'Europe',
-    'France': 'Europe',
-    'Italy': 'Europe',
-    'Spain': 'Europe',
-    'United Kingdom': 'Europe',
-    'Netherlands': 'Europe',
-    'Belgium': 'Europe',
-    'Poland': 'Europe',
-    'Russia': 'Europe',
-    'Turkey': 'Europe',
-    
-    // Americas
-    'United States': 'Americas',
-    'Canada': 'Americas',
-    'Mexico': 'Americas',
-    'Brazil': 'Americas',
-    'Argentina': 'Americas',
-    'Chile': 'Americas',
-    'Colombia': 'Americas',
-    'USA': 'Americas',
-    
-    // Asia-Pacific
-    'China': 'Asia-Pacific',
-    'Japan': 'Asia-Pacific', 
-    'South Korea': 'Asia-Pacific',
-    'Taiwan': 'Asia-Pacific',
-    'India': 'Asia-Pacific',
-    'Pakistan': 'Asia-Pacific',
-    'Sri Lanka': 'Asia-Pacific',
-    'Bangladesh': 'Asia-Pacific',
-    'Indonesia': 'Asia-Pacific',
-    'Malaysia': 'Asia-Pacific',
-    'Thailand': 'Asia-Pacific',
-    'Philippines': 'Asia-Pacific',
-    'Vietnam': 'Asia-Pacific',
-    'Australia': 'Asia-Pacific',
-    'New Zealand': 'Asia-Pacific',
-    'Singapore': 'Asia-Pacific'
-  };
-  
   // Geographic Distribution with Regional Grouping
   const countrySheetName = selectedDivision.replace(/-.*$/, '') + '-Countries';
   const countryData = salesData[countrySheetName] || [];
@@ -425,30 +382,58 @@ const KPIExecutiveSummary = () => {
     'Southern Africa': 0,
     'Europe': 0,
     'Americas': 0,
-    'Asia-Pacific': 0
+    'Asia-Pacific': 0,
+    'Unassigned': 0
   };
   
   if (countryData.length > 0 && basePeriod) {
+    // First extract all countries from the data
+    const countries = [];
     for (let row = 3; row < countryData.length; row++) {
-      const countryName = countryData[row][0];
-      let sum = 0;
-      for (let c = 4; c < countryData[0].length; c++) {
-        const year = countryData[0][c];
-        const month = countryData[1][c];
-        const type = countryData[2][c];
-        if (year == basePeriod.year && basePeriod.months.includes(month) && type === basePeriod.type) {
-          const v = parseFloat(countryData[row][c]);
-          if (!isNaN(v)) sum += v;
+      if (countryData[row] && countryData[row][0]) {
+        countries.push(countryData[row][0].toString().trim());
+      }
+    }
+    
+    // Calculate sales amount for each country in base period only
+    for (const countryName of countries) {
+      let countrySum = 0;
+      
+      // Find the row for this country
+      const countryRow = countryData.find(row => 
+        row && row[0] && row[0].toString().trim() === countryName
+      );
+      
+      if (countryRow) {
+        // Find columns matching the base period
+        for (let c = 4; c < countryData[0].length; c++) {
+          const year = countryData[0][c];
+          const month = countryData[1][c];
+          const type = countryData[2][c];
+          
+          if (year == basePeriod.year && 
+              basePeriod.months.includes(month) && 
+              type === basePeriod.type) {
+            
+            const value = parseFloat(countryRow[c]);
+            if (!isNaN(value)) {
+              countrySum += value;
+            }
+          }
         }
       }
       
-      if (countryName && sum > 0) {
-        countrySales.push({ name: countryName, value: sum });
+      if (countrySum > 0) {
+        countrySales.push({ name: countryName, value: countrySum });
         
-        // Map to regional groups
-        const region = regionalMapping[countryName];
+        // Use getRegionForCountry function for consistent region mapping
+        const region = getRegionForCountry(countryName);
+        
         if (region && regionalSales[region] !== undefined) {
-          regionalSales[region] += sum;
+          regionalSales[region] += countrySum;
+        } else if (region) {
+          // If region exists but not in our predefined list, add to Unassigned
+          regionalSales['Unassigned'] += countrySum;
         }
       }
     }
@@ -470,6 +455,13 @@ const KPIExecutiveSummary = () => {
   const exportRegions = Object.entries(regionalPercentages)
     .filter(([region, percentage]) => region !== 'UAE' && percentage >= 0.1)
     .sort((a, b) => b[1] - a[1]);
+
+  // Calculate percentages relative to export total
+  const exportRegionsWithRelativePercentage = exportRegions.map(([region, percentage]) => {
+    const relativePercentage = exportSales > 0 ? (percentage / exportSales) * 100 : 0;
+    return [region, percentage, relativePercentage];
+  });
+  
   // Customer Insights
   const customerSheetName = selectedDivision.replace(/-.*$/, '') + '-Customers';
   const customerData = salesData[customerSheetName] || [];
@@ -497,9 +489,9 @@ const KPIExecutiveSummary = () => {
   const top3Customer = customerSales.slice(0, 3).reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
   const top5Customer = customerSales.slice(0, 5).reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
   const avgSalesPerCustomer = customerSales.length > 0 ? (totalCustomerSales / customerSales.length) : 0;
-  // Render
+  // Render - Updated formatting v2.0 
   return (
-    <div className="kpi-dashboard" style={{ padding: 24 }}>
+    <div className="kpi-dashboard" style={{ padding: 24 }} key="kpi-dashboard-v2">
       <h2 style={{ textAlign: 'center', fontWeight: 700, fontSize: 22, marginBottom: 8 }}>
         Executive Summary – {divisionNames[selectedDivision.replace(/-.*$/, '')] || selectedDivision}
       </h2>
@@ -523,9 +515,9 @@ const KPIExecutiveSummary = () => {
       <div className="kpi-section">
         <h3 className="kpi-section-title">📦 Product Performance</h3>
         
-        {/* Row 1: Top Performers by Growth + Total Sales Volume */}
+        {/* Row 1: Top Revenue Drivers + Total Sales Volume */}
         <div className="kpi-cards">
-          <div className="kpi-card large"><div className="kpi-icon">🏆</div><div className="kpi-label">Top Performers by Growth</div><div className="kpi-value" style={{whiteSpace: 'pre-line', fontSize: '14px', lineHeight: '1.4'}}>{topProductGroupDisplay}</div><div className="kpi-trend">ranked by growth performance</div></div>
+          <div className="kpi-card large revenue-drivers"><div className="kpi-icon">🏆</div><div className="kpi-label">Top Revenue Drivers</div><div className="kpi-value">{topProductGroupDisplay}</div></div>
           <div className="kpi-card"><div className="kpi-icon">📊</div><div className="kpi-label">Total Sales Volume</div><div className="kpi-value">{formatKgs(totalKgs)}</div><div className="kpi-trend">{growth(totalKgs, totalKgsPrev)}</div></div>
         </div>
         
@@ -535,9 +527,12 @@ const KPIExecutiveSummary = () => {
           <div className="kpi-card"><div className="kpi-icon">🎯</div><div className="kpi-label">MoRM</div><div className="kpi-value">{formatMoRMPerKg(avgMoRM)}</div><div className="kpi-trend">{growth(avgMoRM, avgMoRMPrev)}</div></div>
         </div>
         
-        {/* Row 3: Process Categories */}
-        <div className="kpi-cards">
-          {Object.entries(processCategories).slice(0, 2).map(([categoryName, data], index) => {
+        {/* Row 3: Process Categories - Dynamic sizing based on number of categories */}
+        <div className="kpi-cards" style={{
+          gridTemplateColumns: `repeat(${Object.keys(processCategories).length}, 1fr)`,
+          gap: '15px'
+        }}>
+          {Object.entries(processCategories).map(([categoryName, data], index) => {
             const sellingPrice = data.kgs > 0 ? data.sales / data.kgs : 0;
             const morm = data.kgs > 0 ? data.morm / data.kgs : 0;
             
@@ -550,68 +545,150 @@ const KPIExecutiveSummary = () => {
             const priceGrowth = sellingPrice > 10 ? 5 : -2; // placeholder based on price level
             const mormGrowth = morm > 3 ? 3 : -1; // placeholder based on margin level
             
-            const salesIcon = salesGrowth >= 0 ? '📈' : '📉';
-            const priceIcon = priceGrowth >= 0 ? '📈' : '📉';
-            const mormIcon = mormGrowth >= 0 ? '📈' : '📉';
+            const salesArrow = salesGrowth > 0 ? '▲' : '▼';
+            const priceArrow = priceGrowth > 0 ? '▲' : '▼';
+            const mormArrow = mormGrowth > 0 ? '▲' : '▼';
+            const salesColor = salesGrowth > 0 ? '#007bff' : '#dc3545';
+            const priceColor = priceGrowth > 0 ? '#007bff' : '#dc3545';
+            const mormColor = mormGrowth > 0 ? '#007bff' : '#dc3545';
             
             return (
               <div key={`process-${categoryName}`} className="kpi-card">
                 <div className="kpi-label">{categoryName.toUpperCase()}</div>
-                <div className="kpi-value" style={{whiteSpace: 'pre-line', fontSize: '14px', lineHeight: '1.6'}}>
-                  {`% of Sales: ${salesPercentage.toFixed(0)}% ${salesIcon} ${Math.abs(salesGrowth)}%\n\nAVG Selling Price: ${formatPrice(sellingPrice)} AED/Kg ${priceIcon} ${Math.abs(priceGrowth)}%\n\nAVG MoRM: ${formatPrice(morm)} AED/Kg ${mormIcon} ${Math.abs(mormGrowth)}%`}
+                <div className="kpi-value">
+                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>% of Sales: {salesPercentage.toFixed(0)}%</div>
+                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: salesColor}}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
+                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
+                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: priceColor}}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
+                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
+                  <div style={{display: 'block', clear: 'both'}}><span style={{color: mormColor}}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
                 </div>
-                <div className="kpi-trend">Process Category</div>
               </div>
             );
           })}
         </div>
         
-        {/* Row 4: Material Categories */}
-        <div className="kpi-cards">
-          {Object.entries(materialCategories).slice(0, 2).map(([categoryName, data], index) => {
+        {/* Row 4: Material Categories - Dynamic sizing based on number of categories */}
+        <div className="kpi-cards" style={{
+          gridTemplateColumns: `repeat(${Object.keys(materialCategories).length}, 1fr)`,
+          gap: '15px'
+        }}>
+          {Object.entries(materialCategories).map(([categoryName, data], index) => {
             const sellingPrice = data.kgs > 0 ? data.sales / data.kgs : 0;
             const morm = data.kgs > 0 ? data.morm / data.kgs : 0;
-            const priceGrowth = 3; // placeholder - will need calculation
-            const mormGrowth = -1; // placeholder - will need calculation
-            const priceIcon = priceGrowth >= 0 ? '📈' : '📉';
-            const mormIcon = mormGrowth >= 0 ? '📈' : '📉';
+            
+            // Calculate % of Sales
+            const totalSales = Object.values(materialCategories).reduce((sum, cat) => sum + cat.sales, 0);
+            const salesPercentage = totalSales > 0 ? (data.sales / totalSales * 100) : 0;
+            
+            // Calculate Growth % (placeholder logic)
+            const salesGrowth = salesPercentage > 50 ? 10 : -5;
+            const priceGrowth = sellingPrice > 10 ? 5 : -2;
+            const mormGrowth = morm > 3 ? 3 : -1;
+            
+            const salesArrow = salesGrowth > 0 ? '▲' : '▼';
+            const priceArrow = priceGrowth > 0 ? '▲' : '▼';
+            const mormArrow = mormGrowth > 0 ? '▲' : '▼';
+            const salesColor = salesGrowth > 0 ? '#007bff' : '#dc3545';
+            const priceColor = priceGrowth > 0 ? '#007bff' : '#dc3545';
+            const mormColor = mormGrowth > 0 ? '#007bff' : '#dc3545';
+            
             return (
               <div key={`material-${categoryName}`} className="kpi-card">
-                <div className="kpi-label">{categoryName.toUpperCase()}</div>
-                <div className="kpi-value" style={{whiteSpace: 'pre-line', fontSize: '16px', lineHeight: '1.8'}}>
-                  {`Price: ${formatPrice(sellingPrice)}/kg ${priceIcon} ${Math.abs(priceGrowth)}%\n\nMoRM: ${formatMoRMPerKg(morm)} ${mormIcon} ${Math.abs(mormGrowth)}%`}
+                  <div className="kpi-label">{categoryName.toUpperCase()}</div>
+                  <div className="kpi-value">
+                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>% of Sales: {salesPercentage.toFixed(0)}%</div>
+                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: salesColor}}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
+                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
+                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: priceColor}}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
+                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
+                    <div style={{display: 'block', clear: 'both'}}><span style={{color: mormColor}}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
+                  </div>
                 </div>
-                <div className="kpi-trend">Material Category</div>
-              </div>
-            );
+             );
           })}
         </div>
       </div>
       {/* Geographic Distribution */}
       <div className="kpi-section">
         <h3 className="kpi-section-title">🌍 Geographic Distribution</h3>
-        <div className="kpi-cards">
-          <div className="kpi-card large"><div className="kpi-icon">🏠</div><div className="kpi-label">Local (UAE)</div><div className="kpi-value">{localSales.toFixed(1)}%</div><div className="kpi-trend">of total sales</div></div>
-          <div className="kpi-card large"><div className="kpi-icon">🌐</div><div className="kpi-label">Export</div><div className="kpi-value">{exportSales.toFixed(1)}%</div><div className="kpi-trend">of total sales</div></div>
+        
+        {/* Row 1: Local vs Export - Always centered with 2 equal cards */}
+        <div className="kpi-cards" style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '20px',
+          justifyContent: 'center',
+          marginBottom: '20px'
+        }}>
+          <div className="kpi-card large">
+            <div className="uae-icon-container">
+              {/* Embedded UAE Flag SVG */}
+              <svg className="uae-icon" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+                <rect width="900" height="200" fill="#00732f"/>
+                <rect width="900" height="200" y="200" fill="#ffffff"/>
+                <rect width="900" height="200" y="400" fill="#000000"/>
+                <rect width="300" height="600" fill="#ff0000"/>
+              </svg>
+            </div>
+            <div className="kpi-label">Local (UAE)</div>
+            <div className="kpi-value">{localSales.toFixed(1)}%</div>
+            <div className="kpi-trend">of total sales</div>
+          </div>
+          <div className="kpi-card large">
+            <div className="rotating-emoji-container">
+              <div className="rotating-emoji">🌍</div>
+            </div>
+            <div className="kpi-label">Export</div>
+            <div className="kpi-value">{exportSales.toFixed(1)}%</div>
+            <div className="kpi-trend">of total sales</div>
+          </div>
         </div>
-        <div className="kpi-cards">
-          {exportRegions.map(([regionName, percentage], index) => {
-            const icons = ['🥇', '🥈', '🥉', '🏆', '📊', '📍'];
-            return (
-              <div key={regionName} className="kpi-card">
-                <div className="kpi-icon">{icons[index] || '📊'}</div>
-                <div className="kpi-label">{regionName}</div>
-                <div className="kpi-value">{percentage.toFixed(1)}%</div>
-                <div className="kpi-trend">{regionName}</div>
-              </div>
-            );
-          })}
-        </div>
+        
+        {/* Row 2: Export Regions - Dynamic sizing to fill complete width */}
+        {exportRegionsWithRelativePercentage.length > 0 && (
+          <div className="kpi-cards export-regions" style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${exportRegionsWithRelativePercentage.length}, 1fr)`,
+            gap: '15px',
+            justifyContent: 'center'
+          }}>
+            {exportRegionsWithRelativePercentage.map(([regionName, absolutePercentage, relativePercentage], index) => {
+              // Use different globe emojis for different regions
+              const regionGlobes = {
+                'GCC': '🌍', // Africa/Europe view (Middle East visible)
+                'Southern Africa': '🌍', // Africa/Europe view
+                'Levant': '🌍', // Africa/Europe view (Middle East visible)
+                'North Africa': '🌍', // Africa/Europe view
+                'Europe': '🌍', // Africa/Europe view
+                'Americas': '🌎', // Americas view
+                'Asia-Pacific': '🌏', // Asia/Australia view
+                'Unassigned': '🌐' // Generic globe
+              };
+              
+              return (
+                <div key={regionName} className="kpi-card">
+                  <div className="region-globe-container">
+                    <div className="region-globe">{regionGlobes[regionName] || '🌐'}</div>
+                  </div>
+                  <div className="kpi-label">{regionName}</div>
+                  <div className="kpi-value">{absolutePercentage.toFixed(1)}%</div>
+                  <div className="kpi-trend">{relativePercentage.toFixed(1)}% of export</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       {/* Customer Insights */}
       <div className="kpi-section">
         <h3 className="kpi-section-title">👥 Customer Insights</h3>
-        <div className="kpi-cards">
+        <div className="kpi-cards" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '15px',
+          justifyContent: 'center'
+        }}>
           <div className="kpi-card"><div className="kpi-icon">⭐</div><div className="kpi-label">Top Customer</div><div className="kpi-value">{topCustomer}</div><div className="kpi-trend">of total sales</div></div>
           <div className="kpi-card"><div className="kpi-icon">🔝</div><div className="kpi-label">Top 3 Customers</div><div className="kpi-value">{top3Customer}</div><div className="kpi-trend">concentration</div></div>
           <div className="kpi-card"><div className="kpi-icon">📊</div><div className="kpi-label">Top 5 Customers</div><div className="kpi-value">{top5Customer}</div><div className="kpi-trend">concentration</div></div>

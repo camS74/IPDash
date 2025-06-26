@@ -4,6 +4,599 @@ import { useSalesData } from '../../contexts/SalesDataContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import './CountryReference.css';
 
+// Import the regional mapping from KPIExecutiveSummary.js
+const regionalMapping = {
+  // UAE - Local
+  'United Arab Emirates': 'UAE',
+  'UAE': 'UAE',
+  'UNITED ARAB EMIRATES': 'UAE',
+  
+  // GCC
+  'Saudi Arabia': 'GCC',
+  'Kingdom Of Saudi Arabia': 'GCC',
+  'KINGDOM OF SAUDI ARABIA': 'GCC',
+  'Kuwait': 'GCC',
+  'KUWAIT': 'GCC',
+  'Qatar': 'GCC',
+  'QATAR': 'GCC',
+  'Bahrain': 'GCC',
+  'BAHRAIN': 'GCC',
+  'Oman': 'GCC',
+  'OMAN': 'GCC',
+  'KSA': 'GCC',
+  
+  // Levant
+  'Lebanon': 'Levant',
+  'LEBANON': 'Levant',
+  'Jordan': 'Levant',
+  'JORDAN': 'Levant',
+  'Syria': 'Levant',
+  'SYRIA': 'Levant',
+  'Syrian Arab Republic': 'Levant',
+  'Palestine': 'Levant',
+  'PALESTINE': 'Levant',
+  'Iraq': 'Levant',
+  'IRAQ': 'Levant',
+  'Israel': 'Levant',
+  'ISRAEL': 'Levant',
+  
+  // North Africa (MENA)
+  'Egypt': 'North Africa',
+  'EGYPT': 'North Africa',
+  'Libya': 'North Africa',
+  'LIBYA': 'North Africa',
+  'Tunisia': 'North Africa',
+  'TUNISIA': 'North Africa',
+  'Algeria': 'North Africa',
+  'ALGERIA': 'North Africa',
+  'Morocco': 'North Africa',
+  'MOROCCO': 'North Africa',
+  'Sudan': 'North Africa',
+  'SUDAN': 'North Africa',
+  'South Sudan': 'North Africa',
+  'SOUTH SUDAN': 'North Africa',
+  'Djibouti': 'North Africa',
+  'DJIBOUTI': 'North Africa',
+  'Mauritania': 'North Africa',
+  'MAURITANIA': 'North Africa',
+  
+  // Southern Africa
+  'South Africa': 'Southern Africa',
+  'SOUTH AFRICA': 'Southern Africa',
+  'Botswana': 'Southern Africa',
+  'BOTSWANA': 'Southern Africa',
+  'Namibia': 'Southern Africa',
+  'NAMIBIA': 'Southern Africa',
+  'Zimbabwe': 'Southern Africa',
+  'ZIMBABWE': 'Southern Africa',
+  'Kenya': 'Southern Africa',
+  'KENYA': 'Southern Africa',
+  'Nigeria': 'Southern Africa',
+  'NIGERIA': 'Southern Africa',
+  'Ghana': 'Southern Africa',
+  'GHANA': 'Southern Africa',
+  'Senegal': 'Southern Africa',
+  'SENEGAL': 'Southern Africa',
+  'Sierra Leone': 'Southern Africa',
+  'SIERRA LEONE': 'Southern Africa',
+  'Cameroon': 'Southern Africa',
+  'CAMEROON': 'Southern Africa',
+  'Congo': 'Southern Africa',
+  'CONGO': 'Southern Africa',
+  'Republic of Congo': 'Southern Africa',
+  'REPUBLIC OF CONGO': 'Southern Africa',
+  'Republic of the Congo': 'Southern Africa',
+  'REPUBLIC OF THE CONGO': 'Southern Africa',
+  'Congo-Brazzaville': 'Southern Africa',
+  'CONGO-BRAZZAVILLE': 'Southern Africa',
+  'Democratic Republic of Congo': 'Southern Africa',
+  'DEMOCRATIC REPUBLIC OF CONGO': 'Southern Africa',
+  'Democratic Republic of the Congo': 'Southern Africa',
+  'DEMOCRATIC REPUBLIC OF THE CONGO': 'Southern Africa',
+  'DEMOCRATIC REPUBLIC OF THE CON': 'Southern Africa',
+  'DR Congo': 'Southern Africa',
+  'DR CONGO': 'Southern Africa',
+  'D.R. Congo': 'Southern Africa',
+  'D.R. CONGO': 'Southern Africa',
+  'Congo-Kinshasa': 'Southern Africa',
+  'CONGO-KINSHASA': 'Southern Africa',
+  'Republic of Cong': 'Southern Africa',
+  'REPUBLIC OF CONG': 'Southern Africa',
+  'Uganda': 'Southern Africa',
+  'UGANDA': 'Southern Africa',
+  'Rwanda': 'Southern Africa',
+  'RWANDA': 'Southern Africa',
+  'Tanzania': 'Southern Africa',
+  'UNITED REPUBLIC OF TANZANIA': 'Southern Africa',
+  'Somalia': 'Southern Africa',
+  'SOMALIA': 'Southern Africa',
+  'SOMALILAND': 'Southern Africa',
+  'Ethiopia': 'Southern Africa',
+  'ETHIOPIA': 'Southern Africa',
+  'Eritrea': 'Southern Africa',
+  'ERITREA': 'Southern Africa',
+  'Angola': 'Southern Africa',
+  'ANGOLA': 'Southern Africa',
+  'Togo': 'Southern Africa',
+  'TOGO': 'Southern Africa',
+  'Niger': 'Southern Africa',
+  'NIGER': 'Southern Africa',
+  'Burundi': 'Southern Africa',
+  'BURUNDI': 'Southern Africa',
+  'Ivory Coast': 'Southern Africa',
+  'Cote D\'Ivoire': 'Southern Africa',
+  'COTE D\'IVOIRE': 'Southern Africa',
+  'Zambia': 'Southern Africa',
+  'ZAMBIA': 'Southern Africa',
+  'Madagascar': 'Southern Africa',
+  'MADAGASCAR': 'Southern Africa',
+  'Mali': 'Southern Africa',
+  'MALI': 'Southern Africa',
+  'Mozambique': 'Southern Africa',
+  'MOZAMBIQUE': 'Southern Africa',
+  'Gambia': 'Southern Africa',
+  'GAMBIA': 'Southern Africa',
+  'Guinea': 'Southern Africa',
+  'GUINEA': 'Southern Africa',
+  'Guinea-Bissau': 'Southern Africa',
+  'GUINEA-BISSAU': 'Southern Africa',
+  'Liberia': 'Southern Africa',
+  'LIBERIA': 'Southern Africa',
+  'Central African Republic': 'Southern Africa',
+  'CENTRAL AFRICAN REPUBLIC': 'Southern Africa',
+  'MAYOTTE': 'Southern Africa',
+  'Benin': 'Southern Africa',
+  'BENIN': 'Southern Africa',
+  'Burkina Faso': 'Southern Africa',
+  'BURKINA FASO': 'Southern Africa',
+  'Cabo Verde': 'Southern Africa',
+  'CABO VERDE': 'Southern Africa',
+  'Chad': 'Southern Africa',
+  'CHAD': 'Southern Africa',
+  'Comoros': 'Southern Africa',
+  'COMOROS': 'Southern Africa',
+  'Equatorial Guinea': 'Southern Africa',
+  'EQUATORIAL GUINEA': 'Southern Africa',
+  'Eswatini': 'Southern Africa',
+  'ESWATINI': 'Southern Africa',
+  'Gabon': 'Southern Africa',
+  'GABON': 'Southern Africa',
+  'Lesotho': 'Southern Africa',
+  'LESOTHO': 'Southern Africa',
+  'Malawi': 'Southern Africa',
+  'MALAWI': 'Southern Africa',
+  'Mauritius': 'Southern Africa',
+  'MAURITIUS': 'Southern Africa',
+  'Sao Tome and Principe': 'Southern Africa',
+  'SAO TOME AND PRINCIPE': 'Southern Africa',
+  'Seychelles': 'Southern Africa',
+  'SEYCHELLES': 'Southern Africa',
+  
+  // Europe
+  'Germany': 'Europe',
+  'GERMANY': 'Europe',
+  'France': 'Europe',
+  'FRANCE': 'Europe',
+  'Italy': 'Europe',
+  'ITALY': 'Europe',
+  'Spain': 'Europe',
+  'SPAIN': 'Europe',
+  'United Kingdom': 'Europe',
+  'UNITED KINGDOM': 'Europe',
+  'Netherlands': 'Europe',
+  'NETHERLANDS': 'Europe',
+  'Belgium': 'Europe',
+  'BELGIUM': 'Europe',
+  'Poland': 'Europe',
+  'POLAND': 'Europe',
+  'Russia': 'Europe',
+  'RUSSIA': 'Europe',
+  'Turkey': 'Europe',
+  'TURKEY': 'Europe',
+  'Georgia': 'Europe',
+  'GEORGIA': 'Europe',
+  'Turkmenistan': 'Europe',
+  'TURKMENISTAN': 'Europe',
+  'Armenia': 'Europe',
+  'ARMENIA': 'Europe',
+  'Albania': 'Europe',
+  'ALBANIA': 'Europe',
+  'Andorra': 'Europe',
+  'ANDORRA': 'Europe',
+  'Austria': 'Europe',
+  'AUSTRIA': 'Europe',
+  'Azerbaijan': 'Europe',
+  'AZERBAIJAN': 'Europe',
+  'Belarus': 'Europe',
+  'BELARUS': 'Europe',
+  'Bosnia and Herzegovina': 'Europe',
+  'BOSNIA AND HERZEGOVINA': 'Europe',
+  'Bulgaria': 'Europe',
+  'BULGARIA': 'Europe',
+  'Croatia': 'Europe',
+  'CROATIA': 'Europe',
+  'Cyprus': 'Europe',
+  'CYPRUS': 'Europe',
+  'Czech Republic': 'Europe',
+  'CZECH REPUBLIC': 'Europe',
+  'Denmark': 'Europe',
+  'DENMARK': 'Europe',
+  'Estonia': 'Europe',
+  'ESTONIA': 'Europe',
+  'Finland': 'Europe',
+  'FINLAND': 'Europe',
+  'Greece': 'Europe',
+  'GREECE': 'Europe',
+  'Hungary': 'Europe',
+  'HUNGARY': 'Europe',
+  'Iceland': 'Europe',
+  'ICELAND': 'Europe',
+  'Ireland': 'Europe',
+  'IRELAND': 'Europe',
+  'Kazakhstan': 'Europe',
+  'KAZAKHSTAN': 'Europe',
+  'Latvia': 'Europe',
+  'LATVIA': 'Europe',
+  'Liechtenstein': 'Europe',
+  'LIECHTENSTEIN': 'Europe',
+  'Lithuania': 'Europe',
+  'LITHUANIA': 'Europe',
+  'Luxembourg': 'Europe',
+  'LUXEMBOURG': 'Europe',
+  'Malta': 'Europe',
+  'MALTA': 'Europe',
+  'Moldova': 'Europe',
+  'MOLDOVA': 'Europe',
+  'Monaco': 'Europe',
+  'MONACO': 'Europe',
+  'Montenegro': 'Europe',
+  'MONTENEGRO': 'Europe',
+  'North Macedonia': 'Europe',
+  'NORTH MACEDONIA': 'Europe',
+  'Norway': 'Europe',
+  'NORWAY': 'Europe',
+  'Portugal': 'Europe',
+  'PORTUGAL': 'Europe',
+  'Romania': 'Europe',
+  'ROMANIA': 'Europe',
+  'Serbia': 'Europe',
+  'SERBIA': 'Europe',
+  'Slovakia': 'Europe',
+  'SLOVAKIA': 'Europe',
+  'Slovenia': 'Europe',
+  'SLOVENIA': 'Europe',
+  'Sweden': 'Europe',
+  'SWEDEN': 'Europe',
+  'Switzerland': 'Europe',
+  'SWITZERLAND': 'Europe',
+  'Ukraine': 'Europe',
+  'UKRAINE': 'Europe',
+  
+  // Americas
+  'United States': 'Americas',
+  'UNITED STATES': 'Americas',
+  'United States of America': 'Americas',
+  'Canada': 'Americas',
+  'CANADA': 'Americas',
+  'Mexico': 'Americas',
+  'MEXICO': 'Americas',
+  'Brazil': 'Americas',
+  'BRAZIL': 'Americas',
+  'Argentina': 'Americas',
+  'ARGENTINA': 'Americas',
+  'Chile': 'Americas',
+  'CHILE': 'Americas',
+  'Colombia': 'Americas',
+  'COLOMBIA': 'Americas',
+  'USA': 'Americas',
+  'Antigua and Barbuda': 'Americas',
+  'ANTIGUA AND BARBUDA': 'Americas',
+  'Bahamas': 'Americas',
+  'BAHAMAS': 'Americas',
+  'Barbados': 'Americas',
+  'BARBADOS': 'Americas',
+  'Belize': 'Americas',
+  'BELIZE': 'Americas',
+  'Bolivia': 'Americas',
+  'BOLIVIA': 'Americas',
+  'Costa Rica': 'Americas',
+  'COSTA RICA': 'Americas',
+  'Cuba': 'Americas',
+  'CUBA': 'Americas',
+  'Dominica': 'Americas',
+  'DOMINICA': 'Americas',
+  'Dominican Republic': 'Americas',
+  'DOMINICAN REPUBLIC': 'Americas',
+  'Ecuador': 'Americas',
+  'ECUADOR': 'Americas',
+  'El Salvador': 'Americas',
+  'EL SALVADOR': 'Americas',
+  'Grenada': 'Americas',
+  'GRENADA': 'Americas',
+  'Guatemala': 'Americas',
+  'GUATEMALA': 'Americas',
+  'Guyana': 'Americas',
+  'GUYANA': 'Americas',
+  'Haiti': 'Americas',
+  'HAITI': 'Americas',
+  'Honduras': 'Americas',
+  'HONDURAS': 'Americas',
+  'Jamaica': 'Americas',
+  'JAMAICA': 'Americas',
+  'Nicaragua': 'Americas',
+  'NICARAGUA': 'Americas',
+  'Panama': 'Americas',
+  'PANAMA': 'Americas',
+  'Paraguay': 'Americas',
+  'PARAGUAY': 'Americas',
+  'Peru': 'Americas',
+  'PERU': 'Americas',
+  'Saint Kitts and Nevis': 'Americas',
+  'SAINT KITTS AND NEVIS': 'Americas',
+  'Saint Lucia': 'Americas',
+  'SAINT LUCIA': 'Americas',
+  'Saint Vincent and the Grenadines': 'Americas',
+  'SAINT VINCENT AND THE GRENADINES': 'Americas',
+  'Suriname': 'Americas',
+  'SURINAME': 'Americas',
+  'Trinidad and Tobago': 'Americas',
+  'TRINIDAD AND TOBAGO': 'Americas',
+  'Uruguay': 'Americas',
+  'URUGUAY': 'Americas',
+  'Venezuela': 'Americas',
+  'VENEZUELA': 'Americas',
+  
+  // Asia-Pacific
+  'China': 'Asia-Pacific',
+  'CHINA': 'Asia-Pacific',
+  'Japan': 'Asia-Pacific',
+  'JAPAN': 'Asia-Pacific',
+  'South Korea': 'Asia-Pacific',
+  'SOUTH KOREA': 'Asia-Pacific',
+  'Taiwan': 'Asia-Pacific',
+  'TAIWAN': 'Asia-Pacific',
+  'India': 'Asia-Pacific',
+  'INDIA': 'Asia-Pacific',
+  'Pakistan': 'Asia-Pacific',
+  'PAKISTAN': 'Asia-Pacific',
+  'Sri Lanka': 'Asia-Pacific',
+  'SRI LANKA': 'Asia-Pacific',
+  'Bangladesh': 'Asia-Pacific',
+  'BANGLADESH': 'Asia-Pacific',
+  'Indonesia': 'Asia-Pacific',
+  'INDONESIA': 'Asia-Pacific',
+  'Malaysia': 'Asia-Pacific',
+  'MALAYSIA': 'Asia-Pacific',
+  'Thailand': 'Asia-Pacific',
+  'THAILAND': 'Asia-Pacific',
+  'Philippines': 'Asia-Pacific',
+  'PHILIPPINES': 'Asia-Pacific',
+  'Vietnam': 'Asia-Pacific',
+  'VIETNAM': 'Asia-Pacific',
+  'Australia': 'Asia-Pacific',
+  'AUSTRALIA': 'Asia-Pacific',
+  'New Zealand': 'Asia-Pacific',
+  'NEW ZEALAND': 'Asia-Pacific',
+  'Singapore': 'Asia-Pacific',
+  'SINGAPORE': 'Asia-Pacific',
+  'Afghanistan': 'Asia-Pacific',
+  'AFGHANISTAN': 'Asia-Pacific',
+  'Tajikistan': 'Asia-Pacific',
+  'TAJIKISTAN': 'Asia-Pacific',
+  'Yemen': 'Asia-Pacific',
+  'YEMEN': 'Asia-Pacific',
+  'Bhutan': 'Asia-Pacific',
+  'BHUTAN': 'Asia-Pacific',
+  'Brunei': 'Asia-Pacific',
+  'BRUNEI': 'Asia-Pacific',
+  'Cambodia': 'Asia-Pacific',
+  'CAMBODIA': 'Asia-Pacific',
+  'Fiji': 'Asia-Pacific',
+  'FIJI': 'Asia-Pacific',
+  'Hong Kong': 'Asia-Pacific',
+  'HONG KONG': 'Asia-Pacific',
+  'Iran': 'Asia-Pacific',
+  'IRAN': 'Asia-Pacific',
+  'Kiribati': 'Asia-Pacific',
+  'KIRIBATI': 'Asia-Pacific',
+  'Kyrgyzstan': 'Asia-Pacific',
+  'KYRGYZSTAN': 'Asia-Pacific',
+  'Laos': 'Asia-Pacific',
+  'LAOS': 'Asia-Pacific',
+  'Macau': 'Asia-Pacific',
+  'MACAU': 'Asia-Pacific',
+  'Maldives': 'Asia-Pacific',
+  'MALDIVES': 'Asia-Pacific',
+  'Marshall Islands': 'Asia-Pacific',
+  'MARSHALL ISLANDS': 'Asia-Pacific',
+  'Micronesia': 'Asia-Pacific',
+  'MICRONESIA': 'Asia-Pacific',
+  'Mongolia': 'Asia-Pacific',
+  'MONGOLIA': 'Asia-Pacific',
+  'Myanmar': 'Asia-Pacific',
+  'MYANMAR': 'Asia-Pacific',
+  'Nauru': 'Asia-Pacific',
+  'NAURU': 'Asia-Pacific',
+  'Nepal': 'Asia-Pacific',
+  'NEPAL': 'Asia-Pacific',
+  'North Korea': 'Asia-Pacific',
+  'NORTH KOREA': 'Asia-Pacific',
+  'Palau': 'Asia-Pacific',
+  'PALAU': 'Asia-Pacific',
+  'Papua New Guinea': 'Asia-Pacific',
+  'PAPUA NEW GUINEA': 'Asia-Pacific',
+  'Samoa': 'Asia-Pacific',
+  'SAMOA': 'Asia-Pacific',
+  'Solomon Islands': 'Asia-Pacific',
+  'SOLOMON ISLANDS': 'Asia-Pacific',
+  'Timor-Leste': 'Asia-Pacific',
+  'TIMOR-LESTE': 'Asia-Pacific',
+  'Tonga': 'Asia-Pacific',
+  'TONGA': 'Asia-Pacific',
+  'Tuvalu': 'Asia-Pacific',
+  'TUVALU': 'Asia-Pacific',
+  'Uzbekistan': 'Asia-Pacific',
+  'UZBEKISTAN': 'Asia-Pacific',
+  'Vanuatu': 'Asia-Pacific',
+  'VANUATU': 'Asia-Pacific',
+  'San Marino': 'Europe',
+  'SAN MARINO': 'Europe',
+  
+  // Common country variations
+  'United States': 'Americas',
+  'UNITED STATES': 'Americas',
+  'United States of America': 'Americas',
+  'USA': 'Americas',
+  'U.S.A.': 'Americas',
+  'U.S.': 'Americas',
+  
+  // United Kingdom variations
+  'United Kingdom': 'Europe',
+  'UNITED KINGDOM': 'Europe',
+  'UK': 'Europe',
+  'U.K.': 'Europe',
+  'Great Britain': 'Europe',
+  'GREAT BRITAIN': 'Europe',
+  'Britain': 'Europe',
+  'BRITAIN': 'Europe',
+  'England': 'Europe',
+  'ENGLAND': 'Europe',
+  
+  // Ivory Coast variations
+  'Ivory Coast': 'Southern Africa',
+  'IVORY COAST': 'Southern Africa',
+  'Cote D\'Ivoire': 'Southern Africa',
+  'COTE D\'IVOIRE': 'Southern Africa',
+  'Côte d\'Ivoire': 'Southern Africa',
+  'CÔTE D\'IVOIRE': 'Southern Africa',
+  
+  // Czech Republic variations
+  'Czech Republic': 'Europe',
+  'CZECH REPUBLIC': 'Europe',
+  'Czechia': 'Europe',
+  'CZECHIA': 'Europe',
+  
+  // North Macedonia variations
+  'North Macedonia': 'Europe',
+  'NORTH MACEDONIA': 'Europe',
+  'Macedonia': 'Europe',
+  'MACEDONIA': 'Europe',
+  'FYROM': 'Europe',
+  
+  // Myanmar variations
+  'Myanmar': 'Asia-Pacific',
+  'MYANMAR': 'Asia-Pacific',
+  'Burma': 'Asia-Pacific',
+  'BURMA': 'Asia-Pacific',
+  
+  // Eswatini variations
+  'Eswatini': 'Southern Africa',
+  'ESWATINI': 'Southern Africa',
+  'Swaziland': 'Southern Africa',
+  'SWAZILAND': 'Southern Africa',
+  
+  // Cabo Verde variations
+  'Cabo Verde': 'Southern Africa',
+  'CABO VERDE': 'Southern Africa',
+  'Cape Verde': 'Southern Africa',
+  'CAPE VERDE': 'Southern Africa',
+  
+  // Taiwan variations
+  'Taiwan': 'Asia-Pacific',
+  'TAIWAN': 'Asia-Pacific',
+  'Republic of China': 'Asia-Pacific',
+  'REPUBLIC OF CHINA': 'Asia-Pacific',
+  'Chinese Taipei': 'Asia-Pacific',
+  'CHINESE TAIPEI': 'Asia-Pacific',
+  
+  // Palestine variations
+  'Palestine': 'Levant',
+  'PALESTINE': 'Levant',
+  'Palestinian Territory': 'Levant',
+  'PALESTINIAN TERRITORY': 'Levant',
+  'State of Palestine': 'Levant',
+  'STATE OF PALESTINE': 'Levant',
+  'West Bank and Gaza': 'Levant',
+  'WEST BANK AND GAZA': 'Levant'
+};
+
+// Country name patterns for fuzzy matching
+const countryPatterns = {
+  'uae': ['emirates', 'uae'],
+  'saudi': ['saudi', 'ksa', 'kingdom of saudi'],
+  'uk': ['united kingdom', 'uk', 'britain'],
+  'usa': ['united states', 'usa', 'america'],
+  'drc': ['democratic republic', 'congo'],
+  'ivory': ['ivory', 'cote d\'ivoire'],
+  'tanzania': ['tanzania'],
+  'korea': ['korea'],
+  'czech': ['czech', 'czechia'],
+  'bosnia': ['bosnia', 'herzegovina'],
+  'myanmar': ['myanmar', 'burma'],
+  'eswatini': ['eswatini', 'swaziland'],
+  'taiwan': ['taiwan', 'republic of china'],
+  'palestine': ['palestine', 'palestinian']
+};
+
+// Function to get region for a country using the same logic as KPIExecutiveSummary.js
+export const getRegionForCountry = (countryName) => {
+  // Direct lookup
+  let region = regionalMapping[countryName];
+  
+  // If no direct match, try case-insensitive matching
+  if (!region) {
+    const countryLower = countryName.toLowerCase();
+    
+    // Check for UAE variations first
+    if (countryLower.includes('emirates') || countryLower === 'uae') {
+      region = 'UAE';
+    } 
+    // Check for Saudi Arabia variations
+    else if (countryLower.includes('saudi') || countryLower === 'ksa' || countryLower.includes('kingdom')) {
+      region = 'GCC';
+    }
+    // Check for Congo variations
+    else if (countryLower.includes('congo') || countryLower.includes('cong')) {
+      // Democratic Republic of Congo vs Republic of Congo distinction
+      if (countryLower.includes('democratic') || countryLower.includes('dr congo') || countryLower.includes('d.r.')) {
+        region = 'Southern Africa'; // Democratic Republic of Congo
+      } else {
+        region = 'Southern Africa'; // Republic of Congo (Congo-Brazzaville)
+      }
+    }
+    // Check for other fuzzy matches using patterns
+    else {
+      // Try pattern matching first
+      let patternMatch = false;
+      for (const [key, patterns] of Object.entries(countryPatterns)) {
+        if (patterns.some(pattern => countryLower.includes(pattern))) {
+          // Find a matching entry in regionalMapping that contains this pattern
+          for (const [mapKey, mapValue] of Object.entries(regionalMapping)) {
+            if (mapKey.toLowerCase().includes(key)) {
+              region = mapValue;
+              patternMatch = true;
+              break;
+            }
+          }
+          if (patternMatch) break;
+        }
+      }
+      
+      // If no pattern match, try exact case-insensitive match
+      if (!patternMatch) {
+        for (const [key, value] of Object.entries(regionalMapping)) {
+          if (key.toLowerCase() === countryLower) {
+            region = value;
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  return region || 'Unassigned';
+};
+
 const CountryReference = () => {
   const { salesData, loading: salesLoading } = useSalesData();
   const { selectedDivision } = useExcelData(); // Get selectedDivision from same context as Dashboard
@@ -247,6 +840,7 @@ const CountryReference = () => {
             <tr>
               <th>Status</th>
               <th>Country Name</th>
+              <th>Region</th>
               <th>Longitude</th>
               <th>Latitude</th>
               <th>Coordinates</th>
@@ -258,6 +852,9 @@ const CountryReference = () => {
               // Find original Excel name if matched
               const originalName = Array.from(excelCountries.entries())
                 .find(([orig, matched]) => matched === countryName)?.[0];
+              
+              // Get region for this country
+              const region = getRegionForCountry(countryName);
               
               return (
                 <tr 
@@ -274,6 +871,9 @@ const CountryReference = () => {
                     {originalName && originalName !== countryName && (
                       <div className="excel-name">Excel: "{originalName}"</div>
                     )}
+                  </td>
+                  <td className={`region-cell ${region === 'Unassigned' ? 'unassigned' : region.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {region}
                   </td>
                   <td className="coord-cell">{coords[0].toFixed(4)}°</td>
                   <td className="coord-cell">{coords[1].toFixed(4)}°</td>

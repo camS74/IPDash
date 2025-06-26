@@ -809,53 +809,179 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     }
   };
 
-  // Generate KPI Summary from captured table data
   // Capture live KPI data from the current active KPIExecutiveSummary component
   const captureLiveKPIData = () => {
-    // SKIP LIVE DATA CAPTURE - ALWAYS USE FALLBACK
-    console.log('🔧 Skipping live data capture - using fallback structure');
-    return null;
+    console.log('🔍 Capturing live KPI data from KPIExecutiveSummary component...');
+    
+    try {
+      // Find the KPI dashboard element
+      const kpiDashboard = document.querySelector('.kpi-dashboard');
+      if (!kpiDashboard) {
+        throw new Error('KPI dashboard not found. Make sure KPI tab is active.');
+      }
+
+      const kpiData = {
+        '💰 Financial Performance': [],
+        '📦 Product Performance': [],
+        '🌍 Geographic Distribution': [],
+        '👥 Customer Insights': []
+      };
+
+      // Extract Financial Performance data
+      const financialSections = kpiDashboard.querySelectorAll('.kpi-section');
+      
+      financialSections.forEach(section => {
+        const sectionTitle = section.querySelector('.kpi-section-title')?.textContent?.trim();
+        
+        if (sectionTitle?.includes('💰 Financial Performance')) {
+          const cards = section.querySelectorAll('.kpi-card');
+          cards.forEach(card => {
+            const icon = card.querySelector('.kpi-icon')?.textContent?.trim() || '';
+            const label = card.querySelector('.kpi-label')?.textContent?.trim() || '';
+            const value = card.querySelector('.kpi-value')?.textContent?.trim() || '';
+            const trend = card.querySelector('.kpi-trend')?.textContent?.trim() || '';
+            
+            if (label && value) {
+              kpiData['💰 Financial Performance'].push({
+                icon, label, value, trend, isLarge: false
+              });
+            }
+          });
+        }
+        
+                 else if (sectionTitle?.includes('📦 Product Performance')) {
+           const cards = section.querySelectorAll('.kpi-card');
+           
+           cards.forEach((card, index) => {
+             const icon = card.querySelector('.kpi-icon')?.textContent?.trim() || '';
+             const label = card.querySelector('.kpi-label')?.textContent?.trim() || '';
+             const trend = card.querySelector('.kpi-trend')?.textContent?.trim() || '';
+             const isLarge = card.classList.contains('large');
+             
+             // SPECIAL HANDLING for Top Revenue Drivers - extract individual lines
+             let value = '';
+             if (label.toLowerCase().includes('top revenue drivers')) {
+               const valueElement = card.querySelector('.kpi-value');
+               console.log('🔍 Extracting Top Revenue Drivers data...');
+               console.log('🔍 Value element found:', !!valueElement);
+               
+               if (valueElement) {
+                 // Extract individual product lines from the new ordered list structure
+                 const productLines = valueElement.querySelectorAll('li');
+                 console.log('🔍 Number of product lines found:', productLines.length);
+                 
+                 let extractedData = {
+                   products: []
+                 };
+                 
+                 productLines.forEach((li, index) => {
+                   const fullText = li.textContent?.trim();
+                   console.log(`🔍 Product line ${index + 1}:`, fullText);
+                   
+                   if (fullText) {
+                     // Parse format: "1. 🥇 Laminates 23.0% of sales ↗️ 89% growth"
+                     const rankMatch = fullText.match(/^(\d+)\.\s*/);
+                     const iconMatch = fullText.match(/(🥇|🥈|🥉)/);
+                     const nameMatch = fullText.match(/(?:🥇|🥈|🥉)\s+([^0-9]+?)\s+[\d.]+%/);
+                     const salesMatch = fullText.match(/([\d.]+% of sales)/);
+                     const growthMatch = fullText.match(/(▲|▼)\s+([\d.]+%\s+(?:growth|decline))/);
+                     
+                     console.log(`🔍 Parsing matches for line ${index + 1}:`, {
+                       rank: rankMatch?.[1],
+                       icon: iconMatch?.[1], 
+                       name: nameMatch?.[1]?.trim(),
+                       sales: salesMatch?.[1],
+                       growth: growthMatch ? `${growthMatch[1]} ${growthMatch[2]}` : null
+                     });
+                     
+                     if (rankMatch && iconMatch && nameMatch && salesMatch && growthMatch) {
+                       extractedData.products.push({
+                         rank: rankMatch[1],
+                         icon: iconMatch[1],
+                         name: nameMatch[1].trim(),
+                         sales: salesMatch[1],
+                         growth: `${growthMatch[1]} ${growthMatch[2]}`
+                       });
+                     }
+                   }
+                 });
+                 
+                 console.log('🔍 Final extracted data:', extractedData);
+                 value = JSON.stringify(extractedData); // Store as structured data
+               }
+             } else {
+               value = card.querySelector('.kpi-value')?.textContent?.trim() || '';
+             }
+             
+             if (label && value) {
+               kpiData['📦 Product Performance'].push({
+                 icon, label, value, trend, isLarge
+               });
+             }
+           });
+         }
+        
+        else if (sectionTitle?.includes('🌍 Geographic Distribution')) {
+          const cards = section.querySelectorAll('.kpi-card');
+          cards.forEach(card => {
+            const icon = card.querySelector('.kpi-icon')?.textContent?.trim() || '';
+            const label = card.querySelector('.kpi-label')?.textContent?.trim() || '';
+            const value = card.querySelector('.kpi-value')?.textContent?.trim() || '';
+            const trend = card.querySelector('.kpi-trend')?.textContent?.trim() || '';
+            const isLarge = card.classList.contains('large');
+            
+            if (label && value) {
+              kpiData['🌍 Geographic Distribution'].push({
+                icon, label, value, trend, isLarge
+              });
+            }
+          });
+        }
+        
+        else if (sectionTitle?.includes('👥 Customer Insights')) {
+          const cards = section.querySelectorAll('.kpi-card');
+          cards.forEach(card => {
+            const icon = card.querySelector('.kpi-icon')?.textContent?.trim() || '';
+            const label = card.querySelector('.kpi-label')?.textContent?.trim() || '';
+            const value = card.querySelector('.kpi-value')?.textContent?.trim() || '';
+            const trend = card.querySelector('.kpi-trend')?.textContent?.trim() || '';
+            
+            if (label && value) {
+              kpiData['👥 Customer Insights'].push({
+                icon, label, value, trend, isLarge: false
+              });
+            }
+          });
+        }
+      });
+
+      console.log('✅ Live KPI data captured successfully:', kpiData);
+      console.log('🔍 Product Performance section:', kpiData['📦 Product Performance']);
+      
+      // Specifically log Top Revenue Drivers data
+      const topRevenueCard = kpiData['📦 Product Performance']?.find(card => 
+        card.label?.toLowerCase().includes('top revenue drivers')
+      );
+      if (topRevenueCard) {
+        console.log('🔍 Top Revenue Drivers card:', topRevenueCard);
+        console.log('🔍 Top Revenue Drivers value:', topRevenueCard.value);
+      }
+      
+      return kpiData;
+      
+    } catch (error) {
+      console.error('❌ Failed to capture live KPI data:', error);
+      throw new Error(`Failed to capture live KPI data: ${error.message}`);
+    }
   };
 
   const generateOutstandingKPISummary = (liveKpiData, selectedDivision, basePeriodName) => {
-    // If we have live data, use it; otherwise use fallback static data
-    const kpiData = liveKpiData || {
-      '💰 Financial Performance': [
-        { icon: '📈', label: 'Revenue', value: '12.5M', trend: '8% Growth Vs Previous Period', isLarge: false },
-        { icon: '💵', label: 'Gross Profit', value: '3.2M', trend: '12% Growth Vs Previous Period', isLarge: false },
-        { icon: '💎', label: 'Net Income', value: '1.8M', trend: '15% Growth Vs Previous Period', isLarge: false },
-        { icon: '⚡', label: 'EBITDA', value: '2.1M', trend: '10% Growth Vs Previous Period', isLarge: false }
-      ],
-      '📦 Product Performance': [
-        // Row 1: Top Performers by Growth + Total Sales Volume
-        { icon: '🏆', label: 'Top Performers by Growth', value: '🥇 Laminates\n23.0% of sales ↗️ 89% growth 🚀\n\n🥈 Shrink Sleeves\n14.9% of sales ↗️ 3% growth 📈\n\n🥉 Shrink Film Printed\n26.8% of sales ↗️ 6% growth 📈', trend: 'ranked by growth performance', isLarge: true, row: 1 },
-        { icon: '📊', label: 'Total Sales Volume', value: '3.8K MT', trend: '14% Growth Vs Previous Period', isLarge: false, row: 1 },
-        
-        // Row 2: Selling Price + MoRM  
-        { icon: '⚡', label: 'SELLING PRICE', value: '11.42/kg', trend: '2% Decline Vs Previous Period', isLarge: false, row: 2 },
-        { icon: '🎯', label: 'MORM', value: '4.20/kg', trend: '-2% Decline Vs Previous Period', isLarge: false, row: 2 },
-        
-        // Row 3: Process Categories
-        { icon: '', label: 'PRINTED', value: '% of Sales: 80% 📈 10%\n\nAVG Selling Price: 11.50 AED/Kg 📈 5%\n\nAVG MoRM: 5.00 AED/Kg 📈 3%', trend: 'Process Category', isLarge: false, row: 3 },
-        { icon: '', label: 'UNPRINTED', value: '% of Sales: 20% 📉 5%\n\nAVG Selling Price: 4.20 AED/Kg 📉 2%\n\nAVG MoRM: 1.50 AED/Kg 📉 1%', trend: 'Process Category', isLarge: false, row: 3 },
-        
-        // Row 4: Material Categories  
-        { icon: '', label: 'PE', value: '% of Sales: 80% 📈 10%\n\nAVG Selling Price: 11.50 AED/Kg 📈 5%\n\nAVG MoRM: 5.00 AED/Kg 📈 3%', trend: 'Material Category', isLarge: false, row: 4 },
-        { icon: '', label: 'NON-PE', value: '% of Sales: 20% 📉 5%\n\nAVG Selling Price: 4.20 AED/Kg 📉 2%\n\nAVG MoRM: 1.50 AED/Kg 📉 1%', trend: 'Material Category', isLarge: false, row: 4 }
-      ],
-      '🌍 Geographic Distribution': [
-        { icon: '🏠', label: 'Local (UAE)', value: '45.0%', trend: 'of total sales', isLarge: true },
-        { icon: '🌐', label: 'Export', value: '55.0%', trend: 'of total sales', isLarge: true },
-        { icon: '🥇', label: 'GCC', value: '25.0%', trend: 'GCC', isLarge: false },
-        { icon: '🥈', label: 'Asia-Pacific', value: '15.0%', trend: 'Asia-Pacific', isLarge: false }
-      ],
-      '👥 Customer Insights': [
-        { icon: '⭐', label: 'Top Customer', value: '15.2%', trend: 'of total sales', isLarge: false },
-        { icon: '🔝', label: 'Top 3 Customers', value: '35.8%', trend: 'concentration', isLarge: false },
-        { icon: '📊', label: 'Top 5 Customers', value: '52.1%', trend: 'concentration', isLarge: false },
-        { icon: '💰', label: 'AVG Sales per Customer', value: '250K', trend: 'average value', isLarge: false }
-      ]
-    };
+    // REQUIRE live data - no fallback allowed
+    if (!liveKpiData) {
+      throw new Error('Live KPI data is required. Cannot generate summary without real data.');
+    }
+
+    const kpiData = liveKpiData;
 
     const divisionNames = {
       'FP': 'Flexible Packaging',
@@ -964,35 +1090,56 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
           margin: 0 auto 20px auto;
         }
         
-        /* Row-specific styling for Product Performance */
-        .outstanding-kpi-row-1 {
+        /* KPI Cards Layout - Specific positioning */
+        .kpi-product-performance {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        /* Row 1: Top Revenue Drivers (full width) */
+        .kpi-row-1 {
           display: grid;
-          grid-template-columns: 2fr 1fr;
+          grid-template-columns: 1fr;
           gap: 20px;
-          max-width: 1400px;
-          margin: 0 auto 20px auto;
+          margin-bottom: 20px;
         }
         
-        .outstanding-kpi-row-2 {
-          display: flex;
-          justify-content: center;
-          gap: 30px;
-          max-width: 1000px;
-          margin: 0 auto 20px auto;
+        /* Row 2: Total Sales Volume (full width) */
+        .kpi-row-2 {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+          margin-bottom: 20px;
         }
         
-        .outstanding-kpi-row-2 .outstanding-kpi-card {
-          flex: 0 0 400px;
-          min-width: 350px;
-        }
-        
-        .outstanding-kpi-row-3,
-        .outstanding-kpi-row-4 {
+        /* Row 3: Selling Price + MoRM (side by side) */
+        .kpi-row-3 {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 20px;
-          max-width: 1000px;
-          margin: 0 auto 20px auto;
+          margin-bottom: 20px;
+        }
+        
+        /* Top Revenue Drivers - Special styling for single lines */
+        .top-revenue-drivers .outstanding-kpi-value {
+          font-size: 1.1em;
+          line-height: 1.6;
+          text-align: left;
+        }
+        
+        .top-revenue-drivers .product-line {
+          margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+        }
+        
+        /* Arrow colors */
+        .arrow-positive {
+          color: #007bff !important;
+        }
+        
+        .arrow-negative {
+          color: #dc3545 !important;
         }
         
         .outstanding-kpi-card {
@@ -1060,19 +1207,26 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
           font-weight: 800;
           color: #2d3748;
           margin-bottom: 15px;
-          line-height: 1.1;
+          line-height: 1.4;
           word-wrap: break-word;
-          white-space: pre-line;
+          white-space: normal;
           flex-grow: 1;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          text-align: center;
         }
         
         .outstanding-kpi-card.large .outstanding-kpi-value {
-          font-size: 1.4em;
-          line-height: 1.4;
-          white-space: pre-line;
+          font-size: 1.2em;
+          line-height: 1.8;
+          white-space: normal;
+        }
+        
+        /* Category cards styling for smaller text */
+        .outstanding-kpi-card .outstanding-kpi-value {
+          font-size: 1.1em;
         }
         
         .outstanding-kpi-trend {
@@ -1135,37 +1289,90 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
           </div>
 
         ${Object.entries(kpiData).map(([sectionTitle, cards]) => {
-          // Special handling for Product Performance - group by rows
+          // Special handling for Product Performance - Custom layout
           if (sectionTitle === '📦 Product Performance') {
-            const rowGroups = {};
-            cards.forEach(card => {
-              const rowNum = card.row || 1;
-              if (!rowGroups[rowNum]) rowGroups[rowNum] = [];
-              rowGroups[rowNum].push(card);
-            });
+            // Find specific cards
+            const topRevenueCard = cards.find(card => card.label.includes('Top Revenue Drivers'));
+            const salesVolumeCard = cards.find(card => card.label.includes('Total Sales Volume'));
+            const sellingPriceCard = cards.find(card => card.label.includes('Selling Price'));
+            const mormCard = cards.find(card => card.label.includes('MoRM'));
             
-            console.log('🔧 DEBUG: Processing Product Performance with rows:', rowGroups);
+                         const formatTopRevenueDrivers = (cardValue) => {
+              try {
+                const data = JSON.parse(cardValue);
+                if (data.products && data.products.length > 0) {
+                  return data.products.map((product, idx) => {
+                    // Extract growth percentage as a number from the growth string
+                    const growthMatch = product.growth.match(/(-?\\d+)%/);
+                    let growthValue = 0;
+                    if (growthMatch) growthValue = parseInt(growthMatch[1], 10);
+                    const isPositive = growthValue > 0;
+                    const arrowClass = isPositive ? 'arrow-positive' : 'arrow-negative';
+                    const arrow = isPositive ? '▲' : '▼';
+                    const growthWord = isPositive ? 'growth' : 'decline';
+                    // Render as a single line: 1. 🥇 Laminates 23.0% of sales ▲ 89% growth
+                    return `
+                      <div class=\"product-line\" style=\"margin-bottom: 6px;\">
+                        <span style=\"min-width:22px;\">${product.rank}.</span>
+                        <span style=\"margin-right:6px;\">${product.icon}</span>
+                        <span style=\"margin-right:8px;\">${product.name}</span>
+                        <span style=\"margin-right:8px;\">${product.sales}</span>
+                        <span class=\"${arrowClass}\">${arrow} ${Math.abs(growthValue)}% ${growthWord}</span>
+                      </div>
+                    `;
+                  }).join('');
+                } else {
+                  throw new Error('No products data found in captured KPI data');
+                }
+              } catch (e) {
+                console.error('🔧 Failed to parse Top Revenue Drivers data:', e);
+                console.error('🔧 Raw card value:', cardValue);
+                throw new Error(`Top Revenue Drivers data parsing failed: ${e.message}. Please refresh KPI tab and try again.`);
+              }
+            };
+            
             return `
               <div class="outstanding-kpi-section">
                 <h2 class="outstanding-kpi-section-title">${sectionTitle}</h2>
-                                 ${Object.entries(rowGroups).map(([rowNum, rowCards]) => {
-                   console.log(`🔧 DEBUG: Rendering row ${rowNum} with cards:`, rowCards);
-                   return `
-                   <div class="outstanding-kpi-row-${rowNum}">
-                     ${rowCards.map(card => {
-                       const trendClass = card.trend.includes('Growth') ? 'growth' : 
-                                        card.trend.includes('Decline') ? 'decline' : '';
-                       return `
+                <div class="kpi-product-performance">
+                  
+                  <!-- Row 1: Top Revenue Drivers -->
+                  <div class="kpi-row-1">
+                    <div class="outstanding-kpi-card top-revenue-drivers">
+                      <div class="outstanding-kpi-icon">${topRevenueCard?.icon || '🏆'}</div>
+                      <div class="outstanding-kpi-label">${topRevenueCard?.label || 'Top Revenue Drivers'}</div>
+                      <div class="outstanding-kpi-value">${formatTopRevenueDrivers(topRevenueCard?.value || '-')}</div>
+                      <div class="outstanding-kpi-trend">${topRevenueCard?.trend || ''}</div>
+                    </div>
+                  </div>
+                  
+                  <!-- Row 2: Total Sales Volume -->
+                  <div class="kpi-row-2">
                          <div class="outstanding-kpi-card">
-                           <div class="outstanding-kpi-icon">${card.icon}</div>
-                           <div class="outstanding-kpi-label">${card.label}</div>
-                           <div class="outstanding-kpi-value">${card.value}</div>
-                           <div class="outstanding-kpi-trend ${trendClass}">${card.trend}</div>
+                      <div class="outstanding-kpi-icon">${salesVolumeCard?.icon || '📊'}</div>
+                      <div class="outstanding-kpi-label">${salesVolumeCard?.label || 'Total Sales Volume'}</div>
+                      <div class="outstanding-kpi-value">${salesVolumeCard?.value || '-'}</div>
+                      <div class="outstanding-kpi-trend">${salesVolumeCard?.trend || ''}</div>
                          </div>
-                       `;
-                     }).join('')}
-                   </div>`;
-                 }).join('')}
+                  </div>
+                  
+                  <!-- Row 3: Selling Price + MoRM -->
+                  <div class="kpi-row-3">
+                    <div class="outstanding-kpi-card">
+                      <div class="outstanding-kpi-icon">${sellingPriceCard?.icon || '⚡'}</div>
+                      <div class="outstanding-kpi-label">${sellingPriceCard?.label || 'Selling Price'}</div>
+                      <div class="outstanding-kpi-value">${sellingPriceCard?.value || '-'}</div>
+                      <div class="outstanding-kpi-trend">${sellingPriceCard?.trend || ''}</div>
+                    </div>
+                    <div class="outstanding-kpi-card">
+                      <div class="outstanding-kpi-icon">${mormCard?.icon || '🎯'}</div>
+                      <div class="outstanding-kpi-label">${mormCard?.label || 'MoRM'}</div>
+                      <div class="outstanding-kpi-value">${mormCard?.value || '-'}</div>
+                      <div class="outstanding-kpi-trend">${mormCard?.trend || ''}</div>
+                    </div>
+                  </div>
+                  
+                </div>
               </div>
             `;
           } else {
@@ -1177,12 +1384,30 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                   ${cards.map(card => {
                     const trendClass = card.trend.includes('Growth') ? 'growth' : 
                                      card.trend.includes('Decline') ? 'decline' : '';
+                    
+                    // Apply same formatting to all sections
+                    let formattedValue = card.value;
+                    let formattedTrend = card.trend;
+                    
+                    // Format trends with arrows and colors
+                    if (card.trend && (card.trend.includes('Growth') || card.trend.includes('Decline'))) {
+                      const trendMatch = card.trend.match(/(\\d+)%/);
+                      if (trendMatch) {
+                        const percentage = trendMatch[1];
+                        const isPositive = card.trend.includes('Growth') && parseInt(percentage) > 0;
+                        const color = isPositive ? '#007bff' : '#dc3545';
+                        const arrow = isPositive ? '▲' : '▼';
+                        const word = isPositive ? 'Growth' : 'Decline';
+                        formattedTrend = card.trend.replace(/(\\d+)%/, `<span style="color: ${color}">${arrow} ${percentage}%</span>`);
+                      }
+                    }
+                    
                     return `
                       <div class="outstanding-kpi-card ${card.isLarge ? 'large' : ''}">
                         <div class="outstanding-kpi-icon">${card.icon}</div>
                         <div class="outstanding-kpi-label">${card.label}</div>
-                        <div class="outstanding-kpi-value">${card.value}</div>
-                        <div class="outstanding-kpi-trend ${trendClass}">${card.trend}</div>
+                        <div class="outstanding-kpi-value">${formattedValue}</div>
+                        <div class="outstanding-kpi-trend ${trendClass}">${formattedTrend}</div>
               </div>
                     `;
                   }).join('')}
@@ -1418,8 +1643,9 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
       // 🎯 FIRST: Capture live KPI data while the user's selection is active
       console.log('🔥 Step 1: Capturing live KPI data...');
       await ensureKPITabActive();
-      // const liveKpiData = captureLiveKPIData();
-    const liveKpiData = null; // Force use of fallback data
+      // Give KPI component time to fully render
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const liveKpiData = captureLiveKPIData();
       console.log('✅ Live KPI data captured:', liveKpiData);
       
       // Capture tables by ensuring tabs are active
