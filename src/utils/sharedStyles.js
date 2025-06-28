@@ -1,3 +1,7 @@
+// Shared KPI CSS content - single source of truth
+// This ensures the main KPI component and HTML export use identical styling
+
+export const KPI_CSS_CONTENT = `
 /* KPI Executive Summary Styles - Enhanced Version */
 .kpi-dashboard {
   background: white;
@@ -8,55 +12,55 @@
 
 .kpi-section {
   background: rgba(255, 255, 255, 0.98);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .kpi-section-title {
-  font-size: 1.4em;
+  font-size: 1.3em;
   font-weight: 700;
   color: #2c3e50;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   text-align: center;
   border-bottom: 2px solid #667eea;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 }
 
 .kpi-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
   align-items: stretch;
 }
 
 .kpi-card {
   background: white;
-  border-radius: 10px;
-  padding: 18px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  min-height: 160px;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .kpi-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
 .kpi-card.large {
   grid-column: span 2;
-  min-height: 180px;
+  min-height: 170px;
 }
 
 .kpi-card::before {
@@ -65,38 +69,38 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 4px;
+  width: 3px;
   background: #667eea;
 }
 
 /* PROPER VISUAL HIERARCHY - UNIFORM FONT SYSTEM */
 
 .kpi-icon {
-  font-size: 2em;
+  font-size: 1.8em;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   line-height: 1;
 }
 
 /* LEVEL 1: CARD TITLES - LARGEST AND MOST PROMINENT */
 .kpi-label {
-  font-size: 1.1em;
-  font-weight: 700;
+  font-size: 1em;
+  font-weight: 600;
   color: #2d3748;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   line-height: 1.2;
 }
 
 /* LEVEL 2: CARD CONTENT - UNIFORM MEDIUM SIZE */
 .kpi-value {
-  font-size: 1.3em;
-  font-weight: 700;
+  font-size: 1.25em;
+  font-weight: 600;
   color: #4a5568;
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   line-height: 1.2;
   font-family: 'Segoe UI', sans-serif;
 }
@@ -229,15 +233,15 @@
 }
 
 .kpi-card .kpi-value ol li {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: inherit;
-  padding: 6px 12px;
-  background: rgba(102, 126, 234, 0.05);
-  border-radius: 6px;
-  border-left: 3px solid #667eea;
+  padding: 5px 10px;
+  background: rgba(102, 126, 234, 0.04);
+  border-radius: 4px;
+  border-left: 2px solid #667eea;
   width: 98%;
   text-align: center;
   color: inherit;
@@ -292,25 +296,25 @@
 
 /* UNIFORM SIZING FOR CATEGORY CARDS */
 .kpi-section .kpi-cards[style*="gridTemplateColumns"] .kpi-card {
-  min-height: 200px;
-  max-height: 200px;
+  min-height: 180px;
+  max-height: 180px;
 }
 
 .kpi-section .kpi-cards[style*="gridTemplateColumns"] .kpi-card .kpi-value {
-  font-size: 1.2em !important;
+  font-size: 1.1em !important;
   line-height: 1.3 !important;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   color: #4a5568 !important;
 }
 
 .kpi-section .kpi-cards[style*="gridTemplateColumns"] .kpi-card .kpi-label {
-  font-size: 1.1em !important;
-  margin-bottom: 12px !important;
-  font-weight: 700 !important;
+  font-size: 1em !important;
+  margin-bottom: 10px !important;
+  font-weight: 600 !important;
   color: #2d3748 !important;
 }
 
@@ -442,4 +446,29 @@
   .export-regions {
     grid-template-columns: 1fr !important;
   }
-} 
+}
+
+/* Back button styling for export */
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.back-button:hover {
+  background: #5a6fcf;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+`; 

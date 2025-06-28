@@ -11,19 +11,25 @@ const regionalMapping = {
   'UAE': 'UAE',
   'UNITED ARAB EMIRATES': 'UAE',
   
-  // GCC
-  'Saudi Arabia': 'GCC',
-  'Kingdom Of Saudi Arabia': 'GCC',
-  'KINGDOM OF SAUDI ARABIA': 'GCC',
-  'Kuwait': 'GCC',
-  'KUWAIT': 'GCC',
-  'Qatar': 'GCC',
-  'QATAR': 'GCC',
-  'Bahrain': 'GCC',
-  'BAHRAIN': 'GCC',
-  'Oman': 'GCC',
-  'OMAN': 'GCC',
-  'KSA': 'GCC',
+  // Arabian Peninsula
+  'Saudi Arabia': 'Arabian Peninsula',
+  'Kingdom Of Saudi Arabia': 'Arabian Peninsula',
+  'KINGDOM OF SAUDI ARABIA': 'Arabian Peninsula',
+  'Kuwait': 'Arabian Peninsula',
+  'KUWAIT': 'Arabian Peninsula',
+  'Qatar': 'Arabian Peninsula',
+  'QATAR': 'Arabian Peninsula',
+  'Bahrain': 'Arabian Peninsula',
+  'BAHRAIN': 'Arabian Peninsula',
+  'Oman': 'Arabian Peninsula',
+  'OMAN': 'Arabian Peninsula',
+  'Yemen': 'Arabian Peninsula',
+  'YEMEN': 'Arabian Peninsula',
+  'KSA': 'Arabian Peninsula',
+  
+  // West Asia
+  'Iraq': 'West Asia',
+  'IRAQ': 'West Asia',
   
   // Levant
   'Lebanon': 'Levant',
@@ -35,8 +41,6 @@ const regionalMapping = {
   'Syrian Arab Republic': 'Levant',
   'Palestine': 'Levant',
   'PALESTINE': 'Levant',
-  'Iraq': 'Levant',
-  'IRAQ': 'Levant',
   'Israel': 'Levant',
   'ISRAEL': 'Levant',
   
@@ -383,8 +387,6 @@ const regionalMapping = {
   'AFGHANISTAN': 'Asia-Pacific',
   'Tajikistan': 'Asia-Pacific',
   'TAJIKISTAN': 'Asia-Pacific',
-  'Yemen': 'Asia-Pacific',
-  'YEMEN': 'Asia-Pacific',
   'Bhutan': 'Asia-Pacific',
   'BHUTAN': 'Asia-Pacific',
   'Brunei': 'Asia-Pacific',

@@ -54,11 +54,10 @@ const KPIExecutiveSummary = () => {
     const growthPercent = ((curr - prev) / Math.abs(prev) * 100).toFixed(0);
     const isPositive = growthPercent > 0;
     const arrow = isPositive ? '▲' : '▼';
-    const color = isPositive ? '#007bff' : '#dc3545';
     const direction = isPositive ? 'Growth' : 'Decline';
     return (
       <span>
-        <span style={{color: color}}>{arrow} {Math.abs(growthPercent)}%</span> {direction} Vs Previous Period
+        <span className={isPositive ? 'arrow-positive' : 'arrow-negative'}>{arrow} {Math.abs(growthPercent)}%</span> {direction} Vs Previous Period
       </span>
     );
   };
@@ -199,21 +198,20 @@ const KPIExecutiveSummary = () => {
   
   // Render as a single, compact, numbered list (one line per product)
   const topProductGroupDisplay = (
-    <ol style={{ listStyle: 'none' }}>
+    <ol>
       {top3ProductsWithGrowth.map((p, index) => {
         const isPositive = p.growth > 0;
         const arrow = isPositive ? '▲' : '▼';
-        const arrowColor = isPositive ? '#007bff' : '#dc3545';
         const growthWord = isPositive ? 'growth' : 'decline';
         const rankNumber = index + 1;
         const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
         return (
           <li key={index}>
-            <span style={{ minWidth: 22 }}>{rankNumber}.</span>
-            <span style={{ marginRight: 6 }}>{rankIcon}</span>
-            <span style={{ marginRight: 8 }}>{p.name}</span>
-            <span style={{ marginRight: 8 }}>{p.salesPercent.toFixed(1)}% of sales</span>
-            <span style={{ color: arrowColor }}>{arrow} {Math.abs(p.growth).toFixed(0)}% {growthWord}</span>
+            <span>{rankNumber}.</span>
+            <span>{rankIcon}</span>
+            <span>{p.name}</span>
+            <span>{p.salesPercent.toFixed(1)}% of sales</span>
+            <span className={isPositive ? 'arrow-positive' : 'arrow-negative'}>{arrow} {Math.abs(p.growth).toFixed(0)}% {growthWord}</span>
           </li>
         );
       })}
@@ -376,7 +374,8 @@ const KPIExecutiveSummary = () => {
   let countrySales = [];
   let regionalSales = {
     'UAE': 0,
-    'GCC': 0,
+    'Arabian Peninsula': 0,
+    'West Asia': 0,
     'Levant': 0,
     'North Africa': 0,
     'Southern Africa': 0,
@@ -491,15 +490,15 @@ const KPIExecutiveSummary = () => {
   const avgSalesPerCustomer = customerSales.length > 0 ? (totalCustomerSales / customerSales.length) : 0;
   // Render - Updated formatting v2.0 
   return (
-    <div className="kpi-dashboard" style={{ padding: 24 }} key="kpi-dashboard-v2">
-      <h2 style={{ textAlign: 'center', fontWeight: 700, fontSize: 22, marginBottom: 8 }}>
+    <div className="kpi-dashboard" key="kpi-dashboard-v2">
+      <h2>
         Executive Summary – {divisionNames[selectedDivision.replace(/-.*$/, '')] || selectedDivision}
       </h2>
-      <div style={{ textAlign: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 18, fontWeight: 600, color: '#444' }}>{basePeriodName}</span>
+      <div>
+        <span>{basePeriodName}</span>
       </div>
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <span style={{ fontWeight: 'bold', fontStyle: 'italic', fontSize: 16, color: '#666' }}>(AED)</span>
+      <div>
+        <span>(AED)</span>
       </div>
       {/* Financial Performance */}
       <div className="kpi-section">
@@ -528,10 +527,7 @@ const KPIExecutiveSummary = () => {
         </div>
         
         {/* Row 3: Process Categories - Dynamic sizing based on number of categories */}
-        <div className="kpi-cards" style={{
-          gridTemplateColumns: `repeat(${Object.keys(processCategories).length}, 1fr)`,
-          gap: '15px'
-        }}>
+        <div className="kpi-cards">
           {Object.entries(processCategories).map(([categoryName, data], index) => {
             const sellingPrice = data.kgs > 0 ? data.sales / data.kgs : 0;
             const morm = data.kgs > 0 ? data.morm / data.kgs : 0;
@@ -554,14 +550,14 @@ const KPIExecutiveSummary = () => {
             
             return (
               <div key={`process-${categoryName}`} className="kpi-card">
-                <div className="kpi-label">{categoryName.toUpperCase()}</div>
+                <div className="kpi-label category-highlight">{categoryName.toUpperCase()}</div>
                 <div className="kpi-value">
-                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>% of Sales: {salesPercentage.toFixed(0)}%</div>
-                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: salesColor}}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
-                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
-                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: priceColor}}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
-                  <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
-                  <div style={{display: 'block', clear: 'both'}}><span style={{color: mormColor}}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
+                  <div>% of Sales: {salesPercentage.toFixed(0)}%</div>
+                  <div><span className={salesGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
+                  <div>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
+                  <div><span className={priceGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
+                  <div>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
+                  <div><span className={mormGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
                 </div>
               </div>
             );
@@ -569,10 +565,7 @@ const KPIExecutiveSummary = () => {
         </div>
         
         {/* Row 4: Material Categories - Dynamic sizing based on number of categories */}
-        <div className="kpi-cards" style={{
-          gridTemplateColumns: `repeat(${Object.keys(materialCategories).length}, 1fr)`,
-          gap: '15px'
-        }}>
+        <div className="kpi-cards">
           {Object.entries(materialCategories).map(([categoryName, data], index) => {
             const sellingPrice = data.kgs > 0 ? data.sales / data.kgs : 0;
             const morm = data.kgs > 0 ? data.morm / data.kgs : 0;
@@ -595,14 +588,14 @@ const KPIExecutiveSummary = () => {
             
             return (
               <div key={`material-${categoryName}`} className="kpi-card">
-                  <div className="kpi-label">{categoryName.toUpperCase()}</div>
+                  <div className="kpi-label category-highlight">{categoryName.toUpperCase()}</div>
                   <div className="kpi-value">
-                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>% of Sales: {salesPercentage.toFixed(0)}%</div>
-                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: salesColor}}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
-                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
-                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}><span style={{color: priceColor}}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
-                    <div style={{marginBottom: '12px', display: 'block', clear: 'both'}}>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
-                    <div style={{display: 'block', clear: 'both'}}><span style={{color: mormColor}}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
+                    <div>% of Sales: {salesPercentage.toFixed(0)}%</div>
+                    <div><span className={salesGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
+                    <div>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
+                    <div><span className={priceGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
+                    <div>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
+                    <div><span className={mormGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
                   </div>
                 </div>
              );
@@ -614,13 +607,7 @@ const KPIExecutiveSummary = () => {
         <h3 className="kpi-section-title">🌍 Geographic Distribution</h3>
         
         {/* Row 1: Local vs Export - Always centered with 2 equal cards */}
-        <div className="kpi-cards" style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '20px',
-          justifyContent: 'center',
-          marginBottom: '20px'
-        }}>
+        <div className="kpi-cards">
           <div className="kpi-card large">
             <div className="uae-icon-container">
               {/* Embedded UAE Flag SVG */}
@@ -631,7 +618,7 @@ const KPIExecutiveSummary = () => {
                 <rect width="300" height="600" fill="#ff0000"/>
               </svg>
             </div>
-            <div className="kpi-label">Local (UAE)</div>
+            <div className="kpi-label">UAE</div>
             <div className="kpi-value">{localSales.toFixed(1)}%</div>
             <div className="kpi-trend">of total sales</div>
           </div>
@@ -647,16 +634,12 @@ const KPIExecutiveSummary = () => {
         
         {/* Row 2: Export Regions - Dynamic sizing to fill complete width */}
         {exportRegionsWithRelativePercentage.length > 0 && (
-          <div className="kpi-cards export-regions" style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${exportRegionsWithRelativePercentage.length}, 1fr)`,
-            gap: '15px',
-            justifyContent: 'center'
-          }}>
+          <div className="kpi-cards export-regions">
             {exportRegionsWithRelativePercentage.map(([regionName, absolutePercentage, relativePercentage], index) => {
               // Use different globe emojis for different regions
               const regionGlobes = {
-                'GCC': '🌍', // Africa/Europe view (Middle East visible)
+                'Arabian Peninsula': '🌍', // Africa/Europe view (Middle East visible)
+                'West Asia': '🌍', // Africa/Europe view (Middle East visible)
                 'Southern Africa': '🌍', // Africa/Europe view
                 'Levant': '🌍', // Africa/Europe view (Middle East visible)
                 'North Africa': '🌍', // Africa/Europe view
@@ -665,15 +648,50 @@ const KPIExecutiveSummary = () => {
                 'Asia-Pacific': '🌏', // Asia/Australia view
                 'Unassigned': '🌐' // Generic globe
               };
+
+              // Calculate gradient color based on percentage - ENHANCED VERSION
+              const getGradientColor = (percentage) => {
+                // Use distinct colors for different percentage ranges
+                if (percentage >= 20) {
+                  return '#1e40af'; // Deep blue for high percentages (20%+)
+                } else if (percentage >= 15) {
+                  return '#3b82f6'; // Medium blue (15-20%)
+                } else if (percentage >= 10) {
+                  return '#60a5fa'; // Light blue (10-15%)
+                } else if (percentage >= 5) {
+                  return '#93c5fd'; // Lighter blue (5-10%)
+                } else {
+                  return '#dbeafe'; // Very light blue (0-5%)
+                }
+              };
+
+              const gradientColor = getGradientColor(absolutePercentage);
               
               return (
-                <div key={regionName} className="kpi-card">
+                <div 
+                  key={regionName} 
+                  className="kpi-card"
+                  style={{
+                    background: `linear-gradient(135deg, ${gradientColor}, ${gradientColor}cc)`,
+                    borderLeft: `4px solid ${gradientColor}`,
+                    boxShadow: `0 4px 12px ${gradientColor}44`,
+                    color: absolutePercentage >= 10 ? 'white' : '#1a365d' // White text for darker backgrounds
+                  }}
+                >
                   <div className="region-globe-container">
                     <div className="region-globe">{regionGlobes[regionName] || '🌐'}</div>
                   </div>
-                  <div className="kpi-label">{regionName}</div>
-                  <div className="kpi-value">{absolutePercentage.toFixed(1)}%</div>
-                  <div className="kpi-trend">{relativePercentage.toFixed(1)}% of export</div>
+                  <div className="kpi-label" style={{ 
+                    color: absolutePercentage >= 10 ? 'white' : '#2d3748', 
+                    fontWeight: '700' 
+                  }}>{regionName}</div>
+                  <div className="kpi-value" style={{ 
+                    color: absolutePercentage >= 10 ? 'white' : '#1a365d', 
+                    fontWeight: '800' 
+                  }}>{absolutePercentage.toFixed(1)}%</div>
+                  <div className="kpi-trend" style={{ 
+                    color: absolutePercentage >= 10 ? '#e2e8f0' : '#4a5568' 
+                  }}>{relativePercentage.toFixed(1)}% of export</div>
                 </div>
               );
             })}
@@ -683,12 +701,7 @@ const KPIExecutiveSummary = () => {
       {/* Customer Insights */}
       <div className="kpi-section">
         <h3 className="kpi-section-title">👥 Customer Insights</h3>
-        <div className="kpi-cards" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '15px',
-          justifyContent: 'center'
-        }}>
+        <div className="kpi-cards">
           <div className="kpi-card"><div className="kpi-icon">⭐</div><div className="kpi-label">Top Customer</div><div className="kpi-value">{topCustomer}</div><div className="kpi-trend">of total sales</div></div>
           <div className="kpi-card"><div className="kpi-icon">🔝</div><div className="kpi-label">Top 3 Customers</div><div className="kpi-value">{top3Customer}</div><div className="kpi-trend">concentration</div></div>
           <div className="kpi-card"><div className="kpi-icon">📊</div><div className="kpi-label">Top 5 Customers</div><div className="kpi-value">{top5Customer}</div><div className="kpi-trend">concentration</div></div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
+import { KPI_CSS_CONTENT } from '../../utils/sharedStyles';
 import ipTransparentLogo from '../../assets/IP transparent-.jpg';
 
 const ComprehensiveHTMLExport = ({ tableRef }) => {
@@ -850,9 +851,12 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         }
         
                  else if (sectionTitle?.includes('📦 Product Performance')) {
-           const cards = section.querySelectorAll('.kpi-card');
+           // IMPROVED: Capture cards by their container structure to preserve Process vs Material distinction
+           const cardContainers = section.querySelectorAll('.kpi-cards');
+           cardContainers.forEach((container, containerIndex) => {
+             const cards = container.querySelectorAll('.kpi-card');
            
-           cards.forEach((card, index) => {
+             cards.forEach((card, cardIndex) => {
              const icon = card.querySelector('.kpi-icon')?.textContent?.trim() || '';
              const label = card.querySelector('.kpi-label')?.textContent?.trim() || '';
              const trend = card.querySelector('.kpi-trend')?.textContent?.trim() || '';
@@ -862,51 +866,68 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
              let value = '';
              if (label.toLowerCase().includes('top revenue drivers')) {
                const valueElement = card.querySelector('.kpi-value');
-               console.log('🔍 Extracting Top Revenue Drivers data...');
-               console.log('🔍 Value element found:', !!valueElement);
-               
                if (valueElement) {
-                 // Extract individual product lines from the new ordered list structure
+                 // Extract individual product lines from the ordered list structure
                  const productLines = valueElement.querySelectorAll('li');
-                 console.log('🔍 Number of product lines found:', productLines.length);
                  
                  let extractedData = {
                    products: []
                  };
                  
                  productLines.forEach((li, index) => {
+                   // Extract data from individual span elements within each li
+                   const spans = li.querySelectorAll('span');
+                   
+                   if (spans.length >= 5) {
+                     // Expected structure: rank, icon, name, sales, growth
+                     const rank = spans[0]?.textContent?.replace('.', '').trim();
+                     const icon = spans[1]?.textContent?.trim();
+                     const name = spans[2]?.textContent?.trim();
+                     const sales = spans[3]?.textContent?.trim();
+                     const growth = spans[4]?.textContent?.trim();
+                     
+                     if (rank && icon && name && sales && growth) {
+                       extractedData.products.push({
+                         rank: rank,
+                         icon: icon,
+                         name: name,
+                         sales: sales,
+                         growth: growth
+                       });
+                     }
+                   } else {
+                     // Fallback: parse from full text if span structure is different
                    const fullText = li.textContent?.trim();
-                   console.log(`🔍 Product line ${index + 1}:`, fullText);
                    
                    if (fullText) {
-                     // Parse format: "1. 🥇 Laminates 23.0% of sales ↗️ 89% growth"
-                     const rankMatch = fullText.match(/^(\d+)\.\s*/);
-                     const iconMatch = fullText.match(/(🥇|🥈|🥉)/);
-                     const nameMatch = fullText.match(/(?:🥇|🥈|🥉)\s+([^0-9]+?)\s+[\d.]+%/);
-                     const salesMatch = fullText.match(/([\d.]+% of sales)/);
-                     const growthMatch = fullText.match(/(▲|▼)\s+([\d.]+%\s+(?:growth|decline))/);
-                     
-                     console.log(`🔍 Parsing matches for line ${index + 1}:`, {
-                       rank: rankMatch?.[1],
-                       icon: iconMatch?.[1], 
-                       name: nameMatch?.[1]?.trim(),
-                       sales: salesMatch?.[1],
-                       growth: growthMatch ? `${growthMatch[1]} ${growthMatch[2]}` : null
-                     });
-                     
-                     if (rankMatch && iconMatch && nameMatch && salesMatch && growthMatch) {
+                       // Parse format: "1. 🥇 Product Name 23.0% of sales ▲ 89% growth"
+                       const parts = fullText.split(/\s+/);
+                       if (parts.length >= 6) {
+                         const rank = parts[0]?.replace('.', '');
+                         const icon = parts[1];
+                         
+                         // Find the sales percentage index
+                         const salesIndex = parts.findIndex(p => p.includes('%') && p.includes('of'));
+                         if (salesIndex > 2) {
+                           const name = parts.slice(2, salesIndex - 2).join(' ');
+                           const sales = `${parts[salesIndex - 2]} ${parts[salesIndex - 1]} ${parts[salesIndex]}`;
+                           const growth = parts.slice(salesIndex + 1).join(' ');
+                           
+                           if (rank && icon && name && sales && growth) {
                        extractedData.products.push({
-                         rank: rankMatch[1],
-                         icon: iconMatch[1],
-                         name: nameMatch[1].trim(),
-                         sales: salesMatch[1],
-                         growth: `${growthMatch[1]} ${growthMatch[2]}`
-                       });
+                               rank: rank,
+                               icon: icon,
+                               name: name,
+                               sales: sales,
+                               growth: growth
+                             });
+                           }
+                         }
+                       }
                      }
                    }
                  });
                  
-                 console.log('🔍 Final extracted data:', extractedData);
                  value = JSON.stringify(extractedData); // Store as structured data
                }
              } else {
@@ -914,10 +935,15 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
              }
              
              if (label && value) {
+               // Tag cards with their container position to distinguish Process vs Material
+               const categoryType = containerIndex === 3 ? 'process' : 
+                                  containerIndex === 4 ? 'material' : 'main';
+               
                kpiData['📦 Product Performance'].push({
-                 icon, label, value, trend, isLarge
+                 icon, label, value, trend, isLarge, categoryType, containerIndex
                });
              }
+           });
            });
          }
         
@@ -955,17 +981,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         }
       });
 
-      console.log('✅ Live KPI data captured successfully:', kpiData);
-      console.log('🔍 Product Performance section:', kpiData['📦 Product Performance']);
-      
-      // Specifically log Top Revenue Drivers data
-      const topRevenueCard = kpiData['📦 Product Performance']?.find(card => 
-        card.label?.toLowerCase().includes('top revenue drivers')
-      );
-      if (topRevenueCard) {
-        console.log('🔍 Top Revenue Drivers card:', topRevenueCard);
-        console.log('🔍 Top Revenue Drivers value:', topRevenueCard.value);
-      }
+      console.log('✅ Live KPI data captured successfully');
       
       return kpiData;
       
@@ -975,453 +991,356 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
     }
   };
 
-  const generateOutstandingKPISummary = (liveKpiData, selectedDivision, basePeriodName) => {
-    // REQUIRE live data - no fallback allowed
-    if (!liveKpiData) {
-      throw new Error('Live KPI data is required. Cannot generate summary without real data.');
-    }
-
-    const kpiData = liveKpiData;
-
-    const divisionNames = {
-      'FP': 'Flexible Packaging',
-      'SB': 'Shopping Bags', 
-      'TF': 'Thermoforming Products',
-      'HCM': 'Preforms and Closures'
-    };
-    
-    const divisionName = divisionNames[selectedDivision?.replace(/-.*$/, '')] || selectedDivision;
-
+  // Get shared KPI CSS content - ensures 100% consistency with main KPI tab
+  const getKPICSSContent = () => {
+    // COMPLETE actual CSS content from KPIExecutiveSummary.css - ensures true consistency
       return `
-      <style>
-        .outstanding-kpi-dashboard {
+/* KPI Executive Summary Styles - EXACT COPY FROM LIVE COMPONENT */
+.kpi-dashboard {
           background: white;
           min-height: 100vh;
-          padding: 40px;
+  padding: 24px;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .outstanding-kpi-dashboard::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: 
-            radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(120, 119, 198, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.08) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        
-        .outstanding-back-button {
-          position: absolute;
-          top: 20px;
-          left: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 25px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 14px;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-          transition: all 0.3s ease;
-          z-index: 10;
-        }
-        
-        .outstanding-back-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .outstanding-kpi-header {
+}
+
+.kpi-dashboard > h2 {
+  text-align: center;
+  font-weight: 700;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.kpi-dashboard > div:nth-child(2) {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.kpi-dashboard > div:nth-child(2) > span {
+  font-size: 18px;
+  font-weight: 600;
+  color: #444;
+}
+
+.kpi-dashboard > div:nth-child(3) {
           text-align: center;
-          margin-bottom: 50px;
-          position: relative;
-          z-index: 1;
-        }
-        
-        .outstanding-kpi-title {
-          font-size: 3.5em;
-          font-weight: 800;
-          color: #2c3e50;
-          margin: 0;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-          letter-spacing: -1px;
-        }
-        
-        .outstanding-kpi-period {
-          display: inline-block;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          padding: 8px 20px;
-          border-radius: 25px;
-          color: white;
-          font-weight: 500;
-          margin-top: 15px;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-          border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .outstanding-kpi-section {
-          margin-bottom: 45px;
-          position: relative;
-          z-index: 1;
-        }
-        
-        .outstanding-kpi-section-title {
-          font-size: 2em;
+  margin-bottom: 24px;
+}
+
+.kpi-dashboard > div:nth-child(3) > span {
+  font-weight: bold;
+  font-style: italic;
+  font-size: 16px;
+  color: #666;
+}
+
+.kpi-section {
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.kpi-section-title {
+  font-size: 1.3em;
           font-weight: 700;
           color: #2c3e50;
-          margin: 0 0 25px 0;
+  margin-bottom: 18px;
           text-align: center;
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
         }
         
-        .outstanding-kpi-cards {
+.kpi-cards {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 20px;
-          max-width: 1400px;
-          margin: 0 auto 20px auto;
-        }
-        
-        /* KPI Cards Layout - Specific positioning */
-        .kpi-product-performance {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        
-        /* Row 1: Top Revenue Drivers (full width) */
-        .kpi-row-1 {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-          margin-bottom: 20px;
-        }
-        
-        /* Row 2: Total Sales Volume (full width) */
-        .kpi-row-2 {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-          margin-bottom: 20px;
-        }
-        
-        /* Row 3: Selling Price + MoRM (side by side) */
-        .kpi-row-3 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-bottom: 20px;
-        }
-        
-        /* Top Revenue Drivers - Special styling for single lines */
-        .top-revenue-drivers .outstanding-kpi-value {
-          font-size: 1.1em;
-          line-height: 1.6;
-          text-align: left;
-        }
-        
-        .top-revenue-drivers .product-line {
-          margin-bottom: 6px;
-          display: flex;
-          align-items: center;
-        }
-        
-        /* Arrow colors */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.kpi-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-card.large {
+  grid-column: span 2;
+  min-height: 170px;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 3px;
+  background: #667eea;
+}
+
+.kpi-icon {
+  font-size: 1.8em;
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 1em;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  line-height: 1.2;
+}
+
+.kpi-value {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: #4a5568;
+  text-align: center;
+  margin-bottom: 8px;
+  line-height: 1.2;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.kpi-trend {
+  font-size: 0.85em;
+  text-align: center;
+  color: #718096;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
         .arrow-positive {
           color: #007bff !important;
+  font-weight: bold;
         }
         
         .arrow-negative {
-          color: #dc3545 !important;
-        }
-        
-        .outstanding-kpi-card {
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 20px;
-          padding: 30px;
-          box-shadow: 
-            0 20px 40px rgba(0,0,0,0.1),
-            0 10px 20px rgba(0,0,0,0.05),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(0,0,0,0.1);
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-        }
-        
-        .outstanding-kpi-card.large {
-          grid-column: span 2;
-        }
-        
-        .outstanding-kpi-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
-        }
-        
-        .outstanding-kpi-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 
-            0 30px 60px rgba(0,0,0,0.15),
-            0 15px 30px rgba(0,0,0,0.1),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-        }
-        
-        .outstanding-kpi-icon {
-          font-size: 3em;
-          margin-bottom: 15px;
-          display: block;
-          filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
-          flex-shrink: 0;
-        }
-        
-        .outstanding-kpi-label {
-          font-size: 1.1em;
-          font-weight: 600;
-          color: #444;
-          margin-bottom: 15px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          flex-shrink: 0;
-        }
-        
-        .outstanding-kpi-value {
-          font-size: 2.5em;
-          font-weight: 800;
-          color: #2d3748;
-          margin-bottom: 15px;
-          line-height: 1.4;
-          word-wrap: break-word;
-          white-space: normal;
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-        }
-        
-        .outstanding-kpi-card.large .outstanding-kpi-value {
-          font-size: 1.2em;
-          line-height: 1.8;
-          white-space: normal;
-        }
-        
-        /* Category cards styling for smaller text */
-        .outstanding-kpi-card .outstanding-kpi-value {
-          font-size: 1.1em;
-        }
-        
-        .outstanding-kpi-trend {
-          font-size: 0.95em;
-          color: #718096;
-          text-align: center;
-          font-weight: 500;
-          padding: 8px 12px;
-          background: rgba(102, 126, 234, 0.1);
-          border-radius: 12px;
-          margin: 10px 0 0 0;
-        }
-        
-        .outstanding-kpi-trend.growth {
-          background: rgba(72, 187, 120, 0.1);
-          color: #38a169;
-        }
-        
-        .outstanding-kpi-trend.decline {
-          background: rgba(245, 101, 101, 0.1);
-          color: #e53e3e;
-        }
-        
-        @media (max-width: 768px) {
-          .outstanding-kpi-dashboard {
-            padding: 20px;
-          }
-          
-          .outstanding-kpi-title {
-            font-size: 2.5em;
-          }
-          
-          .outstanding-kpi-cards {
-            grid-template-columns: 1fr;
-          }
-          
-          .outstanding-kpi-card.large {
-            grid-column: span 1;
-          }
-        }
-        
-        .outstanding-watermark {
-          position: absolute;
-          bottom: 30px;
-          right: 30px;
-          color: rgba(0,0,0,0.4);
-          font-size: 0.9em;
-          font-weight: 300;
-        }
-      </style>
-      
-      <div class="outstanding-kpi-dashboard">
-        <div class="outstanding-back-button" onclick="showDashboard()">
-          ← Back to Dashboard
-              </div>
-        <div class="outstanding-kpi-header">
-          <h1 class="outstanding-kpi-title">Executive Dashboard</h1>
-          <div class="outstanding-kpi-period">${basePeriodName || 'Current Period'}</div>
-          <div style="margin-top: 10px; font-weight: bold; font-style: italic; font-size: 1.1em; color: #666;">(AED)</div>
-          </div>
+  color: #ef4444 !important;
+  font-weight: bold;
+}
 
-        ${Object.entries(kpiData).map(([sectionTitle, cards]) => {
-          // Special handling for Product Performance - Custom layout
-          if (sectionTitle === '📦 Product Performance') {
-            // Find specific cards
-            const topRevenueCard = cards.find(card => card.label.includes('Top Revenue Drivers'));
-            const salesVolumeCard = cards.find(card => card.label.includes('Total Sales Volume'));
-            const sellingPriceCard = cards.find(card => card.label.includes('Selling Price'));
-            const mormCard = cards.find(card => card.label.includes('MoRM'));
-            
-                         const formatTopRevenueDrivers = (cardValue) => {
-              try {
-                const data = JSON.parse(cardValue);
-                if (data.products && data.products.length > 0) {
-                  return data.products.map((product, idx) => {
-                    // Extract growth percentage as a number from the growth string
-                    const growthMatch = product.growth.match(/(-?\\d+)%/);
-                    let growthValue = 0;
-                    if (growthMatch) growthValue = parseInt(growthMatch[1], 10);
-                    const isPositive = growthValue > 0;
-                    const arrowClass = isPositive ? 'arrow-positive' : 'arrow-negative';
-                    const arrow = isPositive ? '▲' : '▼';
-                    const growthWord = isPositive ? 'growth' : 'decline';
-                    // Render as a single line: 1. 🥇 Laminates 23.0% of sales ▲ 89% growth
-                    return `
-                      <div class=\"product-line\" style=\"margin-bottom: 6px;\">
-                        <span style=\"min-width:22px;\">${product.rank}.</span>
-                        <span style=\"margin-right:6px;\">${product.icon}</span>
-                        <span style=\"margin-right:8px;\">${product.name}</span>
-                        <span style=\"margin-right:8px;\">${product.sales}</span>
-                        <span class=\"${arrowClass}\">${arrow} ${Math.abs(growthValue)}% ${growthWord}</span>
-                      </div>
-                    `;
-                  }).join('');
-                } else {
-                  throw new Error('No products data found in captured KPI data');
-                }
-              } catch (e) {
-                console.error('🔧 Failed to parse Top Revenue Drivers data:', e);
-                console.error('🔧 Raw card value:', cardValue);
-                throw new Error(`Top Revenue Drivers data parsing failed: ${e.message}. Please refresh KPI tab and try again.`);
-              }
-            };
-            
-            return `
-              <div class="outstanding-kpi-section">
-                <h2 class="outstanding-kpi-section-title">${sectionTitle}</h2>
-                <div class="kpi-product-performance">
-                  
-                  <!-- Row 1: Top Revenue Drivers -->
-                  <div class="kpi-row-1">
-                    <div class="outstanding-kpi-card top-revenue-drivers">
-                      <div class="outstanding-kpi-icon">${topRevenueCard?.icon || '🏆'}</div>
-                      <div class="outstanding-kpi-label">${topRevenueCard?.label || 'Top Revenue Drivers'}</div>
-                      <div class="outstanding-kpi-value">${formatTopRevenueDrivers(topRevenueCard?.value || '-')}</div>
-                      <div class="outstanding-kpi-trend">${topRevenueCard?.trend || ''}</div>
-                    </div>
-                  </div>
-                  
-                  <!-- Row 2: Total Sales Volume -->
-                  <div class="kpi-row-2">
-                         <div class="outstanding-kpi-card">
-                      <div class="outstanding-kpi-icon">${salesVolumeCard?.icon || '📊'}</div>
-                      <div class="outstanding-kpi-label">${salesVolumeCard?.label || 'Total Sales Volume'}</div>
-                      <div class="outstanding-kpi-value">${salesVolumeCard?.value || '-'}</div>
-                      <div class="outstanding-kpi-trend">${salesVolumeCard?.trend || ''}</div>
-                         </div>
-                  </div>
-                  
-                  <!-- Row 3: Selling Price + MoRM -->
-                  <div class="kpi-row-3">
-                    <div class="outstanding-kpi-card">
-                      <div class="outstanding-kpi-icon">${sellingPriceCard?.icon || '⚡'}</div>
-                      <div class="outstanding-kpi-label">${sellingPriceCard?.label || 'Selling Price'}</div>
-                      <div class="outstanding-kpi-value">${sellingPriceCard?.value || '-'}</div>
-                      <div class="outstanding-kpi-trend">${sellingPriceCard?.trend || ''}</div>
-                    </div>
-                    <div class="outstanding-kpi-card">
-                      <div class="outstanding-kpi-icon">${mormCard?.icon || '🎯'}</div>
-                      <div class="outstanding-kpi-label">${mormCard?.label || 'MoRM'}</div>
-                      <div class="outstanding-kpi-value">${mormCard?.value || '-'}</div>
-                      <div class="outstanding-kpi-trend">${mormCard?.trend || ''}</div>
-                    </div>
-                  </div>
-                  
-                </div>
-              </div>
-            `;
-          } else {
-            // Regular rendering for other sections
-            return `
-              <div class="outstanding-kpi-section">
-                <h2 class="outstanding-kpi-section-title">${sectionTitle}</h2>
-                <div class="outstanding-kpi-cards">
-                  ${cards.map(card => {
-                    const trendClass = card.trend.includes('Growth') ? 'growth' : 
-                                     card.trend.includes('Decline') ? 'decline' : '';
-                    
-                    // Apply same formatting to all sections
-                    let formattedValue = card.value;
-                    let formattedTrend = card.trend;
-                    
-                    // Format trends with arrows and colors
-                    if (card.trend && (card.trend.includes('Growth') || card.trend.includes('Decline'))) {
-                      const trendMatch = card.trend.match(/(\\d+)%/);
-                      if (trendMatch) {
-                        const percentage = trendMatch[1];
-                        const isPositive = card.trend.includes('Growth') && parseInt(percentage) > 0;
-                        const color = isPositive ? '#007bff' : '#dc3545';
-                        const arrow = isPositive ? '▲' : '▼';
-                        const word = isPositive ? 'Growth' : 'Decline';
-                        formattedTrend = card.trend.replace(/(\\d+)%/, `<span style="color: ${color}">${arrow} ${percentage}%</span>`);
-                      }
-                    }
-                    
-                    return `
-                      <div class="outstanding-kpi-card ${card.isLarge ? 'large' : ''}">
-                        <div class="outstanding-kpi-icon">${card.icon}</div>
-                        <div class="outstanding-kpi-label">${card.label}</div>
-                        <div class="outstanding-kpi-value">${formattedValue}</div>
-                        <div class="outstanding-kpi-trend ${trendClass}">${formattedTrend}</div>
-              </div>
-                    `;
-                  }).join('')}
-            </div>
-          </div>
-            `;
-          }
-        }).join('')}
-        
-        <div class="outstanding-watermark">
-          Intelligence Packaging • Executive Summary
-          </div>
-        </div>
+/* Category Highlighting - Direct approach */
+.category-highlight {
+  font-size: 1.1em !important;
+  margin-bottom: 12px !important;
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  text-decoration: underline !important;
+  text-decoration-color: #3b82f6 !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  letter-spacing: 0.8px !important;
+}
+
+.uae-icon-container {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 10px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.uae-icon {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.rotating-emoji-container {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 10px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.rotating-emoji {
+  font-size: 40px;
+  animation: rotate-emoji 20s linear infinite;
+}
+
+@keyframes rotate-emoji {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.region-globe-container {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+}
+
+.region-globe {
+  font-size: 32px;
+  animation: pulse-globe 3s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes pulse-globe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+.export-regions {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+}
+
+.export-regions .kpi-card {
+  min-height: 120px;
+  padding: 12px;
+          text-align: center;
+}
+
+.export-regions .kpi-card::before {
+  background: #16a085;
+}
+
+.export-regions .kpi-card .kpi-trend {
+  font-size: 0.75em;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+/* Category-specific grid layouts for Product Performance */
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(4) .kpi-card,
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(5) .kpi-card {
+  min-height: 180px;
+  border-left: 4px solid #e67e22;
+}
+
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(4) .kpi-card .kpi-value,
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(5) .kpi-card .kpi-value {
+  font-size: 0.95em;
+  line-height: 1.4;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(4) .kpi-card .kpi-label,
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(5) .kpi-card .kpi-label {
+  font-size: 1.1em !important;
+  margin-bottom: 12px !important;
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  text-decoration: underline !important;
+  text-decoration-color: #3b82f6 !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  letter-spacing: 0.8px !important;
+}
+
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(4),
+.kpi-section:nth-of-type(2) .kpi-cards:nth-child(5) {
+  gap: 20px;
+  margin-top: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .export-regions {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .export-regions {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .export-regions {
+    gap: 8px;
+  }
+}
+    `;
+  };
+
+  const generateOutstandingKPISummary = async () => {
+    try {
+      // Navigate to KPI tab using the same logic as ensureKPITabActive()
+      const allButtons = Array.from(document.querySelectorAll('button, [role="tab"]'));
+      const kpiTab = allButtons.find(el => {
+        const text = el.textContent?.trim();
+        return (text === 'KPI' || text === 'Executive Summary' || text.includes('KPI')) && text.length < 50;
+      });
+
+      if (kpiTab) {
+        const isActive = kpiTab.classList.contains('active') || 
+                        kpiTab.getAttribute('aria-selected') === 'true';
+        if (!isActive) {
+          console.log('🔄 Switching to KPI tab for HTML capture...');
+          kpiTab.click();
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+      }
+
+      // Capture the EXACT HTML from the live KPI component
+      const kpiComponent = document.querySelector('.kpi-dashboard');
+      if (!kpiComponent) {
+        throw new Error('KPI component not found. Please ensure KPI tab is active and component is rendered.');
+      }
+
+      // Get the actual KPI CSS content
+      const kpiCSS = getKPICSSContent();
+
+      // Return the EXACT same HTML + CSS as the live component
+      return `
+        <style>
+          ${kpiCSS}
+        </style>
+        ${kpiComponent.outerHTML}
       `;
+      
+    } catch (error) {
+      console.error('❌ Failed to capture live KPI HTML:', error);
+      throw new Error(`Failed to capture live KPI HTML: ${error.message}`);
+    }
   };
 
   // Helper function to ensure Product Group tab is active
@@ -1674,6 +1593,9 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
       const logoBase64 = await getBase64Logo();
       const divisionName = getDivisionDisplayName();
       const basePeriod = getBasePeriodText();
+      
+      // Generate KPI summary HTML by capturing live DOM
+      const kpiSummaryHTML = await generateOutstandingKPISummary();
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -2557,14 +2479,12 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
         ${cardConfigs.map(card => `
             <div id="page-${card.id}" class="content-page">
                 <!-- Sticky Back Button (for table and chart pages) -->
-                ${['product-group', 'financial-pl', 'sales-country', 'sales-customer', 'sales-volume-analysis', 'margin-analysis', 'manufacturing-cost', 'below-gp-expenses', 'cost-profitability-trend'].includes(card.id) ? `
+                ${['product-group', 'financial-pl', 'sales-country', 'sales-customer', 'sales-volume-analysis', 'margin-analysis', 'manufacturing-cost', 'below-gp-expenses', 'cost-profitability-trend', 'kpi-summary'].includes(card.id) ? `
                     <div class="sticky-back-container">
                         <button class="back-button" onclick="showDashboard()">
                             ← Back to Dashboard
                         </button>
                     </div>
-                ` : card.id === 'kpi-summary' ? `
-                    <!-- No header for KPI summary - it has its own beautiful header -->
                 ` : `
                 <div class="page-header">
                     <button class="back-button" onclick="showDashboard()">
@@ -2594,7 +2514,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
                 `}
                 <div class="page-content">
                     ${card.id === 'kpi-summary' ? `
-                        ${generateOutstandingKPISummary(liveKpiData, selectedDivision, basePeriod)}
+                        ${kpiSummaryHTML}
                     ` : card.id === 'product-group' ? `
                         <div class="table-title-container">
                             <h2 class="page-title">Product Group - ${divisionName}</h2>
