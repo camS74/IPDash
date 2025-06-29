@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -126,13 +125,20 @@ const SalesCountryLeafletMap = () => {
   }, [getCountriesFromExcel]);
 
   useEffect(() => {
-    const map = L.map('leaflet-map').setView([20, 0], 2);
+    const map = L.map('leaflet-map', {
+      minZoom: 2,
+      maxZoom: 18,
+      maxBounds: [[-85, -180], [85, 180]],
+      maxBoundsViscosity: 1.0,
+      worldCopyJump: false
+    }).setView([20, 0], 2);
 
     // English-only map tile options:
     // Option 1: CARTO Voyager (clean, English labels)
     L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
       maxZoom: 18,
+      noWrap: true
     }).addTo(map);
     
     // Option 2: CARTO Positron (minimal, English-only)
@@ -147,16 +153,32 @@ const SalesCountryLeafletMap = () => {
     //   maxZoom: 18,
     // }).addTo(map);
 
+    // Utility to create a custom SVG icon with % of sales inside the pin
+    function createPinIcon(percentage) {
+      const value = percentage.toFixed(1);
+      const svg = `
+        <svg width="40" height="54" viewBox="0 0 40 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 54C20 54 0 34.5 0 20C0 8.9543 8.9543 0 20 0C31.0457 0 40 8.9543 40 20C40 34.5 20 54 20 54Z" fill="#003366"/>
+          <circle cx="20" cy="20" r="17" fill="white"/>
+          <text x="20" y="22" text-anchor="middle" fill="#003366" font-size="11" font-family="Arial" font-weight="bold" alignment-baseline="middle">${value}</text>
+          <text x="20" y="32" text-anchor="middle" fill="#003366" font-size="9" font-family="Arial" font-weight="bold" alignment-baseline="middle">%</text>
+        </svg>
+      `;
+      return L.divIcon({
+        className: '', // No default styles
+        html: svg,
+        iconSize: [40, 54],
+        iconAnchor: [20, 54],
+        popupAnchor: [0, -54]
+      });
+    }
+
     // Add markers for countries with sales data
     countries.forEach((country) => {
       const coordinates = getCountryCoordinates(country.name);
       if (coordinates) {
-        // Create custom icon based on percentage
-        const markerColor = country.percentage >= 10 ? 'red' : 
-                           country.percentage >= 5 ? 'orange' : 
-                           country.percentage >= 2 ? 'yellow' : 'blue';
-        
-        L.marker([coordinates[1], coordinates[0]])
+        const icon = createPinIcon(country.percentage);
+        L.marker([coordinates[1], coordinates[0]], { icon })
           .addTo(map)
           .bindPopup(`<b>${country.name}</b><br/>Market Share: ${country.percentage.toFixed(2)}%`);
       }

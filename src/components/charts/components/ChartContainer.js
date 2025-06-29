@@ -13,7 +13,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 // Import the same logo used in the browser
 import interplastLogo from '../../../assets/Ip Logo.png';
-import { exportNativeChartTest } from '../../../utils/htmlExport';
+
 
 /**
  * Complete replacement for the original ChartContainer.js.

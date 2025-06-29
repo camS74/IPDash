@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFilter } from '../../contexts/FilterContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
-import { exportHTMLReportNoWriteup, exportHTMLReportWithWriteup } from '../../utils/htmlExport';
 import { computeCellValue as sharedComputeCellValue } from '../../utils/computeCellValue';
 import ComprehensiveHTMLExport from './ComprehensiveHTMLExport';
 import './ColumnConfigGrid.css';
@@ -187,79 +186,7 @@ const ColumnConfigGrid = ({ exportPdfFunction, productGroupTableRef }) => {
     }
   };
   
-  // Handle HTML export (no writeup)
-  const handleHTMLExport = async () => {
-    if (dataGenerated) {
-      try {
-        // Get base period information
-        const basePeriod = columnOrder[basePeriodIndex];
-        let basePeriodText = 'No Base Period Set';
-        if (basePeriod) {
-          if (basePeriod.isCustomRange) {
-            basePeriodText = `${basePeriod.year} ${basePeriod.displayName} ${basePeriod.type}`;
-          } else if (basePeriod.month) {
-            basePeriodText = `${basePeriod.year} ${basePeriod.month} ${basePeriod.type}`;
-          } else {
-            basePeriodText = `${basePeriod.year} ${basePeriod.type}`;
-          }
-        }
 
-        // Prepare export data
-        const exportData = {
-          division: selectedDivision,
-          divisionName: selectedDivision,
-          basePeriod: basePeriodText,
-          periods: columnOrder.filter(p => isColumnVisibleInChart(p.id)),
-          chartVisibleColumns: chartVisibleColumns,
-          dataGenerated: dataGenerated
-        };
-
-        console.log('Exporting HTML report (no writeup) with data:', exportData);
-        
-        await exportHTMLReportNoWriteup(exportData);
-      } catch (error) {
-        console.error('Error exporting HTML report (no writeup):', error);
-        alert('Failed to export HTML report. Please try again.');
-      }
-    }
-  };
-
-  // Handle HTML export with writeup
-  const handleHTMLExportWithWriteup = async () => {
-    if (dataGenerated) {
-      try {
-        // Get base period information
-        const basePeriod = columnOrder[basePeriodIndex];
-        let basePeriodText = 'No Base Period Set';
-        if (basePeriod) {
-          if (basePeriod.isCustomRange) {
-            basePeriodText = `${basePeriod.year} ${basePeriod.displayName} ${basePeriod.type}`;
-          } else if (basePeriod.month) {
-            basePeriodText = `${basePeriod.year} ${basePeriod.month} ${basePeriod.type}`;
-          } else {
-            basePeriodText = `${basePeriod.year} ${basePeriod.type}`;
-          }
-        }
-
-        // Prepare export data
-        const exportData = {
-          division: selectedDivision,
-          divisionName: selectedDivision,
-          basePeriod: basePeriodText,
-          periods: columnOrder.filter(p => isColumnVisibleInChart(p.id)),
-          chartVisibleColumns: chartVisibleColumns,
-          dataGenerated: dataGenerated
-        };
-
-        console.log('Exporting HTML report (with writeup) with data:', exportData);
-        
-        await exportHTMLReportWithWriteup(exportData);
-      } catch (error) {
-        console.error('Error exporting HTML report (with writeup):', error);
-        alert('Failed to export HTML report. Please try again.');
-      }
-    }
-  };
 
   return (
     <div className="column-config-container">
@@ -415,22 +342,6 @@ const ColumnConfigGrid = ({ exportPdfFunction, productGroupTableRef }) => {
           title={!dataGenerated ? "Please generate data first" : !exportPdfFunction ? "Charts are loading..." : "Export all charts to PDF"}
         >
           PDF Report
-        </button>
-        <button 
-          className="export-btn html-export" 
-          onClick={handleHTMLExport}
-          disabled={!dataGenerated}
-          title={!dataGenerated ? "Please generate data first" : "Export interactive HTML report (charts + all tables: P&L, Product Group, Sales by Country)"}
-        >
-          HTML Report
-        </button>
-        <button 
-          className="export-btn html-writeup-export" 
-          onClick={handleHTMLExportWithWriteup}
-          disabled={!dataGenerated}
-          title={!dataGenerated ? "Please generate data first" : "Export HTML report with editable writeup section (includes all charts and tables)"}
-        >
-          HTML Report with Writeup
         </button>
         {productGroupTableRef && (
           <ComprehensiveHTMLExport tableRef={productGroupTableRef} />

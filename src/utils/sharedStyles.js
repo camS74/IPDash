@@ -11,12 +11,14 @@ export const KPI_CSS_CONTENT = `
 }
 
 .kpi-section {
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
 }
 
 .kpi-section-title {
@@ -33,24 +35,33 @@ export const KPI_CSS_CONTENT = `
 
 .kpi-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
   align-items: stretch;
+  margin-top: 8px;
+}
+
+/* Ensure full-width cards span correctly */
+.kpi-cards .revenue-drivers {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-width: 100% !important;
 }
 
 .kpi-card {
   background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  min-height: 150px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  backdrop-filter: blur(10px);
 }
 
 .kpi-card:hover {
@@ -249,12 +260,12 @@ export const KPI_CSS_CONTENT = `
 
 /* Arrow color classes - Enhanced */
 .arrow-positive {
-  color: #10b981 !important;
+  color: #007bff;
   font-weight: 700;
 }
 
 .arrow-negative {
-  color: #ef4444 !important;
+  color: #dc3545;
   font-weight: 700;
 }
 
@@ -318,24 +329,89 @@ export const KPI_CSS_CONTENT = `
   color: #2d3748 !important;
 }
 
-/* Top Revenue Drivers specific styling */
-.revenue-drivers ol {
-  list-style: none;
-  padding-left: 20px;
-  margin: 0;
+/* Top Revenue Drivers specific styling - Single Card with 3 Internal Rows */
+.revenue-drivers {
+  grid-column: 1 / -1 !important; /* Force full width across all columns */
+  min-height: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.revenue-drivers li {
-  margin-bottom: 2px;
+.revenue-drivers .kpi-label {
+  font-weight: 700 !important;
+  font-size: 1.05em !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  text-align: center !important;
+  margin-bottom: 20px !important;
+}
+
+.revenue-drivers .kpi-value {
+  width: 100% !important;
+  text-align: left !important;
+  flex: 1 !important;
+}
+
+.revenue-drivers > div {
+  padding-left: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.revenue-drivers > div > div {
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
+  padding: 12px 16px;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  transition: all 0.2s ease;
+  width: 100%;
 }
 
-/* Remove font-size and font-weight overrides to inherit from parent card */
-.revenue-drivers ol,
-.revenue-drivers li {
-  font-size: inherit;
-  font-weight: inherit;
+.revenue-drivers > div > div:hover {
+  background: rgba(102, 126, 234, 0.08);
+  transform: translateX(4px);
+}
+
+.revenue-drivers > div > div:not(:last-child) {
+  margin-bottom: 16px;
+}
+
+/* Medal emojis styling in revenue drivers */
+.revenue-drivers > div > div > span:first-child {
+  font-size: 2.2em !important;
+  margin-right: 16px !important;
+  min-width: 40px !important;
+  text-align: center !important;
+}
+
+/* Product details styling */
+.revenue-drivers > div > div > div {
+  flex: 1;
+}
+
+.revenue-drivers > div > div > div > div:first-child {
+  font-weight: 600 !important;
+  font-size: 1.1em !important;
+  color: #1f2937 !important;
+  margin-bottom: 4px;
+}
+
+.revenue-drivers > div > div > div > div:last-child {
+  font-size: 0.9em !important;
+  color: #6b7280 !important;
+}
+
+/* Improve arrow styling in revenue drivers */
+.revenue-drivers .arrow-positive,
+.revenue-drivers .arrow-negative {
+  font-size: 0.85em;
+  padding: 3px 8px;
+  margin-left: 8px;
 }
 
 /* Geographic Distribution Cards */

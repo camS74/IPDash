@@ -70,3 +70,15 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Regenerating Deep-Zoom Tiles
+
+To regenerate the Deep-Zoom map tiles for the RealWorld2DMap, use the following command (requires libvips):
+
+```sh
+vips dzsave assets/8k_earth.jpg public/earth_tiles \
+     --tile-size=256 --suffix=.jpg
+```
+
+- This will create DeepZoom-compatible tiles in `public/earth_tiles` for use with the map.
+- Make sure `libvips` is installed on your system.

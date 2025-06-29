@@ -24,6 +24,11 @@ const countryPatterns = {
   'tanzania': ['tanzania']
 };
 
+// Utility function to convert a string to Proper Case
+function toProperCase(name) {
+  return name.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+}
+
 const KPIExecutiveSummary = () => {
   const { excelData, selectedDivision } = useExcelData();
   const { salesData } = useSalesData();
@@ -196,26 +201,50 @@ const KPIExecutiveSummary = () => {
   // Keep sales ranking order - DO NOT sort by growth
   // top3ProductsWithGrowth is already in correct order (by sales %)
   
-  // Render as a single, compact, numbered list (one line per product)
+  // Render as 3 separate lines with bigger emojis
   const topProductGroupDisplay = (
-    <ol>
+    <div>
       {top3ProductsWithGrowth.map((p, index) => {
         const isPositive = p.growth > 0;
         const arrow = isPositive ? '▲' : '▼';
         const growthWord = isPositive ? 'growth' : 'decline';
-        const rankNumber = index + 1;
         const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
         return (
-          <li key={index}>
-            <span>{rankNumber}.</span>
-            <span>{rankIcon}</span>
-            <span>{p.name}</span>
-            <span>{p.salesPercent.toFixed(1)}% of sales</span>
-            <span className={isPositive ? 'arrow-positive' : 'arrow-negative'}>{arrow} {Math.abs(p.growth).toFixed(0)}% {growthWord}</span>
-          </li>
+          <div key={index} style={{ 
+            marginBottom: '12px', 
+            display: 'flex', 
+            alignItems: 'center',
+            padding: '8px 0',
+            borderBottom: index < 2 ? '1px solid rgba(102, 126, 234, 0.1)' : 'none'
+          }}>
+            <span style={{ 
+              fontSize: '1.8em', 
+              marginRight: '12px',
+              minWidth: '32px',
+              textAlign: 'center'
+            }}>{rankIcon}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ 
+                fontWeight: '600', 
+                marginBottom: '4px',
+                fontSize: '1.05em'
+              }}>{p.name}</div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontSize: '0.9em'
+              }}>
+                <span>{p.salesPercent.toFixed(1)}% of sales</span>
+                <span className={isPositive ? 'arrow-positive' : 'arrow-negative'}>
+                  {arrow} {Math.abs(p.growth).toFixed(0)}% {growthWord}
+                </span>
+              </div>
+            </div>
+          </div>
         );
       })}
-    </ol>
+    </div>
   );
   
   const totalKgs = productKgs.reduce((sum, p) => sum + p.value, 0);
@@ -514,20 +543,24 @@ const KPIExecutiveSummary = () => {
       <div className="kpi-section">
         <h3 className="kpi-section-title">📦 Product Performance</h3>
         
-        {/* Row 1: Top Revenue Drivers + Total Sales Volume */}
+        {/* Row 1: Top Revenue Drivers - Full Width */}
         <div className="kpi-cards">
-          <div className="kpi-card large revenue-drivers"><div className="kpi-icon">🏆</div><div className="kpi-label">Top Revenue Drivers</div><div className="kpi-value">{topProductGroupDisplay}</div></div>
-          <div className="kpi-card"><div className="kpi-icon">📊</div><div className="kpi-label">Total Sales Volume</div><div className="kpi-value">{formatKgs(totalKgs)}</div><div className="kpi-trend">{growth(totalKgs, totalKgsPrev)}</div></div>
+          <div className="kpi-card revenue-drivers" style={{ gridColumn: '1 / -1', minHeight: 'auto' }}>
+            <div className="kpi-icon">🏆</div>
+            <div className="kpi-label">Top Revenue Drivers</div>
+            <div className="kpi-value">{topProductGroupDisplay}</div>
+          </div>
         </div>
         
-        {/* Row 2: Selling Price + MoRM */}
+        {/* Row 2: Total Sales Volume + Selling Price + MoRM */}
         <div className="kpi-cards">
+          <div className="kpi-card"><div className="kpi-icon">📊</div><div className="kpi-label">Total Sales Volume</div><div className="kpi-value">{formatKgs(totalKgs)}</div><div className="kpi-trend">{growth(totalKgs, totalKgsPrev)}</div></div>
           <div className="kpi-card"><div className="kpi-icon">⚡</div><div className="kpi-label">Selling Price</div><div className="kpi-value">{formatPrice(avgSellingPrice)}/kg</div><div className="kpi-trend">{growth(avgSellingPrice, avgSellingPricePrev)}</div></div>
           <div className="kpi-card"><div className="kpi-icon">🎯</div><div className="kpi-label">MoRM</div><div className="kpi-value">{formatMoRMPerKg(avgMoRM)}</div><div className="kpi-trend">{growth(avgMoRM, avgMoRMPrev)}</div></div>
         </div>
         
         {/* Row 3: Process Categories - Dynamic sizing based on number of categories */}
-        <div className="kpi-cards">
+        <div className="kpi-cards category-cards">
           {Object.entries(processCategories).map(([categoryName, data], index) => {
             const sellingPrice = data.kgs > 0 ? data.sales / data.kgs : 0;
             const morm = data.kgs > 0 ? data.morm / data.kgs : 0;
@@ -552,12 +585,18 @@ const KPIExecutiveSummary = () => {
               <div key={`process-${categoryName}`} className="kpi-card">
                 <div className="kpi-label category-highlight">{categoryName.toUpperCase()}</div>
                 <div className="kpi-value">
-                  <div>% of Sales: {salesPercentage.toFixed(0)}%</div>
-                  <div><span className={salesGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
-                  <div>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
-                  <div><span className={priceGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
-                  <div>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
-                  <div><span className={mormGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
+                  <div>
+                    % of Sales: {salesPercentage.toFixed(0)}%
+                    <span className={salesGrowth > 0 ? 'arrow-positive' : 'arrow-negative'} style={{marginLeft: 8}}>{salesArrow} {Math.abs(salesGrowth)}%</span>
+                  </div>
+                  <div>
+                    AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg
+                    <span className={priceGrowth > 0 ? 'arrow-positive' : 'arrow-negative'} style={{marginLeft: 8}}>{priceArrow} {Math.abs(priceGrowth)}%</span>
+                  </div>
+                  <div>
+                    AVG MoRM: {formatPrice(morm)} AED/Kg
+                    <span className={mormGrowth > 0 ? 'arrow-positive' : 'arrow-negative'} style={{marginLeft: 8}}>{mormArrow} {Math.abs(mormGrowth)}%</span>
+                  </div>
                 </div>
               </div>
             );
@@ -565,7 +604,7 @@ const KPIExecutiveSummary = () => {
         </div>
         
         {/* Row 4: Material Categories - Dynamic sizing based on number of categories */}
-        <div className="kpi-cards">
+        <div className="kpi-cards category-cards">
           {Object.entries(materialCategories).map(([categoryName, data], index) => {
             const sellingPrice = data.kgs > 0 ? data.sales / data.kgs : 0;
             const morm = data.kgs > 0 ? data.morm / data.kgs : 0;
@@ -588,17 +627,23 @@ const KPIExecutiveSummary = () => {
             
             return (
               <div key={`material-${categoryName}`} className="kpi-card">
-                  <div className="kpi-label category-highlight">{categoryName.toUpperCase()}</div>
-                  <div className="kpi-value">
-                    <div>% of Sales: {salesPercentage.toFixed(0)}%</div>
-                    <div><span className={salesGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{salesArrow} {Math.abs(salesGrowth)}%</span></div>
-                    <div>AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg</div>
-                    <div><span className={priceGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{priceArrow} {Math.abs(priceGrowth)}%</span></div>
-                    <div>AVG MoRM: {formatPrice(morm)} AED/Kg</div>
-                    <div><span className={mormGrowth > 0 ? 'arrow-positive' : 'arrow-negative'}>{mormArrow} {Math.abs(mormGrowth)}%</span></div>
+                <div className="kpi-label category-highlight">{categoryName.toUpperCase()}</div>
+                <div className="kpi-value">
+                  <div>
+                    % of Sales: {salesPercentage.toFixed(0)}%
+                    <span className={salesGrowth > 0 ? 'arrow-positive' : 'arrow-negative'} style={{marginLeft: 8}}>{salesArrow} {Math.abs(salesGrowth)}%</span>
+                  </div>
+                  <div>
+                    AVG Selling Price: {formatPrice(sellingPrice)} AED/Kg
+                    <span className={priceGrowth > 0 ? 'arrow-positive' : 'arrow-negative'} style={{marginLeft: 8}}>{priceArrow} {Math.abs(priceGrowth)}%</span>
+                  </div>
+                  <div>
+                    AVG MoRM: {formatPrice(morm)} AED/Kg
+                    <span className={mormGrowth > 0 ? 'arrow-positive' : 'arrow-negative'} style={{marginLeft: 8}}>{mormArrow} {Math.abs(mormGrowth)}%</span>
                   </div>
                 </div>
-             );
+              </div>
+            );
           })}
         </div>
       </div>
@@ -702,10 +747,36 @@ const KPIExecutiveSummary = () => {
       <div className="kpi-section">
         <h3 className="kpi-section-title">👥 Customer Insights</h3>
         <div className="kpi-cards">
-          <div className="kpi-card"><div className="kpi-icon">⭐</div><div className="kpi-label">Top Customer</div><div className="kpi-value">{topCustomer}</div><div className="kpi-trend">of total sales</div></div>
-          <div className="kpi-card"><div className="kpi-icon">🔝</div><div className="kpi-label">Top 3 Customers</div><div className="kpi-value">{top3Customer}</div><div className="kpi-trend">concentration</div></div>
-          <div className="kpi-card"><div className="kpi-icon">📊</div><div className="kpi-label">Top 5 Customers</div><div className="kpi-value">{top5Customer}</div><div className="kpi-trend">concentration</div></div>
-          <div className="kpi-card"><div className="kpi-icon">💰</div><div className="kpi-label">AVG Sales per Customer</div><div className="kpi-value">{formatCustomerAvg(avgSalesPerCustomer)}</div><div className="kpi-trend">average value</div></div>
+          <div className="kpi-card">
+            <div className="kpi-icon">⭐</div>
+            <div className="kpi-label">Top Customer</div>
+            <div className="kpi-value">{topCustomer}
+              <div className="customer-names-small">{customerSales[0] ? toProperCase(customerSales[0].name) : '-'}</div>
+            </div>
+            <div className="kpi-trend">of total sales</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-icon">🔝</div>
+            <div className="kpi-label">Top 3 Customers</div>
+            <div className="kpi-value">{top3Customer}
+              <div className="customer-names-small">{customerSales.slice(0,3).map(cs => <div key={cs.name}>{toProperCase(cs.name)}</div>)}</div>
+            </div>
+            <div className="kpi-trend">of total sales</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-icon">🥇</div>
+            <div className="kpi-label">Top 5 Customers</div>
+            <div className="kpi-value">{top5Customer}
+              <div className="customer-names-small">{customerSales.slice(0,5).map(cs => <div key={cs.name}>{toProperCase(cs.name)}</div>)}</div>
+            </div>
+            <div className="kpi-trend">of total sales</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-icon">💰</div>
+            <div className="kpi-label">AVG Sales per Customer</div>
+            <div className="kpi-value">{formatCustomerAvg(avgSalesPerCustomer)}</div>
+            <div className="kpi-trend">average value</div>
+          </div>
         </div>
       </div>
     </div>
