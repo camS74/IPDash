@@ -10,7 +10,7 @@ const divisionNames = {
   'FP': 'Flexible Packaging',
   'SB': 'Shopping Bags',
   'TF': 'Thermoforming Products',
-  'HCM': 'Preforms and Closures'
+  'HCM': 'Harwal Container Manufacturing'
 };
 
 // Country name patterns for fuzzy matching
@@ -517,6 +517,7 @@ const KPIExecutiveSummary = () => {
   const top3Customer = customerSales.slice(0, 3).reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
   const top5Customer = customerSales.slice(0, 5).reduce((a, b) => a + b.percent, 0).toFixed(1) + '%';
   const avgSalesPerCustomer = customerSales.length > 0 ? (totalCustomerSales / customerSales.length) : 0;
+
   // Render - Updated formatting v2.0 
   return (
     <div className="kpi-dashboard" key="kpi-dashboard-v2">

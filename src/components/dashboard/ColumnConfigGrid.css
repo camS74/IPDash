@@ -474,116 +474,67 @@
 }
 
 .chart-visibility-selector:hover {
-  background-color: #e9e9e9;
-  transform: translateY(-2px);
+  transform: scale(1.1);
 }
 
 /* Export buttons container */
 .export-buttons-container {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  margin-bottom: 8px;
-  height: 60px;
+  align-items: stretch; /* This makes buttons the same height */
+  gap: 10px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
 }
 
-/* Export button base styling with 3D effects */
+/* ===== UNIFIED BASE BUTTON STYLE ===== */
 .export-btn {
-  min-width: 200px;
-  height: 48px;
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  /* Core layout */
+  padding: 12px 24px;
   font-size: 16px;
   font-weight: 600;
-  text-align: center;
-  line-height: 48px;
+  
+  /* Appearance */
+  color: white;
+  border: none; /* Remove all borders */
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Unified shadow */
+  
+  /* Behavior */
+  cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.15),
-    0 2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-/* Export button hover effects */
 .export-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.2),
-    0 3px 6px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.25);
 }
 
-/* Export button active/pressed effect */
 .export-btn:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    0 1px 2px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* Specific export button colors */
+/* --- Specific button colors --- */
 .export-btn.pdf-export {
-  background: linear-gradient(135deg, #FCA5A5, #DC2626);
-  color: white;
+  background-color: #e74c3c; /* Red */
+}
+.export-btn.pdf-export:hover:not(:disabled) {
+  background-color: #c0392b;
 }
 
 .export-btn.html-export {
-  background: linear-gradient(135deg, #FEF3C7, #FDE047);
-  color: #1f2937;
+  background-color: #2ecc71; /* Green */
+}
+.export-btn.html-export:hover:not(:disabled) {
+  background-color: #27ae60;
 }
 
-.export-btn.html-writeup-export {
-  min-width: 250px;
-  background: linear-gradient(135deg, #7DD3FC, #0891B2);
-  color: white;
-}
-
-.export-btn.html-v2-export {
-  background: linear-gradient(135deg, #0066cc, #3399ff);
-  color: white;
-  border: 2px solid transparent;
-  position: relative;
-  overflow: hidden;
-}
-
-.export-btn.html-v2-export::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.export-btn.html-v2-export:hover::before {
-  left: 100%;
-}
-
-.export-btn.html-v2-export:hover {
-  background: linear-gradient(135deg, #3399ff, #66c2ff);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 102, 204, 0.3);
-}
-
-/* Export button disabled state */
 .export-btn:disabled {
-  background: linear-gradient(135deg, #6c757d, #adb5bd);
-  color: #ffffff;
+  background-color: #bdc3c7;
+  color: #7f8c8d;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }

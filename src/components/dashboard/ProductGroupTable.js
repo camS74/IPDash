@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useImperativeHandle } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
@@ -11,6 +11,11 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
   const { columnOrder, dataGenerated } = useFilter();
   const internalTableRef = useRef(null);
   const tableRef = ref || internalTableRef;
+
+  // Expose the table ref for PDF export
+  useImperativeHandle(ref, () => ({
+    getTableElement: () => internalTableRef.current,
+  }));
 
   // Only show data if Generate button has been clicked
   if (!dataGenerated) {
@@ -682,35 +687,25 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
       'FP': 'Flexible Packaging',
       'SB': 'Shopping Bags',
       'TF': 'Thermoforming Products',
-      'HCM': 'Preforms and Closures'
+      'HCM': 'Harwal Container Manufacturing'
     };
     return divisionNames[selectedDivision] || selectedDivision;
   };
 
-      return (
-      <div className="table-view">
-        <div className="table-header">
-          <div className="header-center">
-          <h3 className="table-title">Product Group - {getDivisionDisplayName()}</h3>
-            <div className="table-subtitle">(AED)</div>
-          </div>
+  return (
+    <div className="table-view-container product-group-table-container">
+      <div ref={internalTableRef} className="table-container-for-export">
+        <div className="table-title">
+          <h2>{getDivisionDisplayName()} - Product Group Analysis</h2>
         </div>
-        <div className="table-container" ref={tableRef}>
-        <table className="financial-table product-group-table">
-          <colgroup>
-            <col style={{ width: '192px' }}/>
-          </colgroup>
-          {extendedColumns.map((col, index) => (
-            <colgroup key={`colgroup-${index}`}>
-              <col style={{ width: col.columnType === 'delta' ? '90px' : '110px' }}/>
-            </colgroup>
-          ))}
-          <thead>
-            <tr>
-              <th className="empty-header" rowSpan="3"></th>
-              {extendedColumns.map((col, index) => (
-                col.columnType === 'delta' ? (
-                                      <th
+        <div className="table-scroll-container">
+          <table className="product-group-table">
+            <thead>
+              <tr className="main-header-row">
+                <th className="empty-header" rowSpan="3"></th>
+                {extendedColumns.map((col, index) => (
+                  col.columnType === 'delta' ? (
+                    <th
                       key={`delta-${index}`}
                       rowSpan="3"
                       style={{ 
@@ -727,42 +722,42 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
                         <div style={{ fontSize: '12px' }}>Difference</div>
                       </div>
                     </th>
-                ) : (
-                  <th
-                    key={`year-${index}`}
-                    style={getColumnHeaderStyle(col)}
-                  >
-                    {col.year}
-                  </th>
-                )
-              ))}
-            </tr>
-            <tr>
-              {extendedColumns.map((col, index) => (
-                col.columnType === 'delta' ? null : (
-                  <th
-                    key={`month-${index}`}
-                    style={getColumnHeaderStyle(col)}
-                  >
-                    {col.isCustomRange ? col.displayName : col.month}
-                  </th>
-                )
-              )).filter(Boolean)}
-            </tr>
-            <tr>
-              {extendedColumns.map((col, index) => (
-                col.columnType === 'delta' ? null : (
-                  <th 
-                    key={`type-${index}`}
-                    style={getColumnHeaderStyle(col)}
-                  >
-                    {col.type}
-                  </th>
-                )
-              )).filter(Boolean)}
-            </tr>
-          </thead>
-                      <tbody>
+                  ) : (
+                    <th
+                      key={`year-${index}`}
+                      style={getColumnHeaderStyle(col)}
+                    >
+                      {col.year}
+                    </th>
+                  )
+                ))}
+              </tr>
+              <tr>
+                {extendedColumns.map((col, index) => (
+                  col.columnType === 'delta' ? null : (
+                    <th
+                      key={`month-${index}`}
+                      style={getColumnHeaderStyle(col)}
+                    >
+                      {col.isCustomRange ? col.displayName : col.month}
+                    </th>
+                  )
+                )).filter(Boolean)}
+              </tr>
+              <tr>
+                {extendedColumns.map((col, index) => (
+                  col.columnType === 'delta' ? null : (
+                    <th 
+                      key={`type-${index}`}
+                      style={getColumnHeaderStyle(col)}
+                    >
+                      {col.type}
+                    </th>
+                  )
+                )).filter(Boolean)}
+              </tr>
+            </thead>
+            <tbody>
               {visibleProductGroups.map((productGroup, pgIndex) => (
                 <React.Fragment key={`product-group-${pgIndex}`}>
                   {/* Product Group Header Row */}
@@ -1144,7 +1139,8 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
                 </React.Fragment>
               ))}
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );

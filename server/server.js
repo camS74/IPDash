@@ -268,7 +268,7 @@ function getDefaultMasterData() {
       'Thermoforming Printed': { PE: 100, BOPP: 0, PET: 0, Alu: 0, Paper: 0, 'PVC/PET': 0 }
     },
     HCM: {
-      // Default structure for HCM division (Preforms and Closures)
+      // Default structure for HCM division (Harwal Container Manufacturing)
       'Preforms': { PE: 0, BOPP: 0, PET: 100, Alu: 0, Paper: 0, 'PVC/PET': 0 },
       'Closures': { PE: 100, BOPP: 0, PET: 0, Alu: 0, Paper: 0, 'PVC/PET': 0 }
     }

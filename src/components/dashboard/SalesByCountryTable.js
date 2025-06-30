@@ -349,7 +349,7 @@ const SalesByCountryTable = () => {
       'FP': 'Flexible Packaging',
       'SB': 'Shopping Bags', 
       'TF': 'Thermoforming Products',
-      'HCM': 'Preforms and Closures'
+      'HCM': 'Harwal Container Manufacturing'
     };
     return divisionNames[selectedDivision] || selectedDivision;
   };

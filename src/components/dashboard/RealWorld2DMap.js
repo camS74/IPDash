@@ -210,6 +210,31 @@ const RealWorld2DMap = () => {
     if (sum < 99.95) {
       result.push({ name: 'Other', percentage: 100 - sum, coords: [0, 0] });
     }
+    // --- Export for HTML export ---
+    console.log('Raw salesData:', salesData);
+    console.log('Selected division:', selectedDivision);
+    console.log('Sheet being used:', `${selectedDivision.split('-')[0]}-Countries`);
+    console.log('Rows extracted for country processing:', rows);
+    console.log('Result array before export:', result);
+    try {
+      console.log('Exporting country data for HTML export:', result);
+      window.__IPDASH_2D_COUNTRY_DATA__ = result
+        .map(c => {
+          if (!c.name || typeof c.name !== 'string') {
+            console.warn('Skipping entry with invalid name:', c);
+            return null;
+          }
+          const normName = normalizeCountryName(c.name);
+          const coords = countryCoordinates[normName] || countryCoordinates[c.name] || null;
+          if (!coords) {
+            console.warn('No coordinates found for country:', c.name, '(normalized:', normName, ')');
+            return null;
+          }
+          return { name: c.name, percentage: +c.percentage.toFixed(2), coords };
+        })
+        .filter(Boolean);
+      console.log('Final exported country data:', window.__IPDASH_2D_COUNTRY_DATA__);
+    } catch (e) { /* ignore */ }
     return result.sort((a, b) => b.percentage - a.percentage);
   }, [salesData, selectedDivision]);
 

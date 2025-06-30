@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import { KPI_CSS_CONTENT } from '../../utils/sharedStyles';
@@ -32,7 +32,7 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
       'FP-Product Group': 'Flexible Packaging',
       'SB-Product Group': 'Shopping Bags',
       'TF-Product Group': 'Thermoforming Products',
-      'HCM-Product Group': 'Preforms and Closures'
+      'HCM-Product Group': 'Harwal Container Manufacturing'
     };
     return divisionNames[selectedDivision] || selectedDivision.split('-')[0];
   };
@@ -2021,6 +2021,18 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
             border: 1px solid #ddd;
         }
         
+        /* FIX: Ensure sticky headers in the P&L table retain their borders when scrolled. */
+        #page-financial-pl thead th[style*="background-color"] {
+            border-right: 1px solid #ddd !important;
+            border-bottom: 1px solid #ddd !important;
+        }
+        
+        /* FIX: Ensure P&L table cells have right borders to prevent missing lines */
+        #page-financial-pl table th,
+        #page-financial-pl table td {
+          border-right: 1px solid #ddd !important;
+        }
+        
         /* Consistent header row heights */
         thead tr th {
             height: 35px;
@@ -2787,56 +2799,62 @@ const ComprehensiveHTMLExport = ({ tableRef }) => {
       link.href = url;
       // Use the required format for the file name
       const safeDivision = divisionName.replace(/[^a-zA-Z0-9\-_ ]/g, '').replace(/\s+/g, ' ').trim();
-      const safePeriod = basePeriod.replace(/[^a-zA-Z0-9\-_ ]/g, '').replace(/\s+/g, ' ').trim();
-      link.download = `Comprehencise Report of ${safeDivision}_${safePeriod}.html`;
+      const safePeriod = basePeriod.replace(/[^a-zA-Z0-9\-_ ]/g, '').replace(/\s+/g, '-');
+      link.download = `Comprehensive Report - ${safeDivision} - ${safePeriod}.html`;
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
       URL.revokeObjectURL(url);
-      
-      console.log('✅ Comprehensive HTML export completed:', link.download);
+      console.log('✅ Comprehensive HTML export generated and download started.');
       
     } catch (err) {
-      setError(err.message || 'Failed to export comprehensive HTML');
-      console.error('Export error:', err);
+      console.error('❌ Comprehensive export failed:', err);
+      setError(`Export failed: ${err.message}. Check console for details.`);
     } finally {
       setIsExporting(false);
     }
   };
 
-  return (
-    <div>
-      <button 
-        onClick={handleComprehensiveExport}
-        className="export-btn comprehensive-export"
-        disabled={isExporting}
-        title="Export comprehensive interactive HTML report with all sections"
-        style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          border: 'none',
-          padding: '12px 24px',
-          borderRadius: '8px',
-          cursor: isExporting ? 'not-allowed' : 'pointer',
-          fontSize: '14px',
-          fontWeight: '600',
-          transition: 'all 0.3s ease',
-          opacity: isExporting ? 0.7 : 1,
-          transform: isExporting ? 'scale(0.98)' : 'scale(1)',
-          marginLeft: '10px'
-        }}
-      >
-{isExporting ? 'Exporting...' : '📊 Export to HTML'}
-      </button>
+  const [isLoading, setIsLoading] = useState(false);
+  const [exportError, setExportError] = useState(null);
 
-      {error && (
-        <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-          Error: {error}
-        </div>
-      )}
-    </div>
+  // This effect will be responsible for triggering the export
+  // It uses a button click state to ensure it runs only when needed
+  const [triggerExport, setTriggerExport] = useState(false);
+
+  // The actual export logic is now separated
+  const comprehensiveExport = async () => {
+    if (isExporting) return;
+    setIsLoading(true);
+    setExportError(null);
+    try {
+      await handleComprehensiveExport();
+        } catch (err) {
+      setExportError(err.message);
+      console.error("Comprehensive Export failed:", err);
+    } finally {
+      setIsLoading(false);
+      setTriggerExport(false); // Reset the trigger
+    }
+  };
+
+  useEffect(() => {
+    if (triggerExport) {
+      comprehensiveExport();
+    }
+  }, [triggerExport]);
+
+
+  return (
+      <button 
+      onClick={() => setTriggerExport(true)}
+      disabled={isExporting || isLoading}
+      className="export-btn html-export"
+    >
+      {isExporting || isLoading ? 'Exporting...' : 'Generate Comprehensive HTML Report'}
+      </button>
   );
 };
 

@@ -715,6 +715,5 @@
 @media (max-width: 900px) {
   .kpi-section .kpi-cards.category-cards {
     grid-template-columns: 1fr;
-    gap: 16px;
   }
 } 
