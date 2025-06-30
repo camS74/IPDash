@@ -38,6 +38,10 @@ export const FilterProvider = ({ children }) => {
     'Q3': ['July', 'August', 'September'],
     'Q4': ['October', 'November', 'December']
   };
+  const halfYears = {
+    'HY1': ['January', 'February', 'March', 'April', 'May', 'June'],
+    'HY2': ['July', 'August', 'September', 'October', 'November', 'December']
+  };
   
   // Helper function to check if months are sequential
   const areMonthsSequential = (months) => {
@@ -106,7 +110,7 @@ export const FilterProvider = ({ children }) => {
         
         // Extract months from row 2 (index 1)
         const months = [...new Set(sheet[1].slice(1).filter(Boolean))];
-        const extendedMonths = ["Year", "Q1", "Q2", "Q3", "Q4", ...months];
+        const extendedMonths = ["Year", "HY1", "HY2", "Q1", "Q2", "Q3", "Q4", ...months];
         
         // Extract data types from row 3 (index 2)
         const types = [...new Set(sheet[2].slice(1).filter(Boolean))];
@@ -141,6 +145,7 @@ export const FilterProvider = ({ children }) => {
       let actualMonths = [];
       if (month === 'Year') actualMonths = fullYear;
       else if (quarters[month]) actualMonths = quarters[month];
+      else if (halfYears[month]) actualMonths = halfYears[month];
       else actualMonths = [month];
       
       newColumn = { 
