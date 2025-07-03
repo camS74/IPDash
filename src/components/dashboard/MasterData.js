@@ -10,6 +10,16 @@ const MasterData = () => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
+  // Sales Rep Selection state
+  const [salesReps, setSalesReps] = useState([]);
+  const [selectedReps, setSelectedReps] = useState([]);
+  const [defaultReps, setDefaultReps] = useState([]);
+  const [editDefault, setEditDefault] = useState(false);
+  const [loadingReps, setLoadingReps] = useState(false);
+  const [errorReps, setErrorReps] = useState(null);
+  const [savingReps, setSavingReps] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
   // Material columns for the table
   const materialColumns = ['PE', 'BOPP', 'PET', 'Alu', 'Paper', 'PVC/PET'];
 
@@ -17,6 +27,28 @@ const MasterData = () => {
   useEffect(() => {
     loadMasterData();
   }, []);
+
+  // Load sales reps and defaults
+  useEffect(() => {
+    if (activeTab === 'salesreps') {
+      setLoadingReps(true);
+      Promise.all([
+        fetch('/api/sales-reps').then(res => res.json()),
+        fetch('/api/sales-reps-defaults').then(res => res.json())
+      ])
+        .then(([repsRes, configRes]) => {
+          if (repsRes.success && configRes.success) {
+            setSalesReps(repsRes.data);
+            setDefaultReps(configRes.defaults);
+            setSelectedReps(configRes.selection);
+          } else {
+            setErrorReps('Failed to load sales reps/config');
+          }
+        })
+        .catch(() => setErrorReps('Failed to load sales reps/config'))
+        .finally(() => setLoadingReps(false));
+    }
+  }, [activeTab]);
 
   const loadMasterData = async () => {
     try {
@@ -36,8 +68,6 @@ const MasterData = () => {
       setLoading(false);
     }
   };
-
-
 
   const saveMasterData = async () => {
     try {
@@ -152,6 +182,56 @@ const MasterData = () => {
     }));
   };
 
+  // Handle selection
+  const handleRepSelect = (rep) => {
+    if (!editDefault && defaultReps.includes(rep)) return; // Can't deselect default in normal mode
+    setSelectedReps(prev =>
+      prev.includes(rep)
+        ? prev.filter(r => r !== rep)
+        : [...prev, rep]
+    );
+  };
+
+  // Handle default selection in edit mode
+  const handleDefaultToggle = (rep) => {
+    setDefaultReps(prev =>
+      prev.includes(rep)
+        ? prev.filter(r => r !== rep)
+        : [...prev, rep]
+    );
+    // Also update selectedReps to always include all defaults
+    setSelectedReps(prev =>
+      prev.includes(rep)
+        ? prev.filter(r => r !== rep)
+        : [...prev, rep]
+    );
+  };
+
+  // Save config
+  const handleSave = async () => {
+    setSavingReps(true);
+    setSaveMsg('');
+    try {
+      const res = await fetch('/api/sales-reps-defaults', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaults: defaultReps, selection: selectedReps })
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSaveMsg('Saved!');
+        setEditDefault(false);
+      } else {
+        setSaveMsg('Save failed');
+      }
+    } catch {
+      setSaveMsg('Save failed');
+    } finally {
+      setSavingReps(false);
+      setTimeout(() => setSaveMsg(''), 2000);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading master data...</div>;
   }
@@ -179,6 +259,12 @@ const MasterData = () => {
           onClick={() => setActiveTab('countries')}
         >
           🌍 Country Reference
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'salesreps' ? 'active' : ''}`}
+          onClick={() => setActiveTab('salesreps')}
+        >
+          🧑‍💼 Sales Rep Selection
         </button>
       </div>
 
@@ -290,7 +376,44 @@ const MasterData = () => {
         )}
 
         {activeTab === 'countries' && (
-                        <CountryReference />
+          <CountryReference />
+        )}
+
+        {activeTab === 'salesreps' && (
+          <div className="sales-reps-tab">
+            <h3>Sales Rep Selection</h3>
+            <div style={{ marginBottom: 12 }}>
+              <button onClick={() => setEditDefault(e => !e)} className="edit-default-btn">
+                {editDefault ? 'Finish Editing Defaults' : 'Edit Default'}
+              </button>
+              <button onClick={handleSave} className="save-reps-btn" disabled={savingReps} style={{ marginLeft: 8 }}>
+                {savingReps ? 'Saving...' : 'Save'}
+              </button>
+              {saveMsg && <span className="save-msg">{saveMsg}</span>}
+            </div>
+            {loadingReps && <div>Loading sales reps...</div>}
+            {errorReps && <div className="error">{errorReps}</div>}
+            {!loadingReps && !errorReps && (
+              <ul className="sales-rep-list">
+                {salesReps.length === 0 && <li>No sales reps found.</li>}
+                {salesReps.map(rep => (
+                  <li key={rep} className="sales-rep-item">
+                    <label style={{ fontWeight: defaultReps.includes(rep) ? 'bold' : 'normal' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedReps.includes(rep)}
+                        disabled={!editDefault && defaultReps.includes(rep)}
+                        onChange={() => editDefault ? handleDefaultToggle(rep) : handleRepSelect(rep)}
+                      />
+                      <span className="sales-rep-name">
+                        {rep} {defaultReps.includes(rep) && <span title="Default" style={{ color: '#f5b400' }}>★</span>}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </div>

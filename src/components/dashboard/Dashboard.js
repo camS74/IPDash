@@ -17,6 +17,7 @@ import ChartView from './ChartView';
 import WriteUpView from './WriteUpView';
 import MasterData from './MasterData';
 import KPIExecutiveSummary from './KPIExecutiveSummary';
+import SalesBySaleRepTable from './SalesBySaleRepTable';
 import './Dashboard.css';
 // Import logo directly to embed it in the bundle
 import interplastLogo from '../../assets/Ip Logo.png';
@@ -132,6 +133,9 @@ const Dashboard = () => {
             </Tab>
             <Tab label="Sales by Customer">
               <SalesByCustomerTable />
+            </Tab>
+            <Tab label="Sales by SaleRep">
+              <SalesBySaleRepTable />
             </Tab>
             <Tab label="Charts">
               {dataGenerated ? (

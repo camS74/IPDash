@@ -33,11 +33,26 @@ const KPIExecutiveSummary = () => {
   const { excelData, selectedDivision } = useExcelData();
   const { salesData } = useSalesData();
   const { columnOrder, basePeriodIndex } = useFilter();
-  if (!selectedDivision || !excelData[selectedDivision] || !columnOrder.length || basePeriodIndex == null) {
-    return <div style={{ padding: 32, textAlign: 'center', color: '#888' }}>No data available. Please select a division and base period.</div>;
+  
+  // Enhanced defensive checks
+  if (!Array.isArray(columnOrder) || columnOrder.length === 0) {
+    return <div style={{ padding: 32, textAlign: 'center', color: '#888' }}>No data available. Please select periods in the Period Configuration.</div>;
   }
-  const divisionData = excelData[selectedDivision];
+  
+  if (basePeriodIndex == null || basePeriodIndex >= columnOrder.length) {
+    return <div style={{ padding: 32, textAlign: 'center', color: '#888' }}>No base period selected. Please select a base period (★) in the Period Configuration.</div>;
+  }
+  
   const basePeriod = columnOrder[basePeriodIndex];
+  if (!basePeriod) {
+    return <div style={{ padding: 32, textAlign: 'center', color: '#888' }}>Invalid base period. Please select a valid period.</div>;
+  }
+  
+  if (!basePeriod.months || !Array.isArray(basePeriod.months)) {
+    return <div style={{ padding: 32, textAlign: 'center', color: '#888' }}>Base period configuration is incomplete. Please reconfigure your periods.</div>;
+  }
+
+  const divisionData = excelData[selectedDivision];
   const basePeriodName = basePeriod ? `${basePeriod.year} ${basePeriod.isCustomRange ? basePeriod.displayName : (basePeriod.month || '')} ${basePeriod.type}`.trim() : '';
   const comparisonPeriod = basePeriodIndex > 0 ? columnOrder[basePeriodIndex - 1] : null;
   const comparisonPeriodName = comparisonPeriod ? `${comparisonPeriod.year} ${comparisonPeriod.isCustomRange ? comparisonPeriod.displayName : (comparisonPeriod.month || '')} ${comparisonPeriod.type}`.trim() : '';

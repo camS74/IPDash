@@ -1,0 +1,45 @@
+.sales-rep-tabs-container {
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-top: 20px;
+  border: none;
+  min-height: 220px;
+}
+
+.sales-rep-tabs-container h2 {
+  font-size: 1.3rem;
+  color: #2c3e50;
+  margin: 0;
+  font-weight: 600;
+  padding: 16px 0 0 0;
+}
+
+.sales-rep-tabs-container .tab-content {
+  padding: 32px 0 0 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.error {
+  color: #c00;
+  margin: 16px 0;
+  text-align: center;
+}
+
+/* Remove any default border or line from TabsComponent if inherited */
+.sales-rep-tabs-container .tabs-component,
+.sales-rep-tabs-container .tabs {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Remove any extra lines or borders from tab panels */
+.sales-rep-tabs-container .tab-panel {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+} 

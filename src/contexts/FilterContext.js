@@ -175,6 +175,27 @@ export const FilterProvider = ({ children }) => {
   
   // Function to remove a column
   const removeColumn = (columnId) => {
+    // First find the index of the column to be removed
+    const indexToRemove = columnOrder.findIndex(col => col.id === columnId);
+    
+    // If the column exists and is being removed
+    if (indexToRemove !== -1) {
+      // Check if the removed column is the base period or affects the base period index
+      if (basePeriodIndex !== null) {
+        // If we're removing the base period column
+        if (indexToRemove === basePeriodIndex) {
+          // Clear the base period
+          clearBasePeriod();
+        } 
+        // If we're removing a column before the base period, adjust the index
+        else if (indexToRemove < basePeriodIndex) {
+          // Decrement the base period index
+          setBasePeriod(basePeriodIndex - 1);
+        }
+      }
+    }
+    
+    // Remove the column from the order
     setColumnOrder(prev => prev.filter(col => col.id !== columnId));
   };
   

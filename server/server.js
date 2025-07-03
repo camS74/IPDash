@@ -436,6 +436,70 @@ app.post('/api/master-data', (req, res) => {
   }
 });
 
+// API endpoint to get sales reps from Masterdata sheet (column B)
+app.get('/api/sales-reps', (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    const salesFilePath = path.join(__dirname, 'data', 'Sales.xlsx');
+    if (!fs.existsSync(salesFilePath)) {
+      return res.json({ success: true, data: [] });
+    }
+    const workbook = XLSX.readFile(salesFilePath);
+    const sheetName = 'Masterdata';
+    if (!workbook.SheetNames.includes(sheetName)) {
+      return res.json({ success: true, data: [] });
+    }
+    const worksheet = workbook.Sheets[sheetName];
+    const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const salesRepsSet = new Set();
+    for (let i = 0; i < sheetData.length; i++) {
+      const row = sheetData[i];
+      if (row && row[1] && typeof row[1] === 'string' && row[1].trim() !== '') {
+        // Skip header row if present
+        if (i === 0 && row[1].toLowerCase().includes('actual')) continue;
+        salesRepsSet.add(row[1].trim());
+      }
+    }
+    res.json({ success: true, data: Array.from(salesRepsSet) });
+  } catch (error) {
+    console.error('Error extracting sales reps:', error);
+    res.status(500).json({ success: false, error: 'Failed to extract sales reps' });
+  }
+});
+
+const SALES_REPS_CONFIG_PATH = path.join(__dirname, 'data', 'sales-reps-config.json');
+const DEFAULT_SALES_REPS = [
+  "Abraham Mathew","Adam AlKhatib","Ahad Bucker","Anil Bayaniyan","Babar Tasneem","Christopher","DIVANI CANTALAO CUEVAS","Ely & Dessi Sasa","Raul A Nicol","Hari Krishnan M","Haseeb","HORECA-TEMP","Hosen Mohamed Safin","Jamal Abdul Ali","Janas","Kasia","Khalid","Khalid Abdul Rahman","Lokeshchess Dhasthagiri","Mary Grace Almaz","Magadank Kobysha","Mohamed Adel","Mohamed Fawzi","Mohamed Koch","Mohamed Hisham","Safwat S Maseco","Natik","OLIVER BAVARIAN","PascalKrause","RANJIT R TANGASAMY","Ramesh Anbalagan","Rashid Baichal","Rashid Baichal Ahmed","Rashid Baichal Ahmed","Roudy Zimabale","SALE FUNILATH","Saraswathie Vathi","Theo Sann","Vinod Mathew","Waleed Fawzi","Waseem Akinde Hameed","Waseem Mathew","Waseem-HORECA","Ziad Al Housaini"
+];
+
+// GET: Return defaults and selection
+app.get('/api/sales-reps-defaults', (req, res) => {
+  try {
+    let config = { defaults: DEFAULT_SALES_REPS, selection: DEFAULT_SALES_REPS };
+    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
+      config = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
+    }
+    res.json({ success: true, ...config });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to load sales rep config' });
+  }
+});
+
+// POST: Update defaults and/or selection
+app.post('/api/sales-reps-defaults', (req, res) => {
+  try {
+    const { defaults, selection } = req.body;
+    if (!Array.isArray(defaults) || !Array.isArray(selection)) {
+      return res.status(400).json({ success: false, error: 'Invalid data' });
+    }
+    const config = { defaults, selection };
+    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(config, null, 2));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to save sales rep config' });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

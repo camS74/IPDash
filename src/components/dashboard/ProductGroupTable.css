@@ -1,14 +1,125 @@
 /* Product Group Table Styles - Cleaned Version */
-.table-view {
+.product-group-table-container {
   width: 100%;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
-  max-width: 100%;
-  overflow-x: visible;
-  box-sizing: border-box;
+  padding: 24px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.product-group-table-container .table-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 18px;
+}
+
+.product-group-table-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.product-group-table-table th,
+.product-group-table-table td {
+  padding: 10px 8px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.product-group-table-table th {
+  background: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  color: #222;
+}
+
+.product-group-table-table .main-header-row th {
+  background: #fff;
+  font-size: 1.1rem;
+  color: #222;
+  border-bottom: 2.5px solid #bbb;
+}
+
+/* Special color for first column of product group header row */
+.product-group-table-table .product-header-row td:first-child {
+  background: #0d47a1;
+  color: #fff;
+  font-weight: 700;
+  border-left: 4px solid #0d47a1;
+  border-top: 2px solid #0d47a1;
+  border-bottom: 2px solid #0d47a1;
+  border-right: none;
+}
+
+/* Lighter blue for the rest of the product group header row */
+.product-group-table-table .product-header-row td:not(:first-child) {
+  background: #1565c0;
+  color: #fff;
+  font-weight: 700;
+  border-top: 2px solid #1565c0;
+  border-bottom: 2px solid #1565c0;
+  border-right: none;
+  border-left: none;
+}
+
+/* Remove right border from last cell to avoid double border */
+.product-group-table-table .product-header-row td:last-child {
+  border-right: 1px solid #e0e0e0;
+}
+
+.product-group-table-table .category-header-row td {
+  background: #fff9c4;
+  color: #795548;
+  font-weight: 700;
+  border: 1.5px solid #fff9c4;
+}
+
+.product-group-table-table .total-header-row td {
+  background: #003366;
+  color: #fff;
+  font-weight: 700;
+  border: 1.5px solid #003366;
+}
+
+.product-group-table-table tr:nth-child(even) td {
+  background: #f7fafd;
+}
+
+.product-group-table-table td {
+  font-size: 15px;
+  color: #222;
+}
+
+.product-group-table-table td.important {
+  font-weight: 700;
+  color: #d84315;
+}
+
+.product-group-table-table .separator-row td {
+  display: none;
+}
+
+.product-group-table-table .empty-header {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  .product-group-table-container {
+    padding: 8px;
+  }
+  .product-group-table-table th, .product-group-table-table td {
+    padding: 6px 2px;
+    font-size: 13px;
+  }
 }
 
 /* PDF export optimization */
@@ -38,14 +149,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.table-title {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #333;
-  text-align: center;
-  font-weight: bold;
 }
 
 .table-subtitle {

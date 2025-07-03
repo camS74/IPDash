@@ -492,4 +492,60 @@
   .save-button {
     display: none;
   }
+}
+
+.sales-reps-tab {
+  margin-top: 24px;
+}
+
+.sales-rep-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 400px;
+}
+
+.sales-rep-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sales-rep-item:last-child {
+  border-bottom: none;
+}
+
+.sales-rep-name {
+  margin-left: 8px;
+  font-size: 1rem;
+  color: #222;
+}
+
+.sales-reps-tab h3 {
+  margin-bottom: 12px;
+}
+
+.edit-default-btn, .save-reps-btn {
+  background: #f5f5f5;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  padding: 4px 12px;
+  margin-right: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+.edit-default-btn:hover, .save-reps-btn:hover {
+  background: #e0e0e0;
+}
+.save-msg {
+  margin-left: 12px;
+  color: #2e7d32;
+  font-weight: bold;
+}
+.sales-rep-name span[title="Default"] {
+  margin-left: 4px;
+  font-size: 1.1em;
+  vertical-align: middle;
 } 

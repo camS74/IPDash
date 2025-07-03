@@ -4,7 +4,7 @@
     "2023-CUSTOM_January_February_March_April_May-Actual",
     "2024-CUSTOM_January_February_March_April_May-Actual",
     "2025-CUSTOM_January_February_March_April_May-Actual",
-    "2025-HY1-Actual"
+    "2025-HY1-Budget"
   ],
   "standardColumnSelection": [
     {
@@ -72,20 +72,19 @@
     },
     {
       "year": "2025",
-      "month": "CUSTOM_January_February_March_April_May",
+      "month": "HY1",
       "type": "Budget",
       "months": [
         "January",
         "February",
         "March",
         "April",
-        "May"
+        "May",
+        "June"
       ],
-      "displayName": "Jan-May",
-      "isCustomRange": true,
-      "id": "2025-CUSTOM_January_February_March_April_May-Budget",
+      "id": "2025-HY1-Budget",
       "customColor": "boldContrast"
     }
   ],
-  "basePeriodIndex": 4
+  "basePeriodIndex": 3
 }
