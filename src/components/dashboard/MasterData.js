@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CountryReference from './CountryReference';
+import { useExcelData } from '../../contexts/ExcelDataContext';
 import './MasterData.css';
 
 const MasterData = () => {
@@ -9,6 +10,27 @@ const MasterData = () => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  // Get current division from ExcelDataContext
+  const { selectedDivision } = useExcelData();
+  
+  // Get division code (FP, SB, TF, HCM) - handle both formats
+  const getDivisionCode = (division) => {
+    if (!division) return '';
+    // If it's already just a division code (FP, SB, TF, HCM)
+    if (['FP', 'SB', 'TF', 'HCM'].includes(division)) {
+      return division;
+    }
+    // If it's a full sheet name (FP-Product Group), extract the division code
+    return division.split('-')[0];
+  };
+  
+  const divisionCode = getDivisionCode(selectedDivision);
+  
+  // Debug logging
+  console.log('MasterData: selectedDivision =', selectedDivision);
+  console.log('MasterData: divisionCode =', divisionCode);
+  console.log('MasterData: activeTab =', activeTab);
 
   // Sales Rep Selection state
   const [salesReps, setSalesReps] = useState([]);
@@ -30,13 +52,26 @@ const MasterData = () => {
 
   // Load sales reps and defaults
   useEffect(() => {
+    console.log('MasterData useEffect: activeTab =', activeTab, 'divisionCode =', divisionCode);
+    
+    // Clear sales reps data when division changes
     if (activeTab === 'salesreps') {
+      setSalesReps([]);
+      setSelectedReps([]);
+      setDefaultReps([]);
+      setErrorReps(null);
+    }
+    
+    if (activeTab === 'salesreps' && divisionCode) {
+      console.log('MasterData: Loading sales reps for division:', divisionCode);
       setLoadingReps(true);
       Promise.all([
-        fetch('/api/sales-reps').then(res => res.json()),
-        fetch('/api/sales-reps-defaults').then(res => res.json())
+        fetch(`/api/sales-reps?division=${divisionCode}`).then(res => res.json()),
+        fetch(`/api/sales-reps-defaults?division=${divisionCode}`).then(res => res.json())
       ])
         .then(([repsRes, configRes]) => {
+          console.log('MasterData: Sales reps response:', repsRes);
+          console.log('MasterData: Config response:', configRes);
           if (repsRes.success && configRes.success) {
             setSalesReps(repsRes.data);
             setDefaultReps(configRes.defaults);
@@ -45,10 +80,13 @@ const MasterData = () => {
             setErrorReps('Failed to load sales reps/config');
           }
         })
-        .catch(() => setErrorReps('Failed to load sales reps/config'))
+        .catch((error) => {
+          console.error('MasterData: Error loading sales reps:', error);
+          setErrorReps('Failed to load sales reps/config');
+        })
         .finally(() => setLoadingReps(false));
     }
-  }, [activeTab]);
+  }, [activeTab, divisionCode]);
 
   const loadMasterData = async () => {
     try {
@@ -184,27 +222,33 @@ const MasterData = () => {
 
   // Handle selection
   const handleRepSelect = (rep) => {
-    if (!editDefault && defaultReps.includes(rep)) return; // Can't deselect default in normal mode
-    setSelectedReps(prev =>
-      prev.includes(rep)
-        ? prev.filter(r => r !== rep)
-        : [...prev, rep]
-    );
+    // Simply toggle the selection status
+    setSelectedReps(prev => {
+      const currentReps = prev || [];
+      return currentReps.includes(rep)
+        ? currentReps.filter(r => r !== rep)
+        : [...currentReps, rep];
+    });
   };
 
   // Handle default selection in edit mode
   const handleDefaultToggle = (rep) => {
-    setDefaultReps(prev =>
-      prev.includes(rep)
-        ? prev.filter(r => r !== rep)
-        : [...prev, rep]
-    );
-    // Also update selectedReps to always include all defaults
-    setSelectedReps(prev =>
-      prev.includes(rep)
-        ? prev.filter(r => r !== rep)
-        : [...prev, rep]
-    );
+    // Update defaults list
+    const currentDefaults = defaultReps || [];
+    const newDefaults = currentDefaults.includes(rep)
+      ? currentDefaults.filter(r => r !== rep)
+      : [...currentDefaults, rep];
+    
+    setDefaultReps(newDefaults);
+    
+    // When adding to defaults, also add to selection if not already there
+    const currentSelected = selectedReps || [];
+    if (!currentDefaults.includes(rep) && !currentSelected.includes(rep)) {
+      setSelectedReps(prev => [...(prev || []), rep]);
+    }
+    
+    // When removing from defaults, don't remove from selection
+    // (let the user decide if they want to keep it selected)
   };
 
   // Save config
@@ -212,13 +256,22 @@ const MasterData = () => {
     setSavingReps(true);
     setSaveMsg('');
     try {
+      // When saving, make the selected reps also the default reps
+      // This ensures that the selected sales reps will appear in the Sales by SaleRep tabs
+      const currentSelected = selectedReps || [];
       const res = await fetch('/api/sales-reps-defaults', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ defaults: defaultReps, selection: selectedReps })
+        body: JSON.stringify({ 
+          division: divisionCode,
+          defaults: currentSelected, // Use selectedReps as the defaults
+          selection: currentSelected 
+        })
       });
       const result = await res.json();
       if (result.success) {
+        // Update local state to match what we saved
+        setDefaultReps(currentSelected);
         setSaveMsg('Saved!');
         setEditDefault(false);
       } else {
@@ -231,6 +284,42 @@ const MasterData = () => {
       setTimeout(() => setSaveMsg(''), 2000);
     }
   };
+
+  // Helper function to convert text to proper case
+  const toProperCase = (text) => {
+    if (!text) return '';
+    return text.toString().replace(/\w\S*/g, function(txt) {
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+  };
+
+  // Render sales rep items with proper case
+  const renderSalesRepItem = (rep) => {
+    const normalizedRep = toProperCase(rep);
+    const isSelected = selectedReps && selectedReps.includes(rep);
+    
+    return (
+      <li key={rep} className={isSelected ? 'selected' : ''}>
+        <label>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => handleRepSelect(rep)}
+          />
+          {normalizedRep}
+        </label>
+      </li>
+    );
+  };
+
+  // Helper to chunk array into columns of 10 rows each
+  function chunkArray(array, chunkSize) {
+    const results = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      results.push(array.slice(i, i + chunkSize));
+    }
+    return results;
+  }
 
   if (loading) {
     return <div className="loading">Loading master data...</div>;
@@ -381,37 +470,41 @@ const MasterData = () => {
 
         {activeTab === 'salesreps' && (
           <div className="sales-reps-tab">
-            <h3>Sales Rep Selection</h3>
-            <div style={{ marginBottom: 12 }}>
-              <button onClick={() => setEditDefault(e => !e)} className="edit-default-btn">
-                {editDefault ? 'Finish Editing Defaults' : 'Edit Default'}
-              </button>
-              <button onClick={handleSave} className="save-reps-btn" disabled={savingReps} style={{ marginLeft: 8 }}>
-                {savingReps ? 'Saving...' : 'Save'}
-              </button>
-              {saveMsg && <span className="save-msg">{saveMsg}</span>}
-            </div>
-            {loadingReps && <div>Loading sales reps...</div>}
-            {errorReps && <div className="error">{errorReps}</div>}
-            {!loadingReps && !errorReps && (
-              <ul className="sales-rep-list">
-                {salesReps.length === 0 && <li>No sales reps found.</li>}
-                {salesReps.map(rep => (
-                  <li key={rep} className="sales-rep-item">
-                    <label style={{ fontWeight: defaultReps.includes(rep) ? 'bold' : 'normal' }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedReps.includes(rep)}
-                        disabled={!editDefault && defaultReps.includes(rep)}
-                        onChange={() => editDefault ? handleDefaultToggle(rep) : handleRepSelect(rep)}
-                      />
-                      <span className="sales-rep-name">
-                        {rep} {defaultReps.includes(rep) && <span title="Default" style={{ color: '#f5b400' }}>★</span>}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+            {divisionCode ? (
+              <>
+                <h3>{divisionCode}-Sales Representatives</h3>
+                <div style={{ marginBottom: 12 }}>
+                  <button onClick={handleSave} className="save-reps-btn" disabled={savingReps}>
+                    {savingReps ? 'Saving...' : 'Save'}
+                  </button>
+                  {saveMsg && <span className="save-msg">{saveMsg}</span>}
+                </div>
+                {loadingReps && <div>Loading sales reps...</div>}
+                {errorReps && <div className="error">{errorReps}</div>}
+                {!loadingReps && !errorReps && (
+                  <>
+                    {(!salesReps || salesReps.length === 0) ? (
+                      <div className="no-sales-reps-message">
+                        <p><strong>List not available</strong></p>
+                        <p>No sales representatives are configured for {divisionCode} division.</p>
+                        <p>Please configure sales representatives data for this division.</p>
+                      </div>
+                    ) : (
+                      <div className="sales-rep-list-grid">
+                        {chunkArray(salesReps, 10).map((col, colIdx) => (
+                          <ul className="sales-rep-list-col" key={colIdx}>
+                            {col.map(renderSalesRepItem)}
+                          </ul>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="no-division-message">
+                <p>Please select a division to view and configure sales representatives.</p>
+              </div>
             )}
           </div>
         )}

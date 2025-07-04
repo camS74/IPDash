@@ -2,12 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const odbc = require('odbc');
+const bodyParser = require('body-parser');
 
 const app = express();
 const PORT = 3001;
 
 // Middleware
 app.use(express.json());
+app.use(bodyParser.json());
 
 // Enable CORS with specific options
 app.use(cors({
@@ -436,31 +439,46 @@ app.post('/api/master-data', (req, res) => {
   }
 });
 
-// API endpoint to get sales reps from Masterdata sheet (column B)
+// Function to convert text to proper case (first letter of each word capitalized)
+function toProperCase(text) {
+  if (!text) return '';
+  return text.toString().replace(/\w\S*/g, function(txt) {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
+}
+
+// API endpoint to get sales reps from Masterdata sheet (column 2) - ONLY for FP division
 app.get('/api/sales-reps', (req, res) => {
   try {
+    const { division } = req.query;
+    console.log('Received request for sales reps for division:', division);
+    if (!division) {
+      return res.json({ success: true, data: [] });
+    }
     const XLSX = require('xlsx');
     const salesFilePath = path.join(__dirname, 'data', 'Sales.xlsx');
     if (!fs.existsSync(salesFilePath)) {
       return res.json({ success: true, data: [] });
     }
     const workbook = XLSX.readFile(salesFilePath);
-    const sheetName = 'Masterdata';
+    const sheetName = `${division}-Volume`;
     if (!workbook.SheetNames.includes(sheetName)) {
       return res.json({ success: true, data: [] });
     }
     const worksheet = workbook.Sheets[sheetName];
     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    const salesRepsSet = new Set();
-    for (let i = 0; i < sheetData.length; i++) {
+    // Data starts from row 4 (index 3)
+    let reps = [];
+    for (let i = 3; i < sheetData.length; i++) {
       const row = sheetData[i];
-      if (row && row[1] && typeof row[1] === 'string' && row[1].trim() !== '') {
-        // Skip header row if present
-        if (i === 0 && row[1].toLowerCase().includes('actual')) continue;
-        salesRepsSet.add(row[1].trim());
+      const name = row && row[0] ? row[0].toString().trim() : '';
+      if (name && name.length > 1 && name.toLowerCase() !== 'actual' && name.toLowerCase() !== 'system') {
+        reps.push(toProperCase(name));
       }
     }
-    res.json({ success: true, data: Array.from(salesRepsSet) });
+    // Remove duplicates
+    const uniqueReps = Array.from(new Set(reps));
+    res.json({ success: true, data: uniqueReps });
   } catch (error) {
     console.error('Error extracting sales reps:', error);
     res.status(500).json({ success: false, error: 'Failed to extract sales reps' });
@@ -472,31 +490,84 @@ const DEFAULT_SALES_REPS = [
   "Abraham Mathew","Adam AlKhatib","Ahad Bucker","Anil Bayaniyan","Babar Tasneem","Christopher","DIVANI CANTALAO CUEVAS","Ely & Dessi Sasa","Raul A Nicol","Hari Krishnan M","Haseeb","HORECA-TEMP","Hosen Mohamed Safin","Jamal Abdul Ali","Janas","Kasia","Khalid","Khalid Abdul Rahman","Lokeshchess Dhasthagiri","Mary Grace Almaz","Magadank Kobysha","Mohamed Adel","Mohamed Fawzi","Mohamed Koch","Mohamed Hisham","Safwat S Maseco","Natik","OLIVER BAVARIAN","PascalKrause","RANJIT R TANGASAMY","Ramesh Anbalagan","Rashid Baichal","Rashid Baichal Ahmed","Rashid Baichal Ahmed","Roudy Zimabale","SALE FUNILATH","Saraswathie Vathi","Theo Sann","Vinod Mathew","Waleed Fawzi","Waseem Akinde Hameed","Waseem Mathew","Waseem-HORECA","Ziad Al Housaini"
 ];
 
-// GET: Return defaults and selection
+// GET: Return defaults and selection for specific division
 app.get('/api/sales-reps-defaults', (req, res) => {
   try {
-    let config = { defaults: DEFAULT_SALES_REPS, selection: DEFAULT_SALES_REPS };
-    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
-      config = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
+    const { division } = req.query;
+    console.log('Received request for sales reps defaults for division:', division);
+    
+    if (!division) {
+      return res.status(400).json({ success: false, error: 'Division parameter is required' });
     }
+    
+    let config = { defaults: [], selection: [] };
+    
+    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
+      const fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
+      console.log('Loaded sales reps config from file:', fullConfig);
+      
+      // Get division-specific config or use empty arrays if division doesn't exist
+      config = fullConfig[division] || { defaults: [], selection: [] };
+    } else {
+      console.log('No sales reps config file found, using empty arrays');
+    }
+    
     res.json({ success: true, ...config });
   } catch (error) {
+    console.error('Error loading sales rep config:', error);
     res.status(500).json({ success: false, error: 'Failed to load sales rep config' });
   }
 });
 
-// POST: Update defaults and/or selection
+// POST: Update defaults and/or selection for specific division
 app.post('/api/sales-reps-defaults', (req, res) => {
   try {
-    const { defaults, selection } = req.body;
-    if (!Array.isArray(defaults) || !Array.isArray(selection)) {
-      return res.status(400).json({ success: false, error: 'Invalid data' });
+    const { division, defaults, selection } = req.body;
+    if (!division || !Array.isArray(defaults) || !Array.isArray(selection)) {
+      return res.status(400).json({ success: false, error: 'Division, defaults, and selection are required' });
     }
-    const config = { defaults, selection };
-    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(config, null, 2));
+    
+    // Normalize all names to proper case
+    const normalizedDefaults = defaults.map(name => toProperCase(name));
+    const normalizedSelection = selection.map(name => toProperCase(name));
+    
+    // Load existing config or create new one
+    let fullConfig = {};
+    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
+      fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
+    }
+    
+    // Update division-specific config
+    fullConfig[division] = {
+      defaults: normalizedDefaults,
+      selection: normalizedSelection
+    };
+    
+    console.log('Saving division-specific sales rep config:', fullConfig);
+    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
     res.json({ success: true });
   } catch (error) {
+    console.error('Error saving sales rep config:', error);
     res.status(500).json({ success: false, error: 'Failed to save sales rep config' });
+  }
+});
+
+// Test Oracle ODBC endpoint (POST, accepts username and password)
+app.post('/api/test-oracle-data', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username and password are required.' });
+    }
+    const connectionString = `DSN=OracleClient;UID=${username};PWD=${password};`;
+    const connection = await odbc.connect(connectionString);
+    // Simple test query to check connection
+    const result = await connection.query('SELECT 1 AS TEST_COL FROM DUAL');
+    await connection.close();
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('Oracle ODBC error:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
