@@ -1,6 +1,7 @@
 {
   "chartVisibleColumns": [
-    "2019-January-Actual"
+    "2019-January-Actual",
+    "2020-January-Actual"
   ],
   "standardColumnSelection": [
     {
@@ -10,7 +11,18 @@
       "months": [
         "January"
       ],
-      "id": "2019-January-Actual"
+      "id": "2019-January-Actual",
+      "customColor": "boldContrast"
+    },
+    {
+      "year": "2020",
+      "month": "January",
+      "type": "Actual",
+      "months": [
+        "January"
+      ],
+      "id": "2020-January-Actual"
     }
-  ]
+  ],
+  "basePeriodIndex": 1
 }

@@ -447,7 +447,7 @@ function toProperCase(text) {
   });
 }
 
-// API endpoint to get sales reps from Masterdata sheet (column 2) - ONLY for FP division
+// API endpoint to get sales reps from S&V sheet (column A)
 app.get('/api/sales-reps', (req, res) => {
   try {
     const { division } = req.query;
@@ -461,9 +461,14 @@ app.get('/api/sales-reps', (req, res) => {
       return res.json({ success: true, data: [] });
     }
     const workbook = XLSX.readFile(salesFilePath);
-    const sheetName = `${division}-Volume`;
+    let sheetName = `${division}-S&V`;
     if (!workbook.SheetNames.includes(sheetName)) {
-      return res.json({ success: true, data: [] });
+      console.log(`Sheet ${sheetName} not found, falling back to ${division}-Volume`);
+      // Fallback to Volume sheet if S&V doesn't exist
+      if (!workbook.SheetNames.includes(`${division}-Volume`)) {
+        return res.json({ success: true, data: [] });
+      }
+      sheetName = `${division}-Volume`;
     }
     const worksheet = workbook.Sheets[sheetName];
     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -500,14 +505,19 @@ app.get('/api/sales-reps-defaults', (req, res) => {
       return res.status(400).json({ success: false, error: 'Division parameter is required' });
     }
     
-    let config = { defaults: [], selection: [] };
+    let config = { defaults: [], selection: [], groups: {} };
     
     if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
       const fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
       console.log('Loaded sales reps config from file:', fullConfig);
       
       // Get division-specific config or use empty arrays if division doesn't exist
-      config = fullConfig[division] || { defaults: [], selection: [] };
+      config = fullConfig[division] || { defaults: [], selection: [], groups: {} };
+      
+      // Ensure groups property exists
+      if (!config.groups) {
+        config.groups = {};
+      }
     } else {
       console.log('No sales reps config file found, using empty arrays');
     }
@@ -522,7 +532,7 @@ app.get('/api/sales-reps-defaults', (req, res) => {
 // POST: Update defaults and/or selection for specific division
 app.post('/api/sales-reps-defaults', (req, res) => {
   try {
-    const { division, defaults, selection } = req.body;
+    const { division, defaults, selection, groups } = req.body;
     if (!division || !Array.isArray(defaults) || !Array.isArray(selection)) {
       return res.status(400).json({ success: false, error: 'Division, defaults, and selection are required' });
     }
@@ -537,10 +547,15 @@ app.post('/api/sales-reps-defaults', (req, res) => {
       fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
     }
     
+    // Get existing division config or create new one
+    const existingDivisionConfig = fullConfig[division] || { defaults: [], selection: [], groups: {} };
+    
     // Update division-specific config
     fullConfig[division] = {
       defaults: normalizedDefaults,
-      selection: normalizedSelection
+      selection: normalizedSelection,
+      // Keep existing groups if not provided in request
+      groups: groups || existingDivisionConfig.groups || {}
     };
     
     console.log('Saving division-specific sales rep config:', fullConfig);
@@ -549,6 +564,108 @@ app.post('/api/sales-reps-defaults', (req, res) => {
   } catch (error) {
     console.error('Error saving sales rep config:', error);
     res.status(500).json({ success: false, error: 'Failed to save sales rep config' });
+  }
+});
+
+// POST: Create or update a sales rep group
+app.post('/api/sales-reps-group', (req, res) => {
+  try {
+    const { division, groupName, members } = req.body;
+    
+    if (!division || !groupName || !Array.isArray(members)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Division, groupName, and members array are required' 
+      });
+    }
+    
+    // Normalize group member names to proper case
+    const normalizedMembers = members.map(name => toProperCase(name));
+    
+    // Load existing config
+    let fullConfig = {};
+    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
+      fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
+    }
+    
+    // Ensure division exists in config
+    if (!fullConfig[division]) {
+      fullConfig[division] = { defaults: [], selection: [], groups: {} };
+    }
+    
+    // Ensure groups property exists
+    if (!fullConfig[division].groups) {
+      fullConfig[division].groups = {};
+    }
+    
+    // Add or update the group
+    fullConfig[division].groups[groupName] = normalizedMembers;
+    
+    // Save updated config
+    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: `Group '${groupName}' saved successfully`,
+      group: { name: groupName, members: normalizedMembers }
+    });
+  } catch (error) {
+    console.error('Error saving sales rep group:', error);
+    res.status(500).json({ success: false, error: 'Failed to save sales rep group' });
+  }
+});
+
+// DELETE: Remove a sales rep group
+app.delete('/api/sales-reps-group', (req, res) => {
+  try {
+    const { division, groupName } = req.query;
+    
+    if (!division || !groupName) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Division and groupName parameters are required' 
+      });
+    }
+    
+    // Load existing config
+    if (!fs.existsSync(SALES_REPS_CONFIG_PATH)) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Sales rep configuration not found' 
+      });
+    }
+    
+    const fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
+    
+    // Check if division exists
+    if (!fullConfig[division] || !fullConfig[division].groups) {
+      return res.status(404).json({ 
+        success: false, 
+        error: `No groups found for division '${division}'` 
+      });
+    }
+    
+    // Check if group exists
+    if (!fullConfig[division].groups[groupName]) {
+      return res.status(404).json({ 
+        success: false, 
+        error: `Group '${groupName}' not found in division '${division}'` 
+      });
+    }
+    
+    // Remove the group
+    delete fullConfig[division].groups[groupName];
+    
+    // Save updated config
+    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: `Group '${groupName}' deleted successfully` 
+    });
+  } catch (error) {
+    console.error('Error deleting sales rep group:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete sales rep group' });
   }
 });
 

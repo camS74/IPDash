@@ -41,6 +41,16 @@ const MasterData = () => {
   const [errorReps, setErrorReps] = useState(null);
   const [savingReps, setSavingReps] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  
+  // Sales Rep Groups state
+  const [salesRepGroups, setSalesRepGroups] = useState({});
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [savingGroup, setSavingGroup] = useState(false);
+  const [groupErrorMsg, setGroupErrorMsg] = useState('');
+  const [editingGroup, setEditingGroup] = useState(false);
+  const [originalGroupName, setOriginalGroupName] = useState('');
 
   // Material columns for the table
   const materialColumns = ['PE', 'BOPP', 'PET', 'Alu', 'Paper', 'PVC/PET'];
@@ -59,6 +69,7 @@ const MasterData = () => {
       setSalesReps([]);
       setSelectedReps([]);
       setDefaultReps([]);
+      setSalesRepGroups({});
       setErrorReps(null);
     }
     
@@ -76,6 +87,13 @@ const MasterData = () => {
             setSalesReps(repsRes.data);
             setDefaultReps(configRes.defaults);
             setSelectedReps(configRes.selection);
+            
+            // Set groups if they exist in the config
+            if (configRes.groups) {
+              setSalesRepGroups(configRes.groups);
+            } else {
+              setSalesRepGroups({});
+            }
           } else {
             setErrorReps('Failed to load sales reps/config');
           }
@@ -265,7 +283,8 @@ const MasterData = () => {
         body: JSON.stringify({ 
           division: divisionCode,
           defaults: currentSelected, // Use selectedReps as the defaults
-          selection: currentSelected 
+          selection: currentSelected,
+          groups: salesRepGroups // Include groups in the save
         })
       });
       const result = await res.json();
@@ -283,6 +302,136 @@ const MasterData = () => {
       setSavingReps(false);
       setTimeout(() => setSaveMsg(''), 2000);
     }
+  };
+  
+  // Create or update a sales rep group
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      setGroupErrorMsg('Group name is required');
+      return;
+    }
+    
+    if (groupMembers.length === 0) {
+      setGroupErrorMsg('Please select at least one sales representative');
+      return;
+    }
+    
+    setSavingGroup(true);
+    setGroupErrorMsg('');
+    
+    try {
+      // If we're editing and the name has changed, we need to delete the old group first
+      if (editingGroup && originalGroupName && originalGroupName !== newGroupName.trim()) {
+        // Delete the old group first
+        const deleteRes = await fetch(`/api/sales-reps-group?division=${divisionCode}&groupName=${encodeURIComponent(originalGroupName)}`, {
+          method: 'DELETE'
+        });
+        
+        const deleteResult = await deleteRes.json();
+        
+        if (!deleteResult.success) {
+          setGroupErrorMsg(deleteResult.error || 'Failed to update group name');
+          setSavingGroup(false);
+          return;
+        }
+      }
+      
+      // Create/update the group
+      const res = await fetch('/api/sales-reps-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          division: divisionCode,
+          groupName: newGroupName.trim(),
+          members: groupMembers
+        })
+      });
+      
+      const result = await res.json();
+      
+      if (result.success) {
+        // Update local state with the new/updated group
+        setSalesRepGroups(prev => {
+          const updatedGroups = { ...prev };
+          
+          // If we're editing and the name changed, remove the old group
+          if (editingGroup && originalGroupName && originalGroupName !== newGroupName.trim()) {
+            delete updatedGroups[originalGroupName];
+          }
+          
+          // Add/update the group with the new name and members
+          updatedGroups[newGroupName.trim()] = groupMembers;
+          
+          return updatedGroups;
+        });
+        
+        // Reset form
+        setNewGroupName('');
+        setGroupMembers([]);
+        setShowGroupModal(false);
+        setEditingGroup(false);
+        setOriginalGroupName('');
+      } else {
+        setGroupErrorMsg(result.error || `Failed to ${editingGroup ? 'update' : 'create'} group`);
+      }
+    } catch (error) {
+      console.error(`Error ${editingGroup ? 'updating' : 'creating'} sales rep group:`, error);
+      setGroupErrorMsg(`Failed to ${editingGroup ? 'update' : 'create'} group`);
+    } finally {
+      setSavingGroup(false);
+    }
+  };
+  
+  // Delete a sales rep group
+  const handleDeleteGroup = async (groupName) => {
+    if (!window.confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/sales-reps-group?division=${divisionCode}&groupName=${encodeURIComponent(groupName)}`, {
+        method: 'DELETE'
+      });
+      
+      const result = await res.json();
+      
+      if (result.success) {
+        // Remove the group from local state
+        const updatedGroups = { ...salesRepGroups };
+        delete updatedGroups[groupName];
+        setSalesRepGroups(updatedGroups);
+      } else {
+        window.alert(result.error || 'Failed to delete group');
+      }
+    } catch (error) {
+      console.error('Error deleting sales rep group:', error);
+      window.alert('Failed to delete group');
+    }
+  };
+  
+  // Add a group to the selected reps
+  const handleAddGroupToSelection = (groupName) => {
+    const groupMembers = salesRepGroups[groupName] || [];
+    
+    // Add all group members to selected reps if they're not already there
+    const updatedSelection = [...selectedReps];
+    
+    groupMembers.forEach(member => {
+      if (!updatedSelection.includes(member)) {
+        updatedSelection.push(member);
+      }
+    });
+    
+    setSelectedReps(updatedSelection);
+  };
+  
+  // Toggle a sales rep for group creation
+  const handleGroupMemberToggle = (rep) => {
+    setGroupMembers(prev => 
+      prev.includes(rep) 
+        ? prev.filter(member => member !== rep) 
+        : [...prev, rep]
+    );
   };
 
   // Helper function to convert text to proper case
@@ -477,6 +626,13 @@ const MasterData = () => {
                   <button onClick={handleSave} className="save-reps-btn" disabled={savingReps}>
                     {savingReps ? 'Saving...' : 'Save'}
                   </button>
+                  <button 
+                    onClick={() => setShowGroupModal(true)} 
+                    className="create-group-btn"
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Create Group
+                  </button>
                   {saveMsg && <span className="save-msg">{saveMsg}</span>}
                 </div>
                 {loadingReps && <div>Loading sales reps...</div>}
@@ -490,14 +646,151 @@ const MasterData = () => {
                         <p>Please configure sales representatives data for this division.</p>
                       </div>
                     ) : (
-                      <div className="sales-rep-list-grid">
-                        {chunkArray(salesReps, 10).map((col, colIdx) => (
-                          <ul className="sales-rep-list-col" key={colIdx}>
-                            {col.map(renderSalesRepItem)}
-                          </ul>
-                        ))}
-                      </div>
+                      <>
+                        {/* Sales Rep Groups Section */}
+                        {Object.keys(salesRepGroups).length > 0 && (
+                          <div className="sales-rep-groups-section">
+                            <h4>Sales Rep Groups</h4>
+                            <div className="sales-rep-groups-list">
+                              {Object.entries(salesRepGroups).map(([groupName, members]) => (
+                                <div key={groupName} className="sales-rep-group-item">
+                                  <div className="group-header">
+                                    <span className="group-name">{groupName}</span>
+                                    <span className="group-count">({members.length} members)</span>
+                                    <div className="group-actions">
+                                      <button 
+                                        onClick={() => handleAddGroupToSelection(groupName)}
+                                        className="add-group-btn"
+                                        title="Add all group members to selection"
+                                      >
+                                        Add to Selection
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          setNewGroupName(groupName);
+                                          setGroupMembers([...members]);
+                                          setEditingGroup(true);
+                                          setOriginalGroupName(groupName);
+                                          setShowGroupModal(true);
+                                        }}
+                                        className="edit-group-btn"
+                                        title="Edit this group"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteGroup(groupName)}
+                                        className="delete-group-btn"
+                                        title="Delete this group"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="group-members">
+                                    {members.map(member => (
+                                      <span key={member} className="group-member-name">
+                                        {toProperCase(member)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Individual Sales Reps Section */}
+                        <div className="sales-rep-list-grid">
+                          {chunkArray(salesReps, 10).map((col, colIdx) => (
+                            <ul className="sales-rep-list-col" key={colIdx}>
+                              {col.map(renderSalesRepItem)}
+                            </ul>
+                          ))}
+                        </div>
+                      </>
                     )}
+                    
+                    {/* Create/Edit Group Modal */}
+                                    {showGroupModal && (
+                                      <div className="modal-overlay">
+                                        <div className="modal-content">
+                                          <div className="modal-header">
+                                            <h3>{editingGroup ? 'Edit Sales Rep Group' : 'Create Sales Rep Group'}</h3>
+                                            <button 
+                                              onClick={() => {
+                                                setShowGroupModal(false);
+                                                setNewGroupName('');
+                                                setGroupMembers([]);
+                                                setGroupErrorMsg('');
+                                                setEditingGroup(false);
+                                                setOriginalGroupName('');
+                                              }}
+                                              className="close-modal-btn"
+                                            >
+                                              &times;
+                                            </button>
+                                          </div>
+                                          <div className="modal-body">
+                                            <div className="form-group">
+                                              <label htmlFor="groupName">Group Name:</label>
+                                              <input
+                                                type="text"
+                                                id="groupName"
+                                                value={newGroupName}
+                                                onChange={(e) => setNewGroupName(e.target.value)}
+                                                placeholder="Enter group name"
+                                              />
+                                            </div>
+                                            
+                                            <div className="form-group">
+                                              <label>Select Group Members:</label>
+                                              <div className="group-members-selection">
+                                                {salesReps.map(rep => (
+                                                  <div key={rep} className="group-member-checkbox">
+                                                    <label>
+                                                      <input
+                                                        type="checkbox"
+                                                        checked={groupMembers.includes(rep)}
+                                                        onChange={() => handleGroupMemberToggle(rep)}
+                                                      />
+                                                      {toProperCase(rep)}
+                                                    </label>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            
+                                            {groupErrorMsg && <div className="error-message">{groupErrorMsg}</div>}
+                                            
+                                            <div className="modal-actions">
+                                              <button 
+                                                onClick={handleCreateGroup}
+                                                disabled={savingGroup}
+                                                className="create-group-submit-btn"
+                                              >
+                                                {savingGroup 
+                                                  ? (editingGroup ? 'Updating...' : 'Creating...') 
+                                                  : (editingGroup ? 'Update Group' : 'Create Group')}
+                                              </button>
+                                              <button 
+                                                onClick={() => {
+                                                  setShowGroupModal(false);
+                                                  setNewGroupName('');
+                                                  setGroupMembers([]);
+                                                  setGroupErrorMsg('');
+                                                  setEditingGroup(false);
+                                                  setOriginalGroupName('');
+                                                }}
+                                                className="cancel-btn"
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                   </>
                 )}
               </>
@@ -513,4 +806,4 @@ const MasterData = () => {
   );
 };
 
-export default MasterData; 
+export default MasterData;

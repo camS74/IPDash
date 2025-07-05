@@ -1,0 +1,107 @@
+/* Sales by Sales Rep Table - Minimal grid style */
+
+.sales-rep-content .financial-table thead th {
+  border: none;
+  color: #222;
+  font-weight: bold;
+}
+
+.sales-rep-content .financial-table tbody td {
+  border: 1px solid #e0e0e0;
+  color: #222;
+}
+
+.sales-rep-content .financial-table tr.total-row td {
+  font-weight: bold;
+  color: #222;
+} 
+
+/* Delta column coloring for Sales by Sales Rep table */
+.sales-rep-content .financial-table td.delta-up {
+  color: #288cfa;
+  font-weight: bold;
+}
+.sales-rep-content .financial-table td.delta-down {
+  color: #d32f2f;
+  font-weight: bold;
+} 
+
+/* Sales Rep Table Title and Subtitle Styling */
+.sales-rep-title {
+  font-size: 2rem;
+  font-weight: bold;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  margin-bottom: 0.2em;
+  color: #222;
+}
+
+.sales-rep-subtitle {
+  font-size: 1.1rem;
+  font-style: italic;
+  color: #666;
+  margin-bottom: 1em;
+} 
+
+/* Product Group column fixed width - updated */
+.sales-rep-content .financial-table th.product-header,
+.sales-rep-content .financial-table td:first-child {
+  width: 220px;
+  min-width: 160px;
+  max-width: 260px;
+  text-align: left;
+}
+
+/* Center all other table cells (figures and deltas) */
+.sales-rep-content .financial-table th:not(.product-header),
+.sales-rep-content .financial-table td:not(:first-child) {
+  text-align: center;
+}
+
+/* Force center alignment for all table body cells except Product Group */
+.sales-rep-content .financial-table td:not(:first-child) {
+  text-align: center !important;
+}
+.sales-rep-content .financial-table td.metric-cell {
+  text-align: center !important;
+}
+
+/* Consistent font size and style for all table cells */
+.sales-rep-content .financial-table th,
+.sales-rep-content .financial-table td {
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+/* Period columns fixed width */
+.sales-rep-content .financial-table th:not(.product-header):not([rowspan]),
+.sales-rep-content .financial-table td.metric-cell:not(.delta-up):not(.delta-down) {
+  width: 120px;
+  min-width: 80px;
+  max-width: 140px;
+  text-align: right;
+}
+
+/* Delta columns fixed width */
+.sales-rep-content .financial-table th[rowspan="3"],
+.sales-rep-content .financial-table td.metric-cell.delta-up,
+.sales-rep-content .financial-table td.metric-cell.delta-down {
+  width: 90px;
+  min-width: 60px;
+  max-width: 110px;
+  text-align: right;
+}
+
+/* Table layout and centering */
+.sales-rep-content .financial-table {
+  table-layout: fixed;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.sales-rep-table-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+} 

@@ -1,10 +1,29 @@
 {
   "FP": {
     "defaults": [
-      "Abraham Mathew"
+      "Direct Sales",
+      "Direct Sales F&b",
+      "Harwal Company Limited",
+      "Sojy Jose Ukken",
+      "(Blank)",
+      "Christopher Dela Cruz"
     ],
     "selection": [
-      "Abraham Mathew"
-    ]
+      "Direct Sales",
+      "Direct Sales F&b",
+      "Harwal Company Limited",
+      "Sojy Jose Ukken",
+      "(Blank)",
+      "Christopher Dela Cruz"
+    ],
+    "groups": {
+      "Sojy & Direct Sales": [
+        "Direct Sales",
+        "Direct Sales F&b",
+        "Harwal Company Limited",
+        "Sojy Jose Ukken",
+        "(Blank)"
+      ]
+    }
   }
 }

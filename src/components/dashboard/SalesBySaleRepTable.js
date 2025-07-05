@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import TabsComponent, { Tab } from './TabsComponent';
 import { useFilter } from '../../contexts/FilterContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
-import './SalesBySaleRepTable.css';
-import './SalesRepTableCommon.css';
-import '../dashboard/ProductGroupTable.css'; // Reuse main table CSS
+import { useSalesData } from '../../contexts/SalesDataContext';
+import './SalesBySalesRepTable.css'; // Use dedicated CSS file
 
 // Color schemes and getColumnHeaderStyle copied from ProductGroupTable.js
 const colorSchemes = [
@@ -82,8 +81,10 @@ const SalesBySaleRepTable = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedVariable, setSelectedVariable] = useState('Kgs');
+  const [salesRepGroups, setSalesRepGroups] = useState({});
   const { columnOrder, dataGenerated } = useFilter();
-  const { selectedDivision, excelData } = useExcelData();
+  const { selectedDivision } = useExcelData();
+  const { salesData } = useSalesData();
 
   // Helper function to convert text to proper case
   const toProperCase = (text) => {
@@ -105,6 +106,8 @@ const SalesBySaleRepTable = () => {
         if (result.success) {
           const reps = Array.isArray(result.defaults) ? result.defaults : [];
           setDefaultReps(reps);
+          // Store the groups data
+          setSalesRepGroups(result.groups || {});
         } else {
           setError('Failed to load sales rep defaults');
         }
@@ -127,96 +130,181 @@ const SalesBySaleRepTable = () => {
     }
   });
 
+  // Get unique product groups from S&V sheet for a sales rep or group
+  const getUniqueProductGroups = (rep) => {
+    // Check if this rep is actually a group
+    const isGroup = salesRepGroups && Object.keys(salesRepGroups).includes(rep);
+    const groupMembers = isGroup ? salesRepGroups[rep] : [];
+    
+    // Always use the S&V sheet for the division
+    let sheetName = '';
+    if (selectedDivision === 'FP') sheetName = 'FP-S&V';
+    else if (selectedDivision === 'SB') sheetName = 'SB-S&V';
+    else if (selectedDivision === 'TF') sheetName = 'TF-S&V';
+    else if (selectedDivision === 'HCM') sheetName = 'HCM-S&V';
+    else sheetName = selectedDivision + '-S&V';
+    
+    const sheetData = salesData[sheetName] || [];
+    
+    // Data starts from row 3 (skip 3 header rows), process all data rows
+    const dataRows = sheetData.slice(3); // All data rows
+    
+    // Filter by sales rep (column A) and ledger type (column E based on selectedVariable)
+    const filteredRows = dataRows.filter(row => {
+      // Check sales rep match with case-insensitive comparison
+      const rowRep = (row[0] || '').trim().toLowerCase();
+      const repMatches = isGroup
+        ? groupMembers.some(member => rowRep === (member || '').trim().toLowerCase())
+        : rowRep === (rep || '').trim().toLowerCase();
+      
+      // Check ledger type match (column E, index 4) with case-insensitive comparison
+      const ledgerMatches = (row[4] || '').toLowerCase() === selectedVariable.toLowerCase();
+      
+      return repMatches && ledgerMatches;
+    });
+    
+    // Extract unique product groups from column D (index 3) for S&V sheet
+    const productGroups = Array.from(new Set(
+      filteredRows.map(row => row[3]) // Product Group in column D (index 3)
+    )).filter(Boolean);
+    
+    return productGroups;
+  };
+  
   // Extract product group data for a given sales rep
   const getProductGroupDataForRep = (rep) => {
-    // Use the correct sheet for the division (e.g., 'FP-Volume')
+    // Check if this rep is actually a group
+    const isGroup = salesRepGroups && Object.keys(salesRepGroups).includes(rep);
+    const groupMembers = isGroup ? salesRepGroups[rep] : [];
+    
+    // Use the S&V sheet for the division
     let sheetName = '';
-    if (selectedDivision === 'FP') sheetName = 'FP-Volume';
-    else if (selectedDivision === 'SB') sheetName = 'SB-Volume';
-    else if (selectedDivision === 'TF') sheetName = 'TF-Volume';
-    else if (selectedDivision === 'HCM') sheetName = 'HCM-Volume';
-    else sheetName = selectedDivision + '-Volume';
-    const sheetData = excelData[sheetName] || [];
-    // DEBUG: Print all available sheet names in excelData
-    console.log('[DEBUG] Sheet names in excelData:', Object.keys(excelData));
-    // DEBUG: Print first 5 rows of the selected sheet
-    console.log(`[DEBUG] First 5 rows of sheet ${sheetName}:`, (sheetData || []).slice(0, 5));
-    // Data starts from row 3 (skip 3 header rows)
-    const dataRows = sheetData.slice(3);
-    // DEBUG: Print all unique sales rep names in the data
-    const allSalesReps = Array.from(new Set(dataRows.map(row => row[0])));
-    console.log('[DEBUG] All sales reps in data:', allSalesReps);
-    // DEBUG: Print all rows for Abraham Mathew, Kgs, 2019 January Actual
-    if (rep === 'Abraham Mathew' && selectedVariable === 'Kgs') {
-      dataRows.forEach(row => {
-        const salesRep = row[0];
-        const productGroup = row[1];
-        const ledger = row[6];
-        const value = row[7]; // 2019 January Actual
-        if (salesRep === 'Abraham Mathew' && ledger === 'Kgs') {
-          console.log(`[DEBUG] Row: Rep=${salesRep}, Group=${productGroup}, Ledger=${ledger}, Value=${value}`);
-        }
-      });
-    }
-    // Find all product groups for this rep and selected variable
-    const productGroups = Array.from(new Set(
-      dataRows
-        .filter(row => row[0] === rep && row[6] === selectedVariable) // Sales Rep in A (0), Ledger in G (6)
-        .map(row => row[1]) // Product Group in B (1)
-    )).filter(Boolean);
+    if (selectedDivision === 'FP') sheetName = 'FP-S&V';
+    else if (selectedDivision === 'SB') sheetName = 'SB-S&V';
+    else if (selectedDivision === 'TF') sheetName = 'TF-S&V';
+    else if (selectedDivision === 'HCM') sheetName = 'HCM-S&V';
+    else sheetName = selectedDivision + '-S&V';
+    const sheetData = salesData[sheetName] || [];
+    
+    // Data starts from row 3 (skip 3 header rows), process all data rows
+    const dataRows = sheetData.slice(3); // All data rows
+    
+    // Filtered rows for this rep/group and ledger type
+    const filteredRows = dataRows.filter(row => {
+      const rowRep = (row[0] || '').trim().toLowerCase();
+      const repMatches = isGroup
+        ? groupMembers.some(member => rowRep === (member || '').trim().toLowerCase())
+        : rowRep === (rep || '').trim().toLowerCase();
+      const ledgerMatches = (row[4] || '').toLowerCase() === selectedVariable.toLowerCase();
+      return repMatches && ledgerMatches;
+    });
+    // Get unique product groups for this rep or group
+    const productGroups = Array.from(new Set(filteredRows.map(row => row[3]))).filter(Boolean);
+    
     // For each product group, sum values for each period/column (pivot logic)
-    return productGroups
+    // Sort product groups alphabetically, but always place 'Others' last
+    const sortedProductGroups = productGroups
+      .filter(g => g !== 'Others')
+      .sort((a, b) => a.localeCompare(b));
+    if (productGroups.includes('Others')) sortedProductGroups.push('Others');
+    return sortedProductGroups
       .map(group => {
-        const values = extendedColumns.map(col => {
-          if (col.columnType === 'delta') {
-            const fromVal = sumForPeriod(dataRows, rep, group, selectedVariable, col.fromColumn);
-            const toVal = sumForPeriod(dataRows, rep, group, selectedVariable, col.toColumn);
-            if (fromVal === 0 || isNaN(fromVal) || isNaN(toVal)) return '';
-            const delta = ((toVal - fromVal) / fromVal) * 100;
-            if (isNaN(delta) || !isFinite(delta)) return '';
-            return `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.abs(delta).toFixed(1)}%`;
-          } else {
-            // For normal period columns
-            // Find the column index for this period
-            const colIdx = col.columnIndex;
-            // Sum all matching rows for this rep, group, variable, and period
-            const sum = dataRows.reduce((acc, row) => {
-              if (
-                row[0] === rep &&
-                row[1] === group &&
-                row[6] === selectedVariable &&
-                !isNaN(Number(row[colIdx])) &&
-                row[colIdx] !== ''
-              ) {
-                return acc + Number(row[colIdx]);
-              }
-              return acc;
-            }, 0);
-            // DEBUG: Print sum for each product group and period
-            if (rep === 'Abraham Mathew' && selectedVariable === 'Kgs') {
-              console.log(`[DEBUG] SUM: Rep=${rep}, Group=${group}, Period=${col.headerLabel} => SUM=${sum}`);
-            }
-            return sum === 0 ? '' : sum;
-          }
+        // First, build the array of period values (data columns only)
+        const periodValues = columnOrder.map(col => {
+          const sum = sumForPeriod(dataRows, rep, group, selectedVariable, col, isGroup, groupMembers, sheetData);
+          if (sum === 0) return '';
+          return typeof sum === 'number' ? sum.toLocaleString('en-US', { maximumFractionDigits: 0 }) : sum;
         });
-        const hasNonzero = values.some(v => v !== '' && v !== 0 && v !== '0');
+        // Now, build the full values array with deltas in between
+        const values = [];
+        for (let i = 0; i < periodValues.length; i++) {
+          values.push(periodValues[i]);
+          if (i < periodValues.length - 1) {
+            // Calculate delta from periodValues[i] and periodValues[i+1]
+            const left = parseFloat((periodValues[i] || '').toString().replace(/,/g, ''));
+            const right = parseFloat((periodValues[i+1] || '').toString().replace(/,/g, ''));
+            if (!isNaN(left) && !isNaN(right) && left !== 0) {
+              const delta = ((right - left) / left) * 100;
+              let deltaStr = '';
+              if (Math.abs(delta) >= 100) {
+                deltaStr = `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.round(Math.abs(delta))}%`;
+              } else {
+                deltaStr = `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.abs(delta).toFixed(1)}%`;
+              }
+              values.push(deltaStr);
+            } else {
+              values.push('-');
+            }
+          }
+        }
+        const hasNonzero = periodValues.some(v => v !== '' && v !== 0 && v !== '0');
         return hasNonzero ? { name: group, values } : null;
       })
       .filter(Boolean);
   };
 
+  // Helper function to find column index for a period in S&V sheet
+  const findColumnIndex = (sheetData, column) => {
+    if (!sheetData || sheetData.length < 3) return -1;
+    
+    // Determine which months to include based on selected period
+    let monthsToInclude = [];
+    if (column.months && Array.isArray(column.months)) {
+      monthsToInclude = column.months;
+    } else {
+      if (column.month === 'Q1') {
+        monthsToInclude = ['January', 'February', 'March'];
+      } else if (column.month === 'Q2') {
+        monthsToInclude = ['April', 'May', 'June'];
+      } else if (column.month === 'Q3') {
+        monthsToInclude = ['July', 'August', 'September'];
+      } else if (column.month === 'Q4') {
+        monthsToInclude = ['October', 'November', 'December'];
+      } else if (column.month === 'Year') {
+        monthsToInclude = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+      } else {
+        monthsToInclude = [column.month];
+      }
+    }
+    
+    // Find matching column by checking header rows
+    for (let c = 5; c < sheetData[0].length; c++) { // Start from column F (index 5)
+      const cellYear = sheetData[0] && sheetData[0][c];
+      const cellMonth = sheetData[1] && sheetData[1][c];
+      const cellType = sheetData[2] && sheetData[2][c];
+      
+      if (
+        cellYear == column.year &&
+        monthsToInclude.includes(cellMonth) &&
+        cellType === column.type
+      ) {
+        return c; // Return the first matching column index
+      }
+    }
+    
+    return -1; // No matching column found
+  };
+
   // Helper to sum values for a period column config (pivot logic)
-  const sumForPeriod = (dataRows, rep, group, variable, col) => {
-    // Find the correct column index for the period (year, month, type)
-    // Period columns start from H (index 7)
-    const idx = col.columnIndex;
-    if (idx === -1) return 0; // Handle cases where columnIndex is not available
-    // Sum all rows matching rep, group, variable
-    return dataRows.filter(row =>
-      row[0] === rep &&
-      row[1] === group &&
-      row[6] === variable
-    ).reduce((sum, row) => {
+  const sumForPeriod = (dataRows, rep, group, variable, col, isGroup, groupMembers, sheetData) => {
+    
+    // Find the correct column index for the period dynamically
+    const idx = findColumnIndex(sheetData, col);
+    if (idx === -1) return 0; // Handle cases where column is not found
+    
+    // Sum all rows matching rep, group, variable using S&V sheet structure
+    return dataRows.filter(row => {
+      // For groups, check if the row's sales rep is in the group members with case-insensitive comparison
+      const rowRep = (row[0] || '').trim().toLowerCase();
+      const repMatches = isGroup
+        ? groupMembers.some(member => rowRep === (member || '').trim().toLowerCase())
+        : rowRep === (rep || '').trim().toLowerCase();
+      // Use column D (index 3) for product group and column E (index 4) for ledger type with case-insensitive comparison
+      return repMatches && row[3] === group && (row[4] || '').toLowerCase() === variable.toLowerCase();
+    }).reduce((sum, row) => {
       const val = row[idx];
       if (val !== undefined && val !== null && !isNaN(parseFloat(val))) {
         return sum + parseFloat(val);
@@ -225,74 +313,75 @@ const SalesBySaleRepTable = () => {
     }, 0);
   };
 
-  // Render table header rows based on extendedColumns (EXACT MATCH to ProductGroupTable)
+  // Add getCellBackgroundColor function (copied from ProductGroupTable.js)
+  const getCellBackgroundColor = (column) => {
+    if (column.customColor) {
+      const scheme = colorSchemes.find(s => s.name === column.customColor);
+      if (scheme) {
+        return scheme.light;
+      }
+    }
+    if (column.month === 'Q1' || column.month === 'Q2' || column.month === 'Q3' || column.month === 'Q4') {
+      return colorSchemes.find(s => s.name === 'orange').light;
+    } else if (column.month === 'January') {
+      return colorSchemes.find(s => s.name === 'yellow').light;
+    } else if (column.month === 'Year') {
+      return colorSchemes.find(s => s.name === 'blue').light;
+    } else if (column.type === 'Budget') {
+      return colorSchemes.find(s => s.name === 'green').light;
+    }
+    return colorSchemes.find(s => s.name === 'blue').light;
+  };
+
+  // Render table header rows with merged delta headers
   const renderTableHeader = () => (
     <thead>
       <tr className="main-header-row">
-        <th className="product-header" rowSpan={3} style={{ verticalAlign: 'middle', textAlign: 'center' }}>Product Group</th>
-        {extendedColumns.map((col, idx) =>
-          col.columnType === 'delta' ? (
-            <th
-              key={`delta-${idx}`}
-              rowSpan="3"
-              style={{
-                backgroundColor: '#f8f9fa',
-                color: '#000000',
-                fontWeight: 'bold',
-                fontSize: '18px',
-                textAlign: 'center',
-                verticalAlign: 'middle',
-                padding: '8px 4px'
-              }}
-            >
-              <div style={{ lineHeight: '1.1' }}>
-                <div style={{ fontSize: '12px' }}>Δ</div>
-              </div>
-            </th>
-          ) : (
-            <th
-              key={`year-${idx}`}
-              style={getColumnHeaderStyle(col)}
-            >
-              {col.year}
-            </th>
-          )
-        )}
+        <th className="product-header" rowSpan={3}>Product Group</th>
+        {extendedColumns.map((col, idx) => {
+          if (col.columnType === 'delta') {
+            // Merge 3 rows for delta columns
+            return <th key={`delta-${idx}`} rowSpan={3}>Difference</th>;
+          }
+          return <th key={`year-${idx}`}>{col.year}</th>;
+        })}
       </tr>
       <tr>
-        {extendedColumns.map((col, idx) =>
-          col.columnType === 'delta' ? null : (
-            <th
-              key={`month-${idx}`}
-              style={getColumnHeaderStyle(col)}
-            >
-              {col.isCustomRange ? col.displayName : col.month}
-            </th>
-          )
-        ).filter(Boolean)}
+        {extendedColumns.map((col, idx) => {
+          if (col.columnType === 'delta') return null;
+          return <th key={`month-${idx}`}>{col.isCustomRange ? col.displayName : col.month}</th>;
+        })}
       </tr>
       <tr>
-        {extendedColumns.map((col, idx) =>
-          col.columnType === 'delta' ? null : (
-            <th
-              key={`type-${idx}`}
-              style={getColumnHeaderStyle(col)}
-            >
-              {col.type}
-            </th>
-          )
-        ).filter(Boolean)}
+        {extendedColumns.map((col, idx) => {
+          if (col.columnType === 'delta') return null;
+          return <th key={`type-${idx}`}>{col.type}</th>;
+        })}
       </tr>
     </thead>
   );
 
-  if (loading) return <div>Loading sales rep data...</div>;
-  if (error) return <div className="error">{error}</div>;
-  if (defaultReps.length === 0) return <div>No sales reps configured. Please select sales reps in Master Data tab.</div>;
+  if (loading) return (
+    <div className="sales-rep-table-container">
+      <div className="table-empty-state">Loading sales rep data...</div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="sales-rep-table-container">
+      <div className="table-empty-state" style={{ color: '#d84315' }}>{error}</div>
+    </div>
+  );
+  
+  if (defaultReps.length === 0) return (
+    <div className="sales-rep-table-container">
+      <div className="table-empty-state">No sales reps configured. Please select sales reps in Master Data tab.</div>
+    </div>
+  );
   if (!dataGenerated) {
     return (
-      <div className="table-view">
-        <h3>Sales Rep Product Group Table</h3>
+      <div className="sales-rep-table-container">
+        <h3 className="table-title">Sales Rep Product Group Table</h3>
         <div className="table-empty-state">
           <p>Please select columns and click the Generate button to view sales rep product group data.</p>
         </div>
@@ -300,10 +389,33 @@ const SalesBySaleRepTable = () => {
     );
   }
 
+  // Filter out sales reps that are already part of a group
+  const getFilteredReps = () => {
+    // If no groups exist, just return all default reps
+    if (!salesRepGroups || Object.keys(salesRepGroups).length === 0) {
+      return defaultReps;
+    }
+
+    // Create a set of all sales reps that are members of any group
+    const groupMembers = new Set();
+    Object.values(salesRepGroups).forEach(members => {
+      members.forEach(member => groupMembers.add(member));
+    });
+
+    // Get all group names
+    const groupNames = Object.keys(salesRepGroups);
+
+    // Return only reps that are not members of any group
+    const filteredReps = defaultReps.filter(rep => !groupMembers.has(rep));
+    
+    // Add all group names to the filtered list
+    return [...filteredReps, ...groupNames];
+  };
+
   return (
-    <div className="sales-rep-table-container product-group-table-container">
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-        <label style={{ marginRight: 8, fontWeight: 600 }}>Variable:</label>
+    <div className="sales-rep-table-container">
+      <div className="sales-rep-variable-selector">
+        <label>Variable:</label>
         <select value={selectedVariable} onChange={e => setSelectedVariable(e.target.value)}>
           {variableOptions.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -311,24 +423,87 @@ const SalesBySaleRepTable = () => {
         </select>
       </div>
       <TabsComponent>
-        {defaultReps.map(rep => {
+        {getFilteredReps().map(rep => {
           const productGroupData = getProductGroupDataForRep(rep);
+          // Check if this rep is a group
+          const isGroup = salesRepGroups && Object.keys(salesRepGroups).includes(rep);
           return (
           <Tab key={rep} label={toProperCase(rep)}>
             <div className="sales-rep-content">
-              <div style={{ fontWeight: 'bold', fontSize: 22, marginBottom: 6 }}>{toProperCase(rep)}</div>
-                <div style={{ fontSize: 16, color: '#555', marginBottom: 18 }}>Sales {selectedVariable} Comparison</div>
-                <table className="financial-table product-group-table">
+              <div className="sales-rep-title">
+                {toProperCase(rep)}
+              </div>
+              <div className="sales-rep-subtitle">Sales {selectedVariable} Comparison</div>
+              <table className="financial-table">
                 {renderTableHeader()}
                 <tbody>
                     {productGroupData.map(pg => (
                       <tr key={pg.name} className="product-header-row">
                         <td className="row-label product-header">{pg.name}</td>
-                        {pg.values.map((val, idx) => (
-                          <td key={idx} className="metric-cell">{val}</td>
-                        ))}
+                        {pg.values.map((val, idx) => {
+                          const col = extendedColumns[idx];
+                          if (col.columnType === 'delta') {
+                            let deltaClass = '';
+                            if (typeof val === 'string') {
+                              if (val.includes('▲')) deltaClass = 'delta-up';
+                              else if (val.includes('▼')) deltaClass = 'delta-down';
+                            }
+                            return <td key={idx} className={`metric-cell ${deltaClass}`}>{val}</td>;
+                          }
+                          return <td key={idx} className="metric-cell">{val}</td>;
+                        })}
                       </tr>
                     ))}
+                    {/* Total row at the end */}
+                    <tr className="total-row">
+                      <td className="row-label total-label">Total</td>
+                      {(() => {
+                        // Build total values for each period
+                        const totalPeriodValues = columnOrder.map((col, idx) => {
+                          let total = 0;
+                          productGroupData.forEach(pg => {
+                            const val = pg.values[idx * 2]; // period columns are at even indices
+                            if (typeof val === 'string') {
+                              const num = parseFloat(val.replace(/,/g, ''));
+                              if (!isNaN(num)) total += num;
+                            } else if (typeof val === 'number') {
+                              total += val;
+                            }
+                          });
+                          return total !== 0 ? total : '';
+                        });
+                        // Now, build total row with deltas
+                        const totalCells = [];
+                        for (let i = 0; i < totalPeriodValues.length; i++) {
+                          totalCells.push(
+                            <td key={`total-${i}`} className="metric-cell">{totalPeriodValues[i] !== '' ? totalPeriodValues[i].toLocaleString('en-US', { maximumFractionDigits: 0 }) : ''}</td>
+                          );
+                          if (i < totalPeriodValues.length - 1) {
+                            const left = parseFloat(totalPeriodValues[i] || '');
+                            const right = parseFloat(totalPeriodValues[i+1] || '');
+                            let deltaCell = '-';
+                            if (!isNaN(left) && !isNaN(right) && left !== 0) {
+                              const delta = ((right - left) / left) * 100;
+                              if (Math.abs(delta) >= 100) {
+                                deltaCell = `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.round(Math.abs(delta))}%`;
+                              } else {
+                                deltaCell = `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.abs(delta).toFixed(1)}%`;
+                              }
+                            }
+                            // Add color class for delta
+                            let deltaClass = '';
+                            if (typeof deltaCell === 'string') {
+                              if (deltaCell.includes('▲')) deltaClass = 'delta-up';
+                              else if (deltaCell.includes('▼')) deltaClass = 'delta-down';
+                            }
+                            totalCells.push(
+                              <td key={`total-delta-${i}`} className={`metric-cell ${deltaClass}`}>{deltaCell}</td>
+                            );
+                          }
+                        }
+                        return totalCells;
+                      })()}
+                    </tr>
                 </tbody>
               </table>
             </div>
@@ -340,4 +515,4 @@ const SalesBySaleRepTable = () => {
   );
 };
 
-export default SalesBySaleRepTable; 
+export default SalesBySaleRepTable;

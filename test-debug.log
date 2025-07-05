@@ -1,0 +1,102 @@
+Starting test debug log
+Running tests for getUniqueProductGroups function...
+
+--- TEST 1: Individual rep with Kgs selected ---
+
+=== DEBUG INFO ===
+Rep: Christopher Dela Cruz
+Selected Variable: Kgs
+Selected Division: FP
+Is Group: false
+Using Sheet: FP-S&V
+Sheet Data Length: 9
+Data Rows Length: 6
+Rows for this rep: 3
+Sample row: ["Christopher Dela Cruz","Product Group A","Some Value","PG-A Category","Other","Other","Kgs",100]
+Using Column D (index 3): true
+Values from Column D (index 3):
+  Row 0: PG-A Category
+  Row 1: PG-B Category
+  Row 2: PG-F Category
+=== END DEBUG INFO ===
+
+Expected: ["PG-A Category", "PG-B Category"]
+Actual: ["PG-A Category","PG-B Category"]
+Test 1 passed: true
+
+--- TEST 2: Individual rep with Amount selected ---
+
+=== DEBUG INFO ===
+Rep: Christopher Dela Cruz
+Selected Variable: Amount
+Selected Division: FP
+Is Group: false
+Using Sheet: FP-S&V
+Sheet Data Length: 9
+Data Rows Length: 6
+Rows for this rep: 3
+Sample row: ["Christopher Dela Cruz","Product Group A","Some Value","PG-A Category","Other","Other","Kgs",100]
+Using Column D (index 3): false
+Values from Column B (index 1):
+  Row 0: Product Group A
+  Row 1: Product Group B
+  Row 2: Product Group F
+=== END DEBUG INFO ===
+
+Expected: ["Volume Product A", "Volume Product B", "Volume Product F"]
+Actual: ["Volume Product A","Volume Product B","Volume Product F"]
+Test 2 passed: true
+
+--- TEST 3: Group rep with Kgs selected ---
+
+=== DEBUG INFO ===
+Rep: Riad & Nidal
+Selected Variable: Kgs
+Selected Division: FP
+Is Group: true
+Group Members: ["Riad Al Zier","Nidal Hanan"]
+Using Sheet: FP-S&V
+Sheet Data Length: 9
+Data Rows Length: 6
+Rows for this rep: 1
+Sample row: ["Riad Al Zier","Product Group E","Some Value","PG-E Category","Other","Other","Kgs",500]
+Using Column D (index 3): true
+Values from Column D (index 3):
+  Row 0: PG-E Category
+=== END DEBUG INFO ===
+
+Expected: ["PG-E Category"]
+Actual: ["PG-E Category"]
+Test 3 passed: true
+
+--- TEST 4: Missing S&V sheet (fallback to Volume) ---
+
+=== DEBUG INFO ===
+Rep: Christopher Dela Cruz
+Selected Variable: Kgs
+Selected Division: FP
+Is Group: false
+Sheet FP-S&V not found, falling back to FP-Volume
+Using Sheet: FP-Volume
+Sheet Data Length: 9
+Data Rows Length: 6
+Rows for this rep: 3
+Sample row: ["Christopher Dela Cruz","Volume Product A","Some Value","Other","Other","Other","Kgs",100]
+Using Column D (index 3): false
+Values from Column B (index 1):
+  Row 0: Volume Product A
+  Row 1: Volume Product B
+  Row 2: Volume Product F
+=== END DEBUG INFO ===
+
+Expected: ["Volume Product A", "Volume Product B"]
+Actual: ["Volume Product A","Volume Product B"]
+Test 4 passed: true
+
+=== TEST SUMMARY ===
+Test 1 (Individual rep with Kgs): PASSED
+Test 2 (Individual rep with Amount): PASSED
+Test 3 (Group rep with Kgs): PASSED
+Test 4 (Missing S&V sheet): PASSED
+
+OVERALL RESULT: ALL TESTS PASSED

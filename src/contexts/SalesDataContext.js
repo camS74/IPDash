@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
+import { getUniqueProductGroups } from './getUniqueProductGroups';
 
 const SalesDataContext = createContext();
 
@@ -130,6 +131,11 @@ export const SalesDataProvider = ({ children }) => {
     return productGroups;
   }, [salesData, selectedDivision]);
 
+  // Function to get unique product groups for a specific sales rep and variable
+  const getUniqueProductGroupsForRep = useCallback((rep, selectedVariable, divisionCode, salesRepGroups) => {
+    return getUniqueProductGroups(rep, selectedVariable, divisionCode, salesData, salesRepGroups);
+  }, [salesData]);
+
   const value = {
     salesData,
     divisions,
@@ -139,7 +145,8 @@ export const SalesDataProvider = ({ children }) => {
     error,
     dataLoaded,
     loadSalesData,
-    getProductGroups
+    getProductGroups,
+    getUniqueProductGroupsForRep
   };
 
   return (
@@ -147,4 +154,4 @@ export const SalesDataProvider = ({ children }) => {
       {children}
     </SalesDataContext.Provider>
   );
-}; 
+};

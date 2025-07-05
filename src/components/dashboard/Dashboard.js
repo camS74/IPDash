@@ -75,8 +75,6 @@ const Dashboard = () => {
     setChartExportFunction(() => exportData.exportFunction);
   }, []);
   
-  console.log('Dashboard render state:', { loading, error, selectedDivision });
-  
   if (loading || salesLoading) {
     return <div className="loading">Loading Excel data...</div>;
   }
@@ -93,7 +91,6 @@ const Dashboard = () => {
           alt="Interplast Logo" 
           className="dashboard-logo"
           onError={() => {
-            console.log('PNG logo failed, switching to embedded SVG');
             setLogoSrc(INTERPLAST_LOGO_SVG);
           }}
         />

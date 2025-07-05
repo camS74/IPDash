@@ -95,12 +95,6 @@ const KPIExecutiveSummary = () => {
   let productKgs = [];
   let productMoRM = [];
   
-  console.log('KPI Debug - selectedDivision:', selectedDivision);
-  console.log('KPI Debug - productSheetName:', productSheetName);
-  console.log('KPI Debug - productData length:', productData.length);
-  console.log('KPI Debug - basePeriod:', basePeriod);
-  console.log('KPI Debug - salesData keys:', Object.keys(salesData));
-  
   if (productData.length > 0 && basePeriod) {
     // Process all product rows to extract data
     for (let row = 3; row < productData.length; row++) {
