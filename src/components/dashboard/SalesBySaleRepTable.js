@@ -5,72 +5,6 @@ import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import './SalesBySalesRepTable.css'; // Use dedicated CSS file
 
-// Color schemes and getColumnHeaderStyle copied from ProductGroupTable.js
-const colorSchemes = [
-  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', light: '#E3F2FD', isDark: true },
-  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', light: '#E8F5E9', isDark: true },
-  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', light: '#FFFDE7', isDark: false },
-  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', light: '#FFF3E0', isDark: false },
-  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#E6EEF5', light: '#E6EEF5', isDark: true }
-];
-
-const getColumnHeaderStyle = (column) => {
-  if (!column) {
-    return {
-      backgroundColor: '#288cfa',
-      color: '#FFFFFF',
-      fontWeight: 'bold',
-      textAlign: 'center'
-    };
-  }
-  if (column.customColor) {
-    const scheme = colorSchemes.find(s => s.name === column.customColor);
-    if (scheme) {
-      return {
-        backgroundColor: scheme.primary,
-        color: scheme.isDark ? '#FFFFFF' : '#000000',
-        fontWeight: 'bold',
-        textAlign: 'center'
-      };
-    }
-  }
-  if (column.month === 'Q1' || column.month === 'Q2' || column.month === 'Q3' || column.month === 'Q4') {
-    return {
-      backgroundColor: '#FF6B35',
-      color: '#000000',
-      fontWeight: 'bold',
-      textAlign: 'center'
-    };
-  } else if (column.month === 'January') {
-    return {
-      backgroundColor: '#FFD700',
-      color: '#000000',
-      fontWeight: 'bold',
-      textAlign: 'center'
-    };
-  } else if (column.month === 'Year') {
-    return {
-      backgroundColor: '#288cfa',
-      color: '#FFFFFF',
-      fontWeight: 'bold',
-      textAlign: 'center'
-    };
-  } else if (column.type === 'Budget') {
-    return {
-      backgroundColor: '#2E865F',
-      color: '#FFFFFF',
-      fontWeight: 'bold',
-      textAlign: 'center'
-    };
-  }
-  return {
-    backgroundColor: '#288cfa',
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center'
-  };
-};
-
 const variableOptions = [
   { value: 'Kgs', label: 'Kgs' },
   { value: 'Amount', label: 'Amount' }
@@ -313,24 +247,105 @@ const SalesBySaleRepTable = () => {
     }, 0);
   };
 
-  // Add getCellBackgroundColor function (copied from ProductGroupTable.js)
+  // Function to determine text color based on background brightness
+  const getTextColor = (backgroundColor) => {
+    // Convert hex to RGB
+    const hex = backgroundColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calculate relative luminance using perceived brightness formula
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // Return white for dark backgrounds, black for light backgrounds
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  };
+
+  // Get column style based on the column configuration
+  const getColumnHeaderStyle = (column) => {
+    const baseStyle = {
+      fontWeight: 'bold',
+      textAlign: 'center'
+    };
+
+    // For delta columns, always return white background
+    if (!column || column.columnType === 'delta') {
+      return {
+        ...baseStyle,
+        backgroundColor: '#FFFFFF',
+        color: '#000000',
+        borderBottom: '1px solid #ddd'
+      };
+    }
+
+    // Use the exact same color as defined in the column configuration
+    const backgroundColor = column.customColor ? 
+      getComputedStyle(document.documentElement)
+        .getPropertyValue(`--color-${column.customColor}-primary`).trim() : 
+      '#4a90e2';
+
+    return {
+      ...baseStyle,
+      backgroundColor,
+      color: getTextColor(backgroundColor)
+    };
+  };
+
+  // Get cell style based on whether it's a delta column
+  const getCellStyle = (isTotal, isDelta) => {
+    if (isDelta) {
+      return {
+        backgroundColor: '#FFFFFF',
+        color: '#000000'
+      };
+    }
+    
+    if (isTotal) {
+      return {
+        backgroundColor: '#4a90e2',
+        color: '#FFFFFF' // Since #4a90e2 is dark enough for white text
+      };
+    }
+    
+    return {};
+  };
+
+  // Get cell background color based on column configuration
   const getCellBackgroundColor = (column) => {
+    if (!column) return '#FFFFFF';
+    
     if (column.customColor) {
-      const scheme = colorSchemes.find(s => s.name === column.customColor);
-      if (scheme) {
-        return scheme.light;
-      }
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(`--color-${column.customColor}-secondary`).trim();
     }
-    if (column.month === 'Q1' || column.month === 'Q2' || column.month === 'Q3' || column.month === 'Q4') {
-      return colorSchemes.find(s => s.name === 'orange').light;
-    } else if (column.month === 'January') {
-      return colorSchemes.find(s => s.name === 'yellow').light;
-    } else if (column.month === 'Year') {
-      return colorSchemes.find(s => s.name === 'blue').light;
-    } else if (column.type === 'Budget') {
-      return colorSchemes.find(s => s.name === 'green').light;
+    
+    return '#FFFFFF';
+  };
+
+  // Function to format delta value with proper arrow
+  const formatDeltaValue = (delta) => {
+    if (delta === undefined || delta === null || isNaN(delta)) {
+      return '-';
     }
-    return colorSchemes.find(s => s.name === 'blue').light;
+    
+    const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '';
+    const absValue = Math.abs(delta);
+    
+    // Format with appropriate decimal places
+    const formattedValue = absValue >= 100 ? 
+      Math.round(absValue) : 
+      absValue.toFixed(1);
+    
+    return `${arrow} ${formattedValue}%`;
+  };
+
+  // Function to get delta class based on value
+  const getDeltaClass = (value) => {
+    if (typeof value !== 'string') return '';
+    if (value.includes('▲')) return 'delta-up';
+    if (value.includes('▼')) return 'delta-down';
+    return '';
   };
 
   // Render table header rows with merged delta headers
@@ -338,24 +353,27 @@ const SalesBySaleRepTable = () => {
     <thead>
       <tr className="main-header-row">
         <th className="product-header" rowSpan={3}>Product Group</th>
+        <th className="spacer-col" rowSpan={3} style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></th>
         {extendedColumns.map((col, idx) => {
           if (col.columnType === 'delta') {
             // Merge 3 rows for delta columns
-            return <th key={`delta-${idx}`} rowSpan={3}>Difference</th>;
+            return <th key={`delta-${idx}`} rowSpan={3} style={getColumnHeaderStyle({ columnType: 'delta' })} className="delta-header">Difference</th>;
           }
-          return <th key={`year-${idx}`}>{col.year}</th>;
+          return <th key={`year-${idx}`} style={getColumnHeaderStyle(col)} className="period-header">{col.year}</th>;
         })}
       </tr>
-      <tr>
+      <tr className="main-header-row">
         {extendedColumns.map((col, idx) => {
           if (col.columnType === 'delta') return null;
-          return <th key={`month-${idx}`}>{col.isCustomRange ? col.displayName : col.month}</th>;
+          return <th key={`month-${idx}`} style={getColumnHeaderStyle(col)} className="period-header">
+            {col.isCustomRange ? col.displayName : col.month}
+          </th>;
         })}
       </tr>
-      <tr>
+      <tr className="main-header-row">
         {extendedColumns.map((col, idx) => {
           if (col.columnType === 'delta') return null;
-          return <th key={`type-${idx}`}>{col.type}</th>;
+          return <th key={`type-${idx}`} style={getColumnHeaderStyle(col)} className="period-header">{col.type}</th>;
         })}
       </tr>
     </thead>
@@ -440,6 +458,7 @@ const SalesBySaleRepTable = () => {
                     {productGroupData.map(pg => (
                       <tr key={pg.name} className="product-header-row">
                         <td className="row-label product-header">{pg.name}</td>
+                        <td className="spacer-col" style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></td>
                         {pg.values.map((val, idx) => {
                           const col = extendedColumns[idx];
                           if (col.columnType === 'delta') {
@@ -456,7 +475,8 @@ const SalesBySaleRepTable = () => {
                     ))}
                     {/* Total row at the end */}
                     <tr className="total-row">
-                      <td className="row-label total-label">Total</td>
+                      <td className="total-label">Total</td>
+                      <td className="spacer-col" style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></td>
                       {(() => {
                         // Build total values for each period
                         const totalPeriodValues = columnOrder.map((col, idx) => {
@@ -476,28 +496,33 @@ const SalesBySaleRepTable = () => {
                         const totalCells = [];
                         for (let i = 0; i < totalPeriodValues.length; i++) {
                           totalCells.push(
-                            <td key={`total-${i}`} className="metric-cell">{totalPeriodValues[i] !== '' ? totalPeriodValues[i].toLocaleString('en-US', { maximumFractionDigits: 0 }) : ''}</td>
+                            <td 
+                              key={`total-${i}`} 
+                              className="metric-cell"
+                              style={getCellStyle(true, false)}
+                            >
+                              {totalPeriodValues[i] !== '' ? totalPeriodValues[i].toLocaleString('en-US', { maximumFractionDigits: 0 }) : ''}
+                            </td>
                           );
                           if (i < totalPeriodValues.length - 1) {
-                            const left = parseFloat(totalPeriodValues[i] || '');
-                            const right = parseFloat(totalPeriodValues[i+1] || '');
+                            const left = parseFloat(totalPeriodValues[i] || '0');
+                            const right = parseFloat(totalPeriodValues[i+1] || '0');
                             let deltaCell = '-';
+                            
                             if (!isNaN(left) && !isNaN(right) && left !== 0) {
                               const delta = ((right - left) / left) * 100;
-                              if (Math.abs(delta) >= 100) {
-                                deltaCell = `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.round(Math.abs(delta))}%`;
-                              } else {
-                                deltaCell = `${delta > 0 ? '▲' : delta < 0 ? '▼' : ''} ${Math.abs(delta).toFixed(1)}%`;
-                              }
+                              deltaCell = formatDeltaValue(delta);
                             }
-                            // Add color class for delta
-                            let deltaClass = '';
-                            if (typeof deltaCell === 'string') {
-                              if (deltaCell.includes('▲')) deltaClass = 'delta-up';
-                              else if (deltaCell.includes('▼')) deltaClass = 'delta-down';
-                            }
+                            
+                            const deltaClass = getDeltaClass(deltaCell);
                             totalCells.push(
-                              <td key={`total-delta-${i}`} className={`metric-cell ${deltaClass}`}>{deltaCell}</td>
+                              <td 
+                                key={`total-delta-${i}`} 
+                                className={`metric-cell ${deltaClass}`}
+                                style={getCellStyle(true, true)}
+                              >
+                                {deltaCell}
+                              </td>
                             );
                           }
                         }

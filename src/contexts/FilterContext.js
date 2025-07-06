@@ -123,6 +123,22 @@ export const FilterProvider = ({ children }) => {
   // Maximum number of columns allowed
   const MAX_COLUMNS = 5;
   
+  // Helper function to find available color
+  const findAvailableColor = (existingColumns) => {
+    const colorSchemes = [
+      'blue', 'green', 'yellow', 'orange', 'boldContrast'
+    ];
+    
+    // Get colors already in use
+    const usedColors = existingColumns
+      .map(col => col.customColor)
+      .filter(Boolean);
+    
+    // Find first color that's not used
+    const availableColor = colorSchemes.find(color => !usedColors.includes(color));
+    return availableColor || 'blue'; // Default to blue if all colors are used
+  };
+
   // Function to add a column
   const addColumn = (year, month, type, customMonths = null) => {
     // Check if we've already reached the maximum number of columns
@@ -161,6 +177,10 @@ export const FilterProvider = ({ children }) => {
     const exists = columnOrder.some(col => col.id === newColumn.id);
     
     if (!exists) {
+      // Find an available color that's not used by other columns
+      const availableColor = findAvailableColor(columnOrder);
+      newColumn.customColor = availableColor;
+      
       setColumnOrder(prev => [...prev, newColumn]);
       return { success: true };
     }

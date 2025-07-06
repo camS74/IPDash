@@ -5,22 +5,13 @@ import { computeCellValue as sharedComputeCellValue } from '../../utils/computeC
 import ComprehensiveHTMLExport from './ComprehensiveHTMLExport';
 import './ColumnConfigGrid.css';
 
-// Color scheme definitions (same as charts)
-const colorSchemesObj = {
-  blue: '#288cfa',
-  green: '#2E865F', 
-  yellow: '#FFD700',
-  orange: '#FF6B35',
-  boldContrast: '#003366',
-};
-
 // Color scheme definitions for UI - array format
 const colorSchemes = [
-  { name: 'blue', label: 'Blue', primary: '#288cfa', secondary: '#103766', isDark: true },
-  { name: 'green', label: 'Green', primary: '#2E865F', secondary: '#C6F4D6', isDark: true },
-  { name: 'yellow', label: 'Yellow', primary: '#FFD700', secondary: '#FFFDE7', isDark: false },
-  { name: 'orange', label: 'Orange', primary: '#FF6B35', secondary: '#FFE0B2', isDark: false },
-  { name: 'boldContrast', label: 'Bold Contrast', primary: '#003366', secondary: '#FF0000', isDark: true }
+  { name: 'blue', label: 'Blue', isDark: true },
+  { name: 'green', label: 'Green', isDark: true },
+  { name: 'yellow', label: 'Yellow', isDark: false },
+  { name: 'orange', label: 'Orange', isDark: false },
+  { name: 'boldContrast', label: 'Bold Contrast', isDark: true }
 ];
 
 const ColumnConfigGrid = ({ exportPdfFunction, productGroupTableRef }) => {
@@ -98,21 +89,27 @@ const ColumnConfigGrid = ({ exportPdfFunction, productGroupTableRef }) => {
     if (column.customColor) {
       const scheme = colorSchemes.find(s => s.name === column.customColor);
       if (scheme) {
+        const primary = getComputedStyle(document.documentElement)
+          .getPropertyValue(`--color-${scheme.name}-primary`).trim();
+        const text = getComputedStyle(document.documentElement)
+          .getPropertyValue(`--color-${scheme.name}-text`).trim();
+        
         return { 
           ...baseStyle,
-          backgroundColor: scheme.primary, 
-          color: scheme.isDark ? '#FFFFFF' : '#000000',
+          backgroundColor: primary,
+          color: text,
           boxShadow: isSelected ? '0 0 5px 2px rgba(0,0,0,0.3)' : 'none'
         };
       }
     }
     
     // Default to blue if no custom color
-    const defaultScheme = colorSchemes[0];
     return { 
       ...baseStyle,
-      backgroundColor: defaultScheme.primary, 
-      color: defaultScheme.isDark ? '#FFFFFF' : '#000000',
+      backgroundColor: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-blue-primary').trim(),
+      color: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-blue-text').trim(),
       boxShadow: isSelected ? '0 0 5px 2px rgba(0,0,0,0.3)' : 'none'
     };
   };
@@ -242,7 +239,7 @@ const ColumnConfigGrid = ({ exportPdfFunction, productGroupTableRef }) => {
                   <div 
                     key={scheme.name} 
                     className="color-option"
-                    style={{ backgroundColor: scheme.primary, border: `1px solid ${scheme.secondary}` }}
+                    style={{ backgroundColor: getComputedStyle(document.documentElement).getPropertyValue(`--color-${scheme.name}-primary`).trim(), border: `1px solid ${getComputedStyle(document.documentElement).getPropertyValue(`--color-${scheme.name}-secondary`).trim()}` }}
                     onClick={() => setColumnColor(scheme.name)}
                     title={scheme.label}
                   />

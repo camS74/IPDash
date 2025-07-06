@@ -1,3 +1,180 @@
+:root {
+  /* Blue theme */
+  --color-blue-primary: #288cfa;
+  --color-blue-secondary: #E3F2FD;
+  --color-blue-text: #FFFFFF;
+
+  /* Green theme */
+  --color-green-primary: #2E865F;
+  --color-green-secondary: #E8F5E9;
+  --color-green-text: #FFFFFF;
+
+  /* Yellow theme */
+  --color-yellow-primary: #FFD700;
+  --color-yellow-secondary: #FFFDE7;
+  --color-yellow-text: #000000;
+
+  /* Orange theme */
+  --color-orange-primary: #FF6B35;
+  --color-orange-secondary: #FFF3E0;
+  --color-orange-text: #000000;
+
+  /* Bold Contrast theme */
+  --color-boldContrast-primary: #003366;
+  --color-boldContrast-secondary: #E6EEF5;
+  --color-boldContrast-text: #FFFFFF;
+}
+
+.sales-rep-table-container {
+  margin: 20px;
+  overflow-x: auto;
+}
+
+.financial-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.financial-table th {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #ddd;
+  font-weight: bold;
+  font-size: 14px; /* Base font size for headers */
+}
+
+.financial-table td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #ddd;
+  font-size: 12px; /* Base font size for regular cells */
+}
+
+/* Header styles */
+.main-header-row th {
+  font-size: 16px; /* Increased font size for headers (+2pt) */
+}
+
+.period-header {
+  font-weight: bold;
+}
+
+.delta-header {
+  font-weight: bold;
+  font-size: 16px; /* Increased font size for delta headers (+2pt) */
+}
+
+/* Product group styles */
+.product-header {
+  text-align: left !important;
+  font-weight: bold !important;
+  background-color: #f5f5f5;
+  font-size: 12px;
+}
+
+.product-header-row td.product-header {
+  font-weight: bold;
+}
+
+/* Metric cell styles */
+.metric-cell {
+  text-align: right;
+}
+
+/* Delta column styles - always white background */
+td[class*="delta"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Delta indicators - Apply to ALL delta cells, including total row */
+.metric-cell.delta-up,
+.total-row .metric-cell.delta-up,
+.total-row td.delta-up {
+  color: #0066FF !important; /* Pure blue for positive change */
+}
+
+.metric-cell.delta-down,
+.total-row .metric-cell.delta-down,
+.total-row td.delta-down {
+  color: #FF0000 !important; /* Pure red for negative change */
+}
+
+/* Remove any other color overrides */
+.total-row .metric-cell[class*="delta"],
+.total-row td[class*="delta"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Total row base styles */
+.total-row td {
+  font-weight: bold;
+  background-color: #4a90e2 !important;
+  font-size: 14px;
+}
+
+/* Remove the pseudo-element arrows since we're handling them in the JS */
+.total-row .delta-up::before,
+.total-row .delta-down::before {
+  content: none;
+}
+
+.total-row .metric-cell {
+  text-align: right;
+}
+
+.total-row .delta-up {
+  background-color: #FFFFFF !important;
+  color: #2E865F !important;
+}
+
+.total-row .delta-down {
+  background-color: #FFFFFF !important;
+  color: #d32f2f !important;
+}
+
+.total-label {
+  text-align: left !important;
+  padding-left: 8px !important;
+  color: #FFFFFF !important; /* White text for dark blue background */
+}
+
+/* General text color rule based on background */
+.metric-cell {
+  color: var(--text-color, #000000);
+}
+
+.sales-rep-variable-selector {
+  margin-bottom: 20px;
+}
+
+.sales-rep-variable-selector label {
+  margin-right: 10px;
+}
+
+.sales-rep-content {
+  padding: 20px 0;
+}
+
+.sales-rep-title {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.sales-rep-subtitle {
+  font-size: 1.1em;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Empty state styles */
+.table-empty-state {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
 /* Sales by Sales Rep Table - Minimal grid style */
 
 .sales-rep-content .financial-table thead th {
@@ -98,10 +275,12 @@
   width: auto;
   margin-left: auto;
   margin-right: auto;
-}
+} 
 
-.sales-rep-table-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.total-row .spacer-col {
+  background: #fff !important;
+} 
+
+th.product-header[rowspan="3"] {
+  font-size: 1.35em;
 } 
