@@ -4,7 +4,7 @@ import { ExcelDataProvider } from './contexts/ExcelDataContext';
 import { SalesDataProvider } from './contexts/SalesDataContext';
 import { FilterProvider } from './contexts/FilterContext';
 import Dashboard from './components/dashboard/Dashboard';
-import TestOracleData from './components/dashboard/TestOracleData';
+
 import './App.css';
 
 function App() {
@@ -15,7 +15,6 @@ function App() {
           <FilterProvider>
             <Router>
               <Routes>
-                <Route path="/testdata" element={<TestOracleData />} />
                 <Route path="/*" element={<Dashboard />} />
               </Routes>
             </Router>

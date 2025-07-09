@@ -98,7 +98,7 @@ npm start
 - **Product Group Extraction**: Extract unique product groups from column D
 - **Dynamic Period Mapping**: Intelligent column index detection for period data (starting from column F)
 - **Group Support**: Handle both individual sales reps and sales rep groups
-- **Data Limitation**: Limited to first 100 rows for testing purposes
+- **Data Limitation**: Limited to first 100 rows for performance
 
 **Technical Details**:
 - Enhanced `getUniqueProductGroups()` function with S&V sheet integration
@@ -115,14 +115,11 @@ npm start
 ### Development
 ```bash
 npm start          # Start development server
-npm test           # Run test suite
+
 npm run build      # Build for production
 ```
 
-### Testing
-```bash
-node test-product-groups.js    # Test product group functionality
-```
+
 
 ## Data Structure
 
@@ -163,7 +160,7 @@ node test-product-groups.js    # Test product group functionality
 1. **Context Updates**: Modify relevant context files for state management
 2. **Component Integration**: Update dashboard components with new functionality
 3. **Data Processing**: Ensure proper Excel sheet parsing and filtering
-4. **Testing**: Add test cases in `test-product-groups.js`
+4. **Documentation**: Update this README with implementation details
 5. **Documentation**: Update this README with implementation details
 
 ### Code Organization
@@ -181,7 +178,7 @@ src/
 ```
 
 ### Performance Considerations
-- **Data Limiting**: Large datasets limited to first 100 rows for testing
+- **Data Limiting**: Large datasets limited to first 100 rows for performance
 - **Dynamic Loading**: Excel files loaded on-demand
 - **Efficient Filtering**: Optimized filtering algorithms for large datasets
 - **Memory Management**: Proper cleanup of unused data references
@@ -207,9 +204,6 @@ src/
 
 ### Debug Mode
 ```bash
-# Enable detailed logging
-node test-product-groups.js
-
 # Check server logs
 cd server && npm start
 ```
@@ -245,7 +239,7 @@ cd server && npm start
 ### Development Workflow
 1. **Feature Planning**: Document requirements and implementation approach
 2. **Implementation**: Follow established patterns and conventions
-3. **Testing**: Verify functionality with test cases
+3. **Verification**: Verify functionality with manual checks
 4. **Documentation**: Update README with new features and changes
 5. **Code Review**: Ensure code quality and consistency
 

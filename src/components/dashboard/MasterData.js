@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CountryReference from './CountryReference';
 import { useExcelData } from '../../contexts/ExcelDataContext';
+import { useSalesData } from '../../contexts/SalesDataContext';
 import './MasterData.css';
 
 const MasterData = () => {
@@ -13,6 +14,9 @@ const MasterData = () => {
 
   // Get current division from ExcelDataContext
   const { selectedDivision } = useExcelData();
+  
+  // Get refresh function from SalesDataContext
+  const { refreshSalesRepConfig } = useSalesData();
   
   // Get division code (FP, SB, TF, HCM) - handle both formats
   const getDivisionCode = (division) => {
@@ -60,51 +64,67 @@ const MasterData = () => {
     loadMasterData();
   }, []);
 
-  // Load sales reps and defaults
+  // Load sales reps and defaults when division changes
   useEffect(() => {
-    console.log('MasterData useEffect: activeTab =', activeTab, 'divisionCode =', divisionCode);
-    
-    // Clear sales reps data when division changes
-    if (activeTab === 'salesreps') {
-      setSalesReps([]);
-      setSelectedReps([]);
-      setDefaultReps([]);
-      setSalesRepGroups({});
-      setErrorReps(null);
-    }
-    
-    if (activeTab === 'salesreps' && divisionCode) {
-      console.log('MasterData: Loading sales reps for division:', divisionCode);
+    if (divisionCode) {
       setLoadingReps(true);
-      Promise.all([
-        fetch(`/api/sales-reps?division=${divisionCode}`).then(res => res.json()),
-        fetch(`/api/sales-reps-defaults?division=${divisionCode}`).then(res => res.json())
-      ])
-        .then(([repsRes, configRes]) => {
-          console.log('MasterData: Sales reps response:', repsRes);
-          console.log('MasterData: Config response:', configRes);
-          if (repsRes.success && configRes.success) {
-            setSalesReps(repsRes.data);
-            setDefaultReps(configRes.defaults);
-            setSelectedReps(configRes.selection);
-            
-            // Set groups if they exist in the config
-            if (configRes.groups) {
-              setSalesRepGroups(configRes.groups);
-            } else {
-              setSalesRepGroups({});
+      setErrorReps('');
+      
+      const fetchSalesReps = async () => {
+        try {
+          if (divisionCode === 'FP') {
+            // Fetch from PostgreSQL database for FP division
+            const res = await fetch('http://localhost:3001/api/fp/sales-reps');
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
             }
+            const data = await res.json();
+            setSalesReps(data.data || []);
           } else {
-            setErrorReps('Failed to load sales reps/config');
+          // For other divisions, show "Coming Soon" message
+          setSalesReps([]);
+          setErrorReps('Sales representative configuration for this division is coming soon!');
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading sales reps:', error);
+        if (divisionCode === 'FP') {
+          setErrorReps(`Failed to load sales representatives: ${error.message}`);
+        } else {
+          setErrorReps('Sales representative configuration for this division is coming soon!');
+        }
+        setSalesReps([]);
+        }
+      };
+      
+      const fetchDefaults = async () => {
+        try {
+          const res = await fetch(`http://localhost:3001/api/sales-reps-defaults?division=${divisionCode}`);
+          if (res.ok) {
+            const data = await res.json();
+            setDefaultReps(data.defaults || []);
+            setSelectedReps(data.selection || []);
+            setSalesRepGroups(data.groups || {});
+          } else {
+            // Initialize with empty defaults if endpoint doesn't exist
+            setDefaultReps([]);
+            setSelectedReps([]);
+            setSalesRepGroups({});
           }
-        })
-        .catch((error) => {
-          console.error('MasterData: Error loading sales reps:', error);
-          setErrorReps('Failed to load sales reps/config');
-        })
-        .finally(() => setLoadingReps(false));
+        } catch (error) {
+          console.error('Error loading sales rep defaults:', error);
+          // Initialize with empty defaults on error
+          setDefaultReps([]);
+          setSelectedReps([]);
+          setSalesRepGroups({});
+        }
+      };
+      
+      fetchSalesReps();
+      fetchDefaults();
+      setLoadingReps(false);
     }
-  }, [activeTab, divisionCode]);
+  }, [divisionCode]);
 
   const loadMasterData = async () => {
     try {
@@ -273,37 +293,39 @@ const MasterData = () => {
   const handleSave = async () => {
     setSavingReps(true);
     setSaveMsg('');
+    
     try {
-      // When saving, make the selected reps also the default reps
-      // This ensures that the selected sales reps will appear in the Sales by SaleRep tabs
-      const currentSelected = selectedReps || [];
-      const res = await fetch('/api/sales-reps-defaults', {
+      const res = await fetch('http://localhost:3001/api/sales-reps-defaults', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           division: divisionCode,
-          defaults: currentSelected, // Use selectedReps as the defaults
-          selection: currentSelected,
-          groups: salesRepGroups // Include groups in the save
+          defaults: defaultReps,
+          selection: selectedReps,
+          groups: salesRepGroups
         })
       });
+      
       const result = await res.json();
+      
       if (result.success) {
-        // Update local state to match what we saved
-        setDefaultReps(currentSelected);
-        setSaveMsg('Saved!');
-        setEditDefault(false);
+        setSaveMsg('✓ Saved');
+        // Refresh the sales rep configuration in other components
+        if (refreshSalesRepConfig) {
+          await refreshSalesRepConfig();
+        }
       } else {
-        setSaveMsg('Save failed');
+        setSaveMsg('✗ Failed to save');
       }
-    } catch {
-      setSaveMsg('Save failed');
+    } catch (error) {
+      console.error('Error saving sales rep config:', error);
+      setSaveMsg('✗ Failed to save');
     } finally {
       setSavingReps(false);
       setTimeout(() => setSaveMsg(''), 2000);
     }
   };
-  
+
   // Create or update a sales rep group
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
@@ -320,59 +342,43 @@ const MasterData = () => {
     setGroupErrorMsg('');
     
     try {
-      // If we're editing and the name has changed, we need to delete the old group first
-      if (editingGroup && originalGroupName && originalGroupName !== newGroupName.trim()) {
-        // Delete the old group first
-        const deleteRes = await fetch(`/api/sales-reps-group?division=${divisionCode}&groupName=${encodeURIComponent(originalGroupName)}`, {
-          method: 'DELETE'
-        });
-        
-        const deleteResult = await deleteRes.json();
-        
-        if (!deleteResult.success) {
-          setGroupErrorMsg(deleteResult.error || 'Failed to update group name');
-          setSavingGroup(false);
-          return;
-        }
-      }
-      
-      // Create/update the group
-      const res = await fetch('/api/sales-reps-group', {
+      const res = await fetch('/api/sales-rep-groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           division: divisionCode,
-          groupName: newGroupName.trim(),
-          members: groupMembers
+          groupName: newGroupName,
+          members: groupMembers,
+          originalGroupName: editingGroup ? originalGroupName : undefined
         })
       });
       
       const result = await res.json();
       
       if (result.success) {
-        // Update local state with the new/updated group
-        setSalesRepGroups(prev => {
-          const updatedGroups = { ...prev };
-          
-          // If we're editing and the name changed, remove the old group
-          if (editingGroup && originalGroupName && originalGroupName !== newGroupName.trim()) {
-            delete updatedGroups[originalGroupName];
-          }
-          
-          // Add/update the group with the new name and members
-          updatedGroups[newGroupName.trim()] = groupMembers;
-          
-          return updatedGroups;
-        });
+        // Update local state
+        const updatedGroups = { ...salesRepGroups };
         
-        // Reset form
+        // If editing and name changed, remove old group
+        if (editingGroup && originalGroupName !== newGroupName && updatedGroups[originalGroupName]) {
+          delete updatedGroups[originalGroupName];
+        }
+        
+        updatedGroups[newGroupName] = [...groupMembers];
+        setSalesRepGroups(updatedGroups);
+        
+        // Close modal and reset form
+        setShowGroupModal(false);
         setNewGroupName('');
         setGroupMembers([]);
-        setShowGroupModal(false);
         setEditingGroup(false);
         setOriginalGroupName('');
+        
+        // Show success message briefly
+        setSaveMsg(`✓ Group ${editingGroup ? 'updated' : 'created'} successfully`);
+        setTimeout(() => setSaveMsg(''), 2000);
       } else {
-        setGroupErrorMsg(result.error || `Failed to ${editingGroup ? 'update' : 'create'} group`);
+        setGroupErrorMsg(result.message || `Failed to ${editingGroup ? 'update' : 'create'} group`);
       }
     } catch (error) {
       console.error(`Error ${editingGroup ? 'updating' : 'creating'} sales rep group:`, error);
@@ -381,7 +387,7 @@ const MasterData = () => {
       setSavingGroup(false);
     }
   };
-  
+
   // Delete a sales rep group
   const handleDeleteGroup = async (groupName) => {
     if (!window.confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
@@ -389,19 +395,23 @@ const MasterData = () => {
     }
     
     try {
-      const res = await fetch(`/api/sales-reps-group?division=${divisionCode}&groupName=${encodeURIComponent(groupName)}`, {
+      const res = await fetch(`/api/sales-rep-groups?division=${divisionCode}&groupName=${encodeURIComponent(groupName)}`, {
         method: 'DELETE'
       });
       
       const result = await res.json();
       
       if (result.success) {
-        // Remove the group from local state
+        // Update local state
         const updatedGroups = { ...salesRepGroups };
         delete updatedGroups[groupName];
         setSalesRepGroups(updatedGroups);
+        
+        // Show success message
+        setSaveMsg('✓ Group deleted successfully');
+        setTimeout(() => setSaveMsg(''), 2000);
       } else {
-        window.alert(result.error || 'Failed to delete group');
+        window.alert(result.message || 'Failed to delete group');
       }
     } catch (error) {
       console.error('Error deleting sales rep group:', error);

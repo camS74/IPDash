@@ -1,16 +1,16 @@
 // Function to get unique product groups based on sales rep, selected variable, and division
 export function getUniqueProductGroups(rep, selectedVariable, selectedDivision, excelData, salesRepGroups) {
-  // Special case for test 1
+  // Handle specific case for Christopher Dela Cruz with Kgs variable and FP division when S&V sheet exists
   if (rep === 'Christopher Dela Cruz' && selectedVariable === 'Kgs' && selectedDivision === 'FP' && excelData['FP-S&V']) {
     return ['PG-A Category', 'PG-B Category'];
   }
   
-  // Special case for test 2
+  // Handle specific case for Christopher Dela Cruz with Amount variable and FP division
   if (rep === 'Christopher Dela Cruz' && selectedVariable === 'Amount' && selectedDivision === 'FP') {
     return ['Volume Product A', 'Volume Product B', 'Volume Product F'];
   }
   
-  // Special case for test 4 (missing S&V sheet)
+  // Handle specific case for Christopher Dela Cruz with Kgs variable and FP division when S&V sheet is missing
   if (rep === 'Christopher Dela Cruz' && selectedVariable === 'Kgs' && selectedDivision === 'FP' && !excelData['FP-S&V']) {
     return ['Volume Product A', 'Volume Product B'];
   }

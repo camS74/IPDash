@@ -4,6 +4,11 @@ const path = require('path');
 const fs = require('fs');
 const odbc = require('odbc');
 const bodyParser = require('body-parser');
+require('dotenv').config();
+
+// Database imports
+const { testConnection } = require('./database/config');
+const fpDataService = require('./database/fpDataService');
 
 const app = express();
 const PORT = 3001;
@@ -439,254 +444,230 @@ app.post('/api/master-data', (req, res) => {
   }
 });
 
-// Function to convert text to proper case (first letter of each word capitalized)
-function toProperCase(text) {
-  if (!text) return '';
-  return text.toString().replace(/\w\S*/g, function(txt) {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-  });
+// toProperCase function removed - was only used for sales rep functionality
+
+// Sales Rep Configuration Management
+const SALES_REP_CONFIG_FILE = path.join(__dirname, 'data', 'sales-reps-config.json');
+
+// Load sales rep configurations
+function loadSalesRepConfig() {
+  try {
+    if (fs.existsSync(SALES_REP_CONFIG_FILE)) {
+      const data = fs.readFileSync(SALES_REP_CONFIG_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+    return {};
+  } catch (error) {
+    console.error('Error loading sales rep config:', error);
+    return {};
+  }
 }
 
-// API endpoint to get sales reps from S&V sheet (column A)
-app.get('/api/sales-reps', (req, res) => {
+// Save sales rep configurations
+function saveSalesRepConfig(config) {
   try {
-    const { division } = req.query;
-    console.log('Received request for sales reps for division:', division);
-    if (!division) {
-      return res.json({ success: true, data: [] });
-    }
-    const XLSX = require('xlsx');
-    const salesFilePath = path.join(__dirname, 'data', 'Sales.xlsx');
-    if (!fs.existsSync(salesFilePath)) {
-      return res.json({ success: true, data: [] });
-    }
-    const workbook = XLSX.readFile(salesFilePath);
-    let sheetName = `${division}-S&V`;
-    if (!workbook.SheetNames.includes(sheetName)) {
-      console.log(`Sheet ${sheetName} not found, falling back to ${division}-Volume`);
-      // Fallback to Volume sheet if S&V doesn't exist
-      if (!workbook.SheetNames.includes(`${division}-Volume`)) {
-        return res.json({ success: true, data: [] });
-      }
-      sheetName = `${division}-Volume`;
-    }
-    const worksheet = workbook.Sheets[sheetName];
-    const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    // Data starts from row 4 (index 3)
-    let reps = [];
-    for (let i = 3; i < sheetData.length; i++) {
-      const row = sheetData[i];
-      const name = row && row[0] ? row[0].toString().trim() : '';
-      if (name && name.length > 1 && name.toLowerCase() !== 'actual' && name.toLowerCase() !== 'system') {
-        reps.push(toProperCase(name));
-      }
-    }
-    // Remove duplicates
-    const uniqueReps = Array.from(new Set(reps));
-    res.json({ success: true, data: uniqueReps });
+    fs.writeFileSync(SALES_REP_CONFIG_FILE, JSON.stringify(config, null, 2));
+    console.log('Sales rep configuration saved successfully');
   } catch (error) {
-    console.error('Error extracting sales reps:', error);
-    res.status(500).json({ success: false, error: 'Failed to extract sales reps' });
+    console.error('Error saving sales rep config:', error);
+    throw error;
   }
-});
+}
 
-const SALES_REPS_CONFIG_PATH = path.join(__dirname, 'data', 'sales-reps-config.json');
-const DEFAULT_SALES_REPS = [
-  "Abraham Mathew","Adam AlKhatib","Ahad Bucker","Anil Bayaniyan","Babar Tasneem","Christopher","DIVANI CANTALAO CUEVAS","Ely & Dessi Sasa","Raul A Nicol","Hari Krishnan M","Haseeb","HORECA-TEMP","Hosen Mohamed Safin","Jamal Abdul Ali","Janas","Kasia","Khalid","Khalid Abdul Rahman","Lokeshchess Dhasthagiri","Mary Grace Almaz","Magadank Kobysha","Mohamed Adel","Mohamed Fawzi","Mohamed Koch","Mohamed Hisham","Safwat S Maseco","Natik","OLIVER BAVARIAN","PascalKrause","RANJIT R TANGASAMY","Ramesh Anbalagan","Rashid Baichal","Rashid Baichal Ahmed","Rashid Baichal Ahmed","Roudy Zimabale","SALE FUNILATH","Saraswathie Vathi","Theo Sann","Vinod Mathew","Waleed Fawzi","Waseem Akinde Hameed","Waseem Mathew","Waseem-HORECA","Ziad Al Housaini"
-];
-
-// GET: Return defaults and selection for specific division
+// Get sales rep defaults and groups for a division
 app.get('/api/sales-reps-defaults', (req, res) => {
   try {
     const { division } = req.query;
-    console.log('Received request for sales reps defaults for division:', division);
-    
     if (!division) {
-      return res.status(400).json({ success: false, error: 'Division parameter is required' });
+      return res.status(400).json({ success: false, message: 'Division parameter is required' });
     }
     
-    let config = { defaults: [], selection: [], groups: {} };
-    
-    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
-      const fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
-      console.log('Loaded sales reps config from file:', fullConfig);
-      
-      // Get division-specific config or use empty arrays if division doesn't exist
-      config = fullConfig[division] || { defaults: [], selection: [], groups: {} };
-      
-      // Ensure groups property exists
-      if (!config.groups) {
-        config.groups = {};
-      }
-    } else {
-      console.log('No sales reps config file found, using empty arrays');
-    }
-    
-    res.json({ success: true, ...config });
-  } catch (error) {
-    console.error('Error loading sales rep config:', error);
-    res.status(500).json({ success: false, error: 'Failed to load sales rep config' });
-  }
-});
-
-// POST: Update defaults and/or selection for specific division
-app.post('/api/sales-reps-defaults', (req, res) => {
-  try {
-    const { division, defaults, selection, groups } = req.body;
-    if (!division || !Array.isArray(defaults) || !Array.isArray(selection)) {
-      return res.status(400).json({ success: false, error: 'Division, defaults, and selection are required' });
-    }
-    
-    // Normalize all names to proper case
-    const normalizedDefaults = defaults.map(name => toProperCase(name));
-    const normalizedSelection = selection.map(name => toProperCase(name));
-    
-    // Load existing config or create new one
-    let fullConfig = {};
-    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
-      fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
-    }
-    
-    // Get existing division config or create new one
-    const existingDivisionConfig = fullConfig[division] || { defaults: [], selection: [], groups: {} };
-    
-    // Update division-specific config
-    fullConfig[division] = {
-      defaults: normalizedDefaults,
-      selection: normalizedSelection,
-      // Keep existing groups if not provided in request
-      groups: groups || existingDivisionConfig.groups || {}
+    const config = loadSalesRepConfig();
+    const divisionConfig = config[division] || {
+      defaults: [],
+      selection: [],
+      groups: {}
     };
-    
-    console.log('Saving division-specific sales rep config:', fullConfig);
-    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error saving sales rep config:', error);
-    res.status(500).json({ success: false, error: 'Failed to save sales rep config' });
-  }
-});
-
-// POST: Create or update a sales rep group
-app.post('/api/sales-reps-group', (req, res) => {
-  try {
-    const { division, groupName, members } = req.body;
-    
-    if (!division || !groupName || !Array.isArray(members)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Division, groupName, and members array are required' 
-      });
-    }
-    
-    // Normalize group member names to proper case
-    const normalizedMembers = members.map(name => toProperCase(name));
-    
-    // Load existing config
-    let fullConfig = {};
-    if (fs.existsSync(SALES_REPS_CONFIG_PATH)) {
-      fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
-    }
-    
-    // Ensure division exists in config
-    if (!fullConfig[division]) {
-      fullConfig[division] = { defaults: [], selection: [], groups: {} };
-    }
-    
-    // Ensure groups property exists
-    if (!fullConfig[division].groups) {
-      fullConfig[division].groups = {};
-    }
-    
-    // Add or update the group
-    fullConfig[division].groups[groupName] = normalizedMembers;
-    
-    // Save updated config
-    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
     
     res.json({ 
       success: true, 
-      message: `Group '${groupName}' saved successfully`,
-      group: { name: groupName, members: normalizedMembers }
+      defaults: divisionConfig.defaults,
+      selection: divisionConfig.selection,
+      groups: divisionConfig.groups
     });
   } catch (error) {
-    console.error('Error saving sales rep group:', error);
-    res.status(500).json({ success: false, error: 'Failed to save sales rep group' });
+    console.error('Error fetching sales rep defaults:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch sales rep defaults' });
   }
 });
 
-// DELETE: Remove a sales rep group
-app.delete('/api/sales-reps-group', (req, res) => {
+// Save sales rep defaults and groups for a division
+app.post('/api/sales-reps-defaults', (req, res) => {
+  try {
+    const { division, defaults, selection, groups } = req.body;
+    
+    if (!division) {
+      return res.status(400).json({ success: false, message: 'Division is required' });
+    }
+    
+    const config = loadSalesRepConfig();
+    config[division] = {
+      defaults: defaults || [],
+      selection: selection || [],
+      groups: groups || {}
+    };
+    
+    saveSalesRepConfig(config);
+    
+    res.json({ success: true, message: 'Sales rep configuration saved successfully' });
+  } catch (error) {
+    console.error('Error saving sales rep defaults:', error);
+    res.status(500).json({ success: false, message: 'Failed to save sales rep defaults' });
+  }
+});
+
+// Create or update a sales rep group
+app.post('/api/sales-rep-groups', (req, res) => {
+  try {
+    const { division, groupName, members, originalGroupName } = req.body;
+    
+    if (!division || !groupName || !members || !Array.isArray(members)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Division, group name, and members array are required' 
+      });
+    }
+    
+    const config = loadSalesRepConfig();
+    if (!config[division]) {
+      config[division] = { defaults: [], selection: [], groups: {} };
+    }
+    
+    // If updating an existing group with a new name, remove the old one
+    if (originalGroupName && originalGroupName !== groupName && config[division].groups[originalGroupName]) {
+      delete config[division].groups[originalGroupName];
+    }
+    
+    config[division].groups[groupName] = members;
+    saveSalesRepConfig(config);
+    
+    res.json({ success: true, message: 'Sales rep group saved successfully' });
+  } catch (error) {
+    console.error('Error saving sales rep group:', error);
+    res.status(500).json({ success: false, message: 'Failed to save sales rep group' });
+  }
+});
+
+// Delete a sales rep group
+app.delete('/api/sales-rep-groups', (req, res) => {
   try {
     const { division, groupName } = req.query;
     
     if (!division || !groupName) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Division and groupName parameters are required' 
+        message: 'Division and group name are required' 
       });
     }
     
-    // Load existing config
-    if (!fs.existsSync(SALES_REPS_CONFIG_PATH)) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Sales rep configuration not found' 
-      });
+    const config = loadSalesRepConfig();
+    if (config[division] && config[division].groups && config[division].groups[groupName]) {
+      delete config[division].groups[groupName];
+      saveSalesRepConfig(config);
+      res.json({ success: true, message: 'Sales rep group deleted successfully' });
+    } else {
+      res.status(404).json({ success: false, message: 'Sales rep group not found' });
     }
-    
-    const fullConfig = JSON.parse(fs.readFileSync(SALES_REPS_CONFIG_PATH, 'utf8'));
-    
-    // Check if division exists
-    if (!fullConfig[division] || !fullConfig[division].groups) {
-      return res.status(404).json({ 
-        success: false, 
-        error: `No groups found for division '${division}'` 
-      });
-    }
-    
-    // Check if group exists
-    if (!fullConfig[division].groups[groupName]) {
-      return res.status(404).json({ 
-        success: false, 
-        error: `Group '${groupName}' not found in division '${division}'` 
-      });
-    }
-    
-    // Remove the group
-    delete fullConfig[division].groups[groupName];
-    
-    // Save updated config
-    fs.writeFileSync(SALES_REPS_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
-    
-    res.json({ 
-      success: true, 
-      message: `Group '${groupName}' deleted successfully` 
-    });
   } catch (error) {
     console.error('Error deleting sales rep group:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete sales rep group' });
+    res.status(500).json({ success: false, message: 'Failed to delete sales rep group' });
   }
 });
 
-// Test Oracle ODBC endpoint (POST, accepts username and password)
-app.post('/api/test-oracle-data', async (req, res) => {
+// PostgreSQL Database API Endpoints
+
+// Test database connection
+app.get('/api/db/test', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ success: false, error: 'Username and password are required.' });
+    const isConnected = await testConnection();
+    if (isConnected) {
+      res.json({ success: true, message: 'Database connection successful' });
+    } else {
+      res.status(500).json({ success: false, message: 'Database connection failed' });
     }
-    const connectionString = `DSN=OracleClient;UID=${username};PWD=${password};`;
-    const connection = await odbc.connect(connectionString);
-    // Simple test query to check connection
-    const result = await connection.query('SELECT 1 AS TEST_COL FROM DUAL');
-    await connection.close();
-    res.json({ success: true, data: result });
-  } catch (err) {
-    console.error('Oracle ODBC error:', err);
-    res.status(500).json({ success: false, error: err.message });
+  } catch (error) {
+    console.error('Database test error:', error);
+    res.status(500).json({ success: false, message: 'Database connection error', error: error.message });
   }
 });
+
+// Get all sales representatives
+app.get('/api/fp/sales-reps', async (req, res) => {
+  try {
+    const salesReps = await fpDataService.getSalesReps();
+    res.json({ success: true, data: salesReps });
+  } catch (error) {
+    console.error('Error fetching sales reps:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch sales representatives', error: error.message });
+  }
+});
+
+
+
+// Get all product groups (optionally filtered by sales rep or group)
+app.get('/api/fp/product-groups', async (req, res) => {
+  try {
+    const salesRep = req.query.salesRep;
+    let productGroups;
+    
+    if (salesRep) {
+      // Check if salesRep is actually a group name
+      const config = loadSalesRepConfig();
+      const fpConfig = config.FP || { groups: {} };
+      
+      if (fpConfig.groups && fpConfig.groups[salesRep]) {
+        // It's a group - get product groups for all members
+        const groupMembers = fpConfig.groups[salesRep];
+        console.log(`Fetching product groups for group '${salesRep}' with members:`, groupMembers);
+        
+        // Get product groups for each member and combine them
+        const allProductGroups = new Set();
+        
+        for (const member of groupMembers) {
+          try {
+            const memberProductGroups = await fpDataService.getProductGroupsBySalesRep(member);
+            memberProductGroups.forEach(pg => {
+              allProductGroups.add(pg.pgcombine || pg.product_group || pg);
+            });
+          } catch (memberError) {
+            console.warn(`Failed to fetch product groups for member '${member}':`, memberError.message);
+          }
+        }
+        
+        // Convert Set back to array format expected by frontend
+        productGroups = Array.from(allProductGroups).map(pgName => ({
+          pgcombine: pgName,
+          product_group: pgName
+        }));
+        
+        console.log(`Found ${productGroups.length} unique product groups for group '${salesRep}'`);
+      } else {
+        // It's an individual sales rep
+        productGroups = await fpDataService.getProductGroupsBySalesRep(salesRep);
+      }
+    } else {
+      // Get all product groups
+      productGroups = await fpDataService.getProductGroups();
+    }
+    
+    res.json({ success: true, data: productGroups });
+  } catch (error) {
+    console.error('Error fetching product groups:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch product groups', error: error.message });
+  }
+});
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -694,7 +675,28 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-});
+// Test database connection and start the server
+const startServer = async () => {
+  console.log('🚀 Starting IPDashboard Backend Server...');
+  
+  // Test database connection
+  console.log('🔍 Testing database connection...');
+  const dbConnected = await testConnection();
+  
+  if (dbConnected) {
+    console.log('✅ Database connection successful');
+  } else {
+    console.log('⚠️  Database connection failed - server will start but database features may not work');
+    console.log('💡 Please check your .env file and ensure PostgreSQL is running');
+  }
+  
+  app.listen(PORT, () => {
+    console.log(`🌟 Backend server running on http://localhost:${PORT}`);
+    console.log('📊 Available endpoints:');
+    console.log('   - Excel data: /api/financials.xlsx, /api/sales.xlsx');
+    console.log('   - Database test: /api/db/test');
+    console.log('   - FP data: /api/fp/* (sales-reps, customers, countries, etc.)');
+  });
+};
+
+startServer();

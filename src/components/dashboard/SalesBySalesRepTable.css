@@ -163,9 +163,10 @@ td[class*="delta"] {
 }
 
 .sales-rep-subtitle {
-  font-size: 1.1em;
-  color: #666;
-  margin-bottom: 20px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  margin-top: 0;
+  text-align: center;
 }
 
 /* Empty state styles */
@@ -275,7 +276,7 @@ td[class*="delta"] {
   width: auto;
   margin-left: auto;
   margin-right: auto;
-} 
+}
 
 .total-row .spacer-col {
   background: #fff !important;
@@ -283,4 +284,62 @@ td[class*="delta"] {
 
 th.product-header[rowspan="3"] {
   font-size: 1.35em;
+} 
+
+/* Center all table headers and cells except first column and spacer */
+.financial-table th,
+.financial-table td {
+  text-align: center;
+}
+.financial-table th.product-header,
+.financial-table td.product-header,
+.financial-table .spacer-col {
+  text-align: left;
+}
+
+/* Title for Amount table - centered and styled like Sales Kgs Comparison */
+.sales-amount-title {
+  font-size: 1.35em;
+  font-weight: bold;
+  margin-bottom: 16px;
+  margin-top: 40px;
+  text-align: center;
+}
+
+/* Spacing between tables */
+.sales-rep-content > table + .sales-amount-title {
+  margin-top: 40px;
+} 
+
+/* Increase spacing between Kgs and Amount tables */
+.sales-rep-content > table + .sales-rep-subtitle {
+  margin-top: 96px;
+} 
+
+.table-separator {
+  height: 120px;
+} 
+
+.amount-table-blank-cell {
+  background: transparent !important;
+  border: none !important;
+  color: transparent !important;
+  min-width: 120px !important;
+  width: 120px !important;
+  padding: 0 !important;
+}
+
+/* Override total row styling for hidden columns */
+.total-row .amount-table-blank-cell {
+  background: transparent !important;
+  border: none !important;
+  color: transparent !important;
+}
+
+/* Ensure delta columns maintain consistent width across both tables */
+.sales-rep-content .financial-table .total-row td.metric-cell.delta-up,
+.sales-rep-content .financial-table .total-row td.metric-cell.delta-down {
+  width: 90px !important;
+  min-width: 60px !important;
+  max-width: 110px !important;
 } 

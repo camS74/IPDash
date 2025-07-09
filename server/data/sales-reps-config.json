@@ -1,28 +1,16 @@
 {
   "FP": {
-    "defaults": [
-      "Direct Sales",
-      "Direct Sales F&b",
-      "Harwal Company Limited",
-      "Sojy Jose Ukken",
-      "(Blank)",
-      "Christopher Dela Cruz"
-    ],
+    "defaults": [],
     "selection": [
-      "Direct Sales",
-      "Direct Sales F&b",
-      "Harwal Company Limited",
-      "Sojy Jose Ukken",
-      "(Blank)",
-      "Christopher Dela Cruz"
+      "Christopher Dela Cruz",
+      "MOUHCINE FELLAH",
+      "Sofiane Salah",
+      "Narek Koroukian"
     ],
     "groups": {
-      "Sojy & Direct Sales": [
-        "Direct Sales",
-        "Direct Sales F&b",
-        "Harwal Company Limited",
-        "Sojy Jose Ukken",
-        "(Blank)"
+      "Sofiane & Morocco": [
+        "MOUHCINE FELLAH",
+        "Sofiane Salah"
       ]
     }
   }

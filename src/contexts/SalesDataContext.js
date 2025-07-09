@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { getUniqueProductGroups } from './getUniqueProductGroups';
 
@@ -19,6 +19,11 @@ export const SalesDataProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // Sales rep configuration state
+  const [defaultReps, setDefaultReps] = useState([]);
+  const [salesRepGroups, setSalesRepGroups] = useState({});
+  const [salesRepConfigLoaded, setSalesRepConfigLoaded] = useState(false);
   
   // Function to load Sales Excel file from API endpoint
   const loadSalesData = useCallback(async (url = '/api/sales.xlsx') => {
@@ -92,6 +97,44 @@ export const SalesDataProvider = ({ children }) => {
     }
   }, [loading, dataLoaded, selectedDivision]);
 
+  // Function to load sales rep configuration
+  const loadSalesRepConfig = useCallback(async (forceReload = false) => {
+    if (salesRepConfigLoaded && !forceReload) {
+      return;
+    }
+    
+    try {
+       const response = await fetch('http://localhost:3001/api/sales-reps-defaults?division=FP');
+       if (response.ok) {
+         const result = await response.json();
+         
+         if (result.success) {
+           setDefaultReps(result.selection || []);
+           setSalesRepGroups(result.groups || {});
+           setSalesRepConfigLoaded(true);
+         } else {
+           console.error('API returned error:', result.message);
+           setDefaultReps([]);
+           setSalesRepGroups({});
+         }
+      } else {
+        console.error('Failed to load sales rep configuration');
+        setDefaultReps([]);
+        setSalesRepGroups({});
+      }
+    } catch (error) {
+      console.error('Error loading sales rep configuration:', error);
+      setDefaultReps([]);
+      setSalesRepGroups({});
+    }
+  }, [salesRepConfigLoaded]);
+
+  // Function to refresh sales rep configuration
+  const refreshSalesRepConfig = useCallback(async () => {
+    setSalesRepConfigLoaded(false);
+    await loadSalesRepConfig(true);
+  }, [loadSalesRepConfig]);
+
   // Function to get product groups from the selected division
   const getProductGroups = useCallback(() => {
     if (!salesData[selectedDivision]) return [];
@@ -136,6 +179,11 @@ export const SalesDataProvider = ({ children }) => {
     return getUniqueProductGroups(rep, selectedVariable, divisionCode, salesData, salesRepGroups);
   }, [salesData]);
 
+  // Load sales rep configuration on mount
+  useEffect(() => {
+    loadSalesRepConfig();
+  }, [loadSalesRepConfig]);
+
   const value = {
     salesData,
     divisions,
@@ -146,7 +194,12 @@ export const SalesDataProvider = ({ children }) => {
     dataLoaded,
     loadSalesData,
     getProductGroups,
-    getUniqueProductGroupsForRep
+    getUniqueProductGroupsForRep,
+    defaultReps,
+    salesRepGroups,
+    loadSalesRepConfig,
+    refreshSalesRepConfig,
+    salesRepConfigLoaded
   };
 
   return (
