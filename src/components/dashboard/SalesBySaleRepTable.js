@@ -201,6 +201,85 @@ const sortProductGroups = (productGroups) => {
   });
 };
 
+// Helper function for fuzzy customer name matching and grouping
+const groupSimilarCustomers = (customers) => {
+  const groups = [];
+  const processed = new Set();
+  
+  customers.forEach(customer => {
+    if (processed.has(customer)) return;
+    
+    const group = [customer];
+    processed.add(customer);
+    
+    // Find similar customer names
+    customers.forEach(otherCustomer => {
+      if (processed.has(otherCustomer)) return;
+      
+      // Simple similarity check - can be enhanced with more sophisticated algorithms
+      const similarity = calculateSimilarity(customer, otherCustomer);
+      if (similarity > 0.8) { // 80% similarity threshold
+        group.push(otherCustomer);
+        processed.add(otherCustomer);
+      }
+    });
+    
+    groups.push({
+      name: group[0], // Use the first name as the group name
+      members: group,
+      totalMembers: group.length
+    });
+  });
+  
+  return groups;
+};
+
+// Helper function to calculate string similarity (simple implementation)
+const calculateSimilarity = (str1, str2) => {
+  const s1 = str1.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const s2 = str2.toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  if (s1 === s2) return 1;
+  
+  const longer = s1.length > s2.length ? s1 : s2;
+  const shorter = s1.length > s2.length ? s2 : s1;
+  
+  if (longer.length === 0) return 1;
+  
+  // Simple Levenshtein distance calculation
+  const distance = levenshteinDistance(longer, shorter);
+  return (longer.length - distance) / longer.length;
+};
+
+// Helper function to calculate Levenshtein distance
+const levenshteinDistance = (str1, str2) => {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+};
+
 // Helper function to process data for a single product group
 const processProductGroupData = (pgName, variable, extendedColumns, dashboardData) => {
   const values = [];
@@ -290,6 +369,136 @@ const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder) => {
       name: 'No Product Groups Found',
       values: columnOrder ? new Array(columnOrder.length * 2 - 1).fill('-') : []
     }];
+  }
+};
+
+// Helper function to fetch customer dashboard data from API
+const fetchCustomerDashboardData = async (salesRep, periods) => {
+  const response = await fetch('/api/fp/customer-dashboard', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      salesRep,
+      periods
+    })
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to fetch customer dashboard data:', response.status);
+    throw new Error(`API request failed with status: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data;
+};
+
+// Helper function to aggregate customer monthly data for a column
+const aggregateCustomerColumnData = (customerName, col, dashboardData) => {
+  try {
+    const year = col.year;
+    const type = col.type || 'Actual';
+    let aggregatedValue = 0;
+    
+    // Determine which months to aggregate based on column configuration
+    let monthsToAggregate = [];
+    
+    if (col.months && Array.isArray(col.months)) {
+      // Custom range - use all months in the range
+      monthsToAggregate = col.months;
+    } else {
+      // Handle quarters and standard periods using helper function
+      monthsToAggregate = getMonthsForPeriod(col.month);
+    }
+    
+    // Sum values for all months in the period
+    monthsToAggregate.forEach(monthName => {
+      const month = getMonthNumber(monthName);
+      const key = `${year}-${month}-${type}`;
+      const monthValue = dashboardData[customerName]?.[key] || 0;
+      
+      if (typeof monthValue === 'number') {
+        aggregatedValue += monthValue;
+      }
+    });
+    
+    return aggregatedValue;
+  } catch (error) {
+    // Error extracting sales data
+    return 0;
+  }
+};
+
+// Helper function to process data for a single customer
+const processCustomerData = (customerName, extendedColumns, dashboardData) => {
+  const values = [];
+  
+  extendedColumns.forEach((col, index) => {
+    if (col.columnType === 'delta') {
+      // Calculate delta between previous and current data columns
+      const dataColumns = extendedColumns.filter(c => c.columnType === 'data');
+      const deltaIndex = extendedColumns.slice(0, index).filter(c => c.columnType === 'delta').length;
+      
+      if (deltaIndex < dataColumns.length - 1) {
+        const fromCol = dataColumns[deltaIndex];
+        const toCol = dataColumns[deltaIndex + 1];
+        
+        const fromValue = aggregateCustomerColumnData(customerName, fromCol, dashboardData);
+        const toValue = aggregateCustomerColumnData(customerName, toCol, dashboardData);
+        
+        values.push(calculateDeltaDisplay(toValue, fromValue));
+      } else {
+        values.push('-');
+      }
+    } else {
+      // Regular data column
+      const value = aggregateCustomerColumnData(customerName, col, dashboardData);
+      values.push(value);
+    }
+  });
+  
+  return {
+    name: customerName,
+    values: values
+  };
+};
+
+// Main function to get customers for a sales rep with volume-based sorting
+const getCustomersForSalesRep = async (salesRep, columnOrder) => {
+  try {
+    // Step 1: Prepare periods from column order
+    const periods = preparePeriods(columnOrder);
+    
+    // Step 2: Fetch data from API
+    const { customers, dashboardData } = await fetchCustomerDashboardData(salesRep, periods);
+    
+    // Step 3: Group similar customers using fuzzy matching
+    const customerGroups = groupSimilarCustomers(customers);
+    
+    // Step 4: Build extended columns structure
+    const extendedColumns = buildExtendedColumns(columnOrder);
+    
+    // Step 5: Process data for each customer group
+    const processedResult = customerGroups.map((customerGroup) => 
+      processCustomerData(customerGroup.name, extendedColumns, dashboardData)
+    );
+    
+    // Step 6: Sort by base period volume (highest to lowest)
+    // Find the first data column (base period)
+    const basePeriodIndex = extendedColumns.findIndex(col => col.columnType === 'data');
+    if (basePeriodIndex !== -1) {
+      processedResult.sort((a, b) => {
+        const aValue = a.values[basePeriodIndex] || 0;
+        const bValue = b.values[basePeriodIndex] || 0;
+        return bValue - aValue; // Sort descending (highest first)
+      });
+    }
+    
+    return processedResult;
+  } catch (error) {
+    console.error('Error getting customers for sales rep:', error);
+    throw error;
   }
 };
 
@@ -399,11 +608,12 @@ const SalesRepTabContent = ({ rep }) => {
   const { columnOrder } = useFilter();
   const [kgsData, setKgsData] = useState([]);
   const [amountData, setAmountData] = useState([]);
+  const [customerData, setCustomerData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchProductGroups = async () => {
+    const fetchData = async () => {
       if (!rep || !columnOrder || columnOrder.length === 0) {
         setLoading(false);
         return;
@@ -413,23 +623,25 @@ const SalesRepTabContent = ({ rep }) => {
         setLoading(true);
         setError(null);
         
-        // Fetch product groups for both KGS and Amount (same structure, empty data)
-        const [kgsResult, amountResult] = await Promise.all([
+        // Fetch product groups for both KGS and Amount, and customer data
+        const [kgsResult, amountResult, customerResult] = await Promise.all([
           getProductGroupsForSalesRep(rep, 'KGS', columnOrder),
-          getProductGroupsForSalesRep(rep, 'Amount', columnOrder)
+          getProductGroupsForSalesRep(rep, 'Amount', columnOrder),
+          getCustomersForSalesRep(rep, columnOrder)
         ]);
         
         setKgsData(kgsResult);
         setAmountData(amountResult);
+        setCustomerData(customerResult);
       } catch (err) {
-        // Error loading product groups
-        setError('Failed to load product groups');
+        // Error loading data
+        setError('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProductGroups();
+    fetchData();
   }, [rep, columnOrder]);
   
   // Build extended columns from columnOrder
@@ -605,7 +817,7 @@ const SalesRepTabContent = ({ rep }) => {
     return (
       <div className="sales-rep-content">
         <div className="sales-rep-title">{rep}</div>
-        <div className="table-empty-state">Loading product groups...</div>
+        <div className="table-empty-state">Loading data...</div>
       </div>
     );
   }
@@ -754,6 +966,97 @@ const SalesRepTabContent = ({ rep }) => {
               }
               const totalValue = calculateColumnTotal(amountData, idx, extendedColumns);
               return <td key={`total-${idx}`} className="metric-cell">{formatTotalValue(totalValue, 'Amount')}</td>;
+            })}
+          </tr>
+        </tbody>
+      </table>
+      <div className="table-separator" />
+      <div className="sales-rep-subtitle">Sales by Customer (KGS)</div>
+      <table className="financial-table">
+        <thead>
+          <tr className="main-header-row">
+            <th className="product-header" rowSpan={3}>Customer</th>
+            <th className="spacer-col" rowSpan={3} style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></th>
+            {extendedColumns.map((col, idx) => {
+              if (hiddenAmountColumnIndices.has(idx)) {
+                return <th key={`blank-${idx}`} className="amount-table-blank-cell"></th>;
+              }
+              if (col.columnType === 'delta') {
+                return <th key={`delta-${idx}`} rowSpan={3} style={getColumnHeaderStyle({ columnType: 'delta' })} className="delta-header">Difference</th>;
+              }
+              return <th key={`year-${idx}`} style={getColumnHeaderStyle(col)} className="period-header">{col.year}</th>;
+            })}
+          </tr>
+          <tr className="main-header-row">
+            {extendedColumns.map((col, idx) => {
+              if (hiddenAmountColumnIndices.has(idx)) return <th key={`blank2-${idx}`} className="amount-table-blank-cell"></th>;
+              if (col.columnType === 'delta') return null;
+              return <th key={`month-${idx}`} style={getColumnHeaderStyle(col)} className="period-header">{col.isCustomRange ? col.displayName : col.month}</th>;
+            })}
+          </tr>
+          <tr className="main-header-row">
+            {extendedColumns.map((col, idx) => {
+              if (hiddenAmountColumnIndices.has(idx)) return <th key={`blank3-${idx}`} className="amount-table-blank-cell"></th>;
+              if (col.columnType === 'delta') return null;
+              return <th key={`type-${idx}`} style={getColumnHeaderStyle(col)} className="period-header">{col.type}</th>;
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {customerData.map(customer => (
+            <tr key={customer.name} className="product-header-row">
+              <td className="row-label product-header">{customer.name}</td>
+              <td className="spacer-col" style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></td>
+              {extendedColumns.map((col, idx) => {
+                if (hiddenAmountColumnIndices.has(idx)) return <td key={`blank-${idx}`} className="amount-table-blank-cell"></td>;
+                const val = customer.values[idx];
+                if (col.columnType === 'delta') {
+                  if (typeof val === 'object' && val !== null) {
+                    // New object format with color and arrow
+                    return (
+                      <td key={idx} className="metric-cell delta-cell" style={{ color: val.color }}>
+                        <span className="delta-arrow">{val.arrow}</span>
+                        <span className="delta-value">{val.value}</span>
+                      </td>
+                    );
+                  } else if (typeof val === 'string') {
+                    // Legacy string format
+                    let deltaClass = '';
+                    if (val.includes('▲')) deltaClass = 'delta-up';
+                    else if (val.includes('▼')) deltaClass = 'delta-down';
+                    return <td key={idx} className={`metric-cell ${deltaClass}`}>{val}</td>;
+                  }
+                  return <td key={idx} className="metric-cell">{val || '-'}</td>;
+                }
+                return <td key={idx} className="metric-cell">{val}</td>;
+              })}
+            </tr>
+          ))}
+          {/* Total Row for Customers */}
+          <tr className="total-row">
+            <td className="total-label">Total</td>
+            <td className="spacer-col" style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></td>
+            {extendedColumns.map((col, idx) => {
+              if (hiddenAmountColumnIndices.has(idx)) return <td key={`total-blank-${idx}`} className="amount-table-blank-cell"></td>;
+              if (col.columnType === 'delta') {
+                // Find the corresponding data columns for delta calculation
+                const dataColumns = extendedColumns.filter(c => c.columnType === 'data');
+                const deltaIndex = extendedColumns.slice(0, idx).filter(c => c.columnType === 'delta').length;
+                if (deltaIndex < dataColumns.length - 1) {
+                  const fromIndex = extendedColumns.findIndex(c => c === dataColumns[deltaIndex]);
+                  const toIndex = extendedColumns.findIndex(c => c === dataColumns[deltaIndex + 1]);
+                  const delta = calculateTotalDelta(customerData, fromIndex, toIndex, extendedColumns);
+                  return (
+                    <td key={`total-delta-${idx}`} className="metric-cell delta-cell" style={{ color: delta.color }}>
+                      <span className="delta-arrow">{delta.arrow}</span>
+                      <span className="delta-value">{delta.value}</span>
+                    </td>
+                  );
+                }
+                return <td key={`total-delta-${idx}`} className="metric-cell">-</td>;
+              }
+              const totalValue = calculateColumnTotal(customerData, idx, extendedColumns);
+              return <td key={`total-${idx}`} className="metric-cell">{formatTotalValue(totalValue, 'KGS')}</td>;
             })}
           </tr>
         </tbody>

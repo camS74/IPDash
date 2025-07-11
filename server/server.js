@@ -36,16 +36,25 @@ if (!fs.existsSync(dataDir)) {
 let standardConfigs = new Map();
 function loadStandardConfigs() {
   try {
+    console.log(`🔍 Loading standard configs from: ${CONFIG_FILE_PATH}`);
     if (fs.existsSync(CONFIG_FILE_PATH)) {
       const data = fs.readFileSync(CONFIG_FILE_PATH, 'utf8');
+      console.log(`📄 File content length: ${data.length} characters`);
       const configs = JSON.parse(data);
+      console.log(`📋 Parsed configs:`, Object.keys(configs));
       standardConfigs = new Map(Object.entries(configs));
-      console.log(`Loaded ${standardConfigs.size} standard configurations from file`);
+      console.log(`✅ Loaded ${standardConfigs.size} standard configurations from file`);
+      
+      // Debug: Check what's in standardColumnSelection
+      if (standardConfigs.has('standardColumnSelection')) {
+        const columns = standardConfigs.get('standardColumnSelection');
+        console.log(`📊 standardColumnSelection has ${columns.length} columns:`, columns.map(col => col.id));
+      }
     } else {
-      console.log('No existing standard configurations file found, starting fresh');
+      console.log('❌ No existing standard configurations file found, starting fresh');
     }
   } catch (error) {
-    console.error('Error loading standard configurations:', error);
+    console.error('❌ Error loading standard configurations:', error);
     standardConfigs = new Map(); // Fallback to empty map
   }
 }
@@ -70,6 +79,27 @@ app.get('/', (req, res) => {
 });
 
 // API endpoints for standard configuration management
+app.get('/api/standard-config', (req, res) => {
+  try {
+    console.log('🔍 GET /api/standard-config - Returning all standard configs');
+    const allConfigs = {};
+    
+    // Convert Map to object
+    for (const [key, value] of standardConfigs.entries()) {
+      allConfigs[key] = value;
+    }
+    
+    console.log('📊 All configs:', Object.keys(allConfigs));
+    console.log('📊 standardColumnSelection length:', allConfigs.standardColumnSelection?.length || 0);
+    console.log('📊 chartVisibleColumns length:', allConfigs.chartVisibleColumns?.length || 0);
+    
+    res.json({ success: true, data: allConfigs });
+  } catch (error) {
+    console.error('❌ Error retrieving all standard configs:', error);
+    res.status(500).json({ error: 'Failed to retrieve standard configurations' });
+  }
+});
+
 app.post('/api/standard-config', (req, res) => {
   try {
     const { key, data } = req.body;
@@ -93,13 +123,19 @@ app.get('/api/standard-config/:key', (req, res) => {
     const data = standardConfigs.get(key);
     
     if (data) {
-      console.log(`Retrieved standard config for key: ${key}`);
+      console.log(`🔍 Retrieved standard config for key: ${key}`);
+      if (Array.isArray(data)) {
+        console.log(`📊 Data is array with ${data.length} items:`, data.map(item => item.id || item.year));
+      } else {
+        console.log(`📊 Data type: ${typeof data}, value:`, data);
+      }
       res.json({ success: true, data });
     } else {
+      console.log(`❌ No data found for key: ${key}`);
       res.status(404).json({ success: false, message: 'Standard configuration not found' });
     }
   } catch (error) {
-    console.error('Error retrieving standard config:', error);
+    console.error('❌ Error retrieving standard config:', error);
     res.status(500).json({ error: 'Failed to retrieve standard configuration' });
   }
 });
@@ -857,6 +893,83 @@ app.post('/api/fp/sales-rep-dashboard', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve sales rep dashboard data',
+      message: error.message
+    });
+  }
+});
+
+// Optimized batch API endpoint for customer dashboard data (KGS only)
+app.post('/api/fp/customer-dashboard', async (req, res) => {
+  try {
+    const { salesRep, periods = [] } = req.body;
+    
+    if (!salesRep) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'salesRep is required' 
+      });
+    }
+    
+    console.log(`🔍 Getting customer dashboard data for sales rep: ${salesRep}`);
+    
+    // Check if salesRep is actually a group name
+    const config = loadSalesRepConfig();
+    const fpConfig = config.FP || { groups: {} };
+    
+    let customers;
+    
+    if (fpConfig.groups && fpConfig.groups[salesRep]) {
+      // It's a group - get customers for all members
+      const groupMembers = fpConfig.groups[salesRep];
+      console.log(`Fetching customers for group '${salesRep}' with members:`, groupMembers);
+      
+      customers = await fpDataService.getCustomersForGroup(groupMembers);
+    } else {
+      // It's an individual sales rep
+      customers = await fpDataService.getCustomersBySalesRep(salesRep);
+    }
+    
+    // Get batch customer sales data for KGS only
+    const dashboardData = {};
+    
+    for (const customer of customers) {
+      dashboardData[customer] = {};
+      
+      for (const period of periods) {
+        const { year, month, type = 'Actual' } = period;
+        
+        let salesData;
+        if (fpConfig.groups && fpConfig.groups[salesRep]) {
+          // Group data
+          const groupMembers = fpConfig.groups[salesRep];
+          salesData = await fpDataService.getCustomerSalesDataForGroup(groupMembers, customer, 'KGS', year, month, type);
+        } else {
+          // Individual sales rep data
+          salesData = await fpDataService.getCustomerSalesDataByValueType(salesRep, customer, 'KGS', year, month, type);
+        }
+        
+        dashboardData[customer][`${year}-${month}-${type}`] = salesData;
+      }
+    }
+    
+    console.log(`✅ Retrieved customer dashboard data for ${customers.length} customers`);
+    
+    res.json({
+      success: true,
+      data: {
+        salesRep,
+        customers,
+        dashboardData,
+        isGroup: !!(fpConfig.groups && fpConfig.groups[salesRep])
+      },
+      message: `Retrieved customer dashboard data for ${salesRep}`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting customer dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve customer dashboard data',
       message: error.message
     });
   }
