@@ -1,40 +1,69 @@
 {
   "chartVisibleColumns": [
-    "2024-January-Actual",
-    "2023-January-Actual",
-    "2025-Q1-Actual"
+    "2023-HY1-Actual",
+    "2024-HY1-Actual",
+    "2025-HY1-Actual",
+    "2025-HY1-Budget"
   ],
   "standardColumnSelection": [
     {
-      "year": "2024",
-      "month": "January",
-      "type": "Actual",
-      "months": [
-        "January"
-      ],
-      "id": "2024-January-Actual",
-      "customColor": "blue"
-    },
-    {
       "year": "2023",
-      "month": "January",
-      "type": "Actual",
-      "months": [
-        "January"
-      ],
-      "id": "2023-January-Actual",
-      "customColor": "green"
-    },
-    {
-      "year": "2025",
-      "month": "Q1",
+      "month": "HY1",
       "type": "Actual",
       "months": [
         "January",
         "February",
-        "March"
+        "March",
+        "April",
+        "May",
+        "June"
       ],
-      "id": "2025-Q1-Actual",
+      "id": "2023-HY1-Actual",
+      "customColor": "blue"
+    },
+    {
+      "year": "2024",
+      "month": "HY1",
+      "type": "Actual",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June"
+      ],
+      "id": "2024-HY1-Actual",
+      "customColor": "green"
+    },
+    {
+      "year": "2025",
+      "month": "HY1",
+      "type": "Actual",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June"
+      ],
+      "id": "2025-HY1-Actual",
+      "customColor": "yellow"
+    },
+    {
+      "year": "2025",
+      "month": "HY1",
+      "type": "Budget",
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June"
+      ],
+      "id": "2025-HY1-Budget",
       "customColor": "boldContrast"
     }
   ],

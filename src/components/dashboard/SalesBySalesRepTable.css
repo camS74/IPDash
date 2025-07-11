@@ -87,52 +87,33 @@ td[class*="delta"] {
   background-color: #FFFFFF !important;
 }
 
-/* Delta indicators - Apply to ALL delta cells, including total row */
-.metric-cell.delta-up,
-.total-row .metric-cell.delta-up,
-.total-row td.delta-up {
-  color: #0066FF !important; /* Pure blue for positive change */
-}
 
-.metric-cell.delta-down,
-.total-row .metric-cell.delta-down,
-.total-row td.delta-down {
-  color: #FF0000 !important; /* Pure red for negative change */
-}
 
-/* Remove any other color overrides */
-.total-row .metric-cell[class*="delta"],
-.total-row td[class*="delta"] {
-  background-color: #FFFFFF !important;
-}
+
 
 /* Total row base styles */
-.total-row td {
+.total-row td:not(.delta-cell):not(.spacer-col) {
   font-weight: bold;
   background-color: #b3d9ff !important; /* Lighter blue */
   font-size: 14px;
   color: #333 !important; /* Darker text for better contrast */
 }
 
-/* Remove the pseudo-element arrows since we're handling them in the JS */
-.total-row .delta-up::before,
-.total-row .delta-down::before {
-  content: none;
+/* Delta cells in total row should use inline styles */
+.total-row td.delta-cell {
+  font-weight: bold;
+  background-color: #FFFFFF !important;
+  font-size: 14px;
+  /* color will be set via inline styles in JavaScript */
 }
+
+
 
 .total-row .metric-cell {
   text-align: right;
 }
 
-.total-row .delta-up {
-  background-color: #FFFFFF !important;
-  color: #2E865F !important;
-}
 
-.total-row .delta-down {
-  background-color: #FFFFFF !important;
-  color: #d32f2f !important;
-}
 
 .total-label {
   text-align: left !important;
@@ -157,18 +138,7 @@ td[class*="delta"] {
   padding: 20px 0;
 }
 
-.sales-rep-title {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
 
-.sales-rep-subtitle {
-  font-weight: bold;
-  margin-bottom: 16px;
-  margin-top: 0;
-  text-align: center;
-}
 
 /* Empty state styles */
 .table-empty-state {
@@ -185,36 +155,30 @@ td[class*="delta"] {
   font-weight: bold;
 }
 
-.sales-rep-content .financial-table tbody td {
+.sales-rep-content .financial-table tbody td:not(.spacer-col) {
   border: 1px solid #e0e0e0;
   color: #222;
 }
 
-.sales-rep-content .financial-table tr.total-row td {
+/* Total row styling - exclude delta cells and spacer from color override */
+.sales-rep-content .financial-table tr.total-row td:not(.delta-cell):not(.spacer-col) {
   font-weight: bold;
   color: #222;
 }
 
 /* Allow delta cells in total row to use inline color styles */
 .sales-rep-content .financial-table tr.total-row td.delta-cell {
-  color: unset !important;
+  font-weight: bold;
+  /* Remove color override to allow inline styles to work */
 } 
 
-/* Delta column coloring for Sales by Sales Rep table */
-.sales-rep-content .financial-table td.delta-up {
-  color: #288cfa;
-  font-weight: bold;
-}
 
-.sales-rep-content .financial-table td.delta-down {
-  color: #dc3545;
-  font-weight: bold;
-}
 
 /* New delta cell styling with arrows */
 .delta-cell {
   font-weight: bold;
   text-align: center;
+  background-color: #FFFFFF !important;
 }
 
 .delta-arrow {
@@ -224,11 +188,6 @@ td[class*="delta"] {
 
 .delta-value {
   font-size: 12px;
-}
-
-/* Ensure delta cells have white background */
-.delta-cell {
-  background-color: #FFFFFF !important;
 } 
 
 /* Sales Rep Table Title and Subtitle Styling */
@@ -280,7 +239,7 @@ td[class*="delta"] {
 
 /* Period columns fixed width */
 .sales-rep-content .financial-table th:not(.product-header):not([rowspan]),
-.sales-rep-content .financial-table td.metric-cell:not(.delta-up):not(.delta-down) {
+.sales-rep-content .financial-table td.metric-cell:not(.delta-cell) {
   width: 120px;
   min-width: 80px;
   max-width: 140px;
@@ -289,8 +248,7 @@ td[class*="delta"] {
 
 /* Delta columns fixed width */
 .sales-rep-content .financial-table th[rowspan="3"],
-.sales-rep-content .financial-table td.metric-cell.delta-up,
-.sales-rep-content .financial-table td.metric-cell.delta-down {
+.sales-rep-content .financial-table td.metric-cell.delta-cell {
   width: 90px;
   min-width: 60px;
   max-width: 110px;
@@ -305,8 +263,16 @@ td[class*="delta"] {
   margin-right: auto;
 }
 
+/* Spacer column styling - make it completely invisible */
+.spacer-col {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
 .total-row .spacer-col {
-  background: #fff !important;
+  background: transparent !important;
+  border: none !important;
 } 
 
 th.product-header[rowspan="3"] {
@@ -363,9 +329,8 @@ th.product-header[rowspan="3"] {
   color: transparent !important;
 }
 
-/* Ensure delta columns maintain consistent width across both tables */
-.sales-rep-content .financial-table .total-row td.metric-cell.delta-up,
-.sales-rep-content .financial-table .total-row td.metric-cell.delta-down {
+/* Ensure delta columns maintain consistent width across both tables - using delta-cell class now */
+.sales-rep-content .financial-table .total-row td.delta-cell {
   width: 90px !important;
   min-width: 60px !important;
   max-width: 110px !important;

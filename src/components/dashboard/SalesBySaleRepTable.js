@@ -5,7 +5,7 @@ import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import './SalesBySalesRepTable.css'; // Use dedicated CSS file
 
-// Removed unused variableOptions array
+
 
 // Helper function to convert month names to numbers
 const getMonthNumber = (monthName) => {
@@ -17,9 +17,246 @@ const getMonthNumber = (monthName) => {
   return months[monthName] || '01';
 };
 
-// Removed unused getDatabaseColumnName function
+// Helper function to get months for a given period
+const getMonthsForPeriod = (period) => {
+  const monthMap = {
+    'Q1': ['January', 'February', 'March'],
+    'Q2': ['April', 'May', 'June'],
+    'Q3': ['July', 'August', 'September'],
+    'Q4': ['October', 'November', 'December'],
+    'HY1': ['January', 'February', 'March', 'April', 'May', 'June'],
+    'HY2': ['July', 'August', 'September', 'October', 'November', 'December'],
+    'Year': ['January', 'February', 'March', 'April', 'May', 'June', 
+             'July', 'August', 'September', 'October', 'November', 'December']
+  };
+  return monthMap[period] || [period];
+};
 
-// Function to fetch actual product groups and sales data from fp_data for each sales rep
+// Helper function for delta calculation
+const calculateDeltaDisplay = (newerValue, olderValue) => {
+  if (!isNaN(newerValue) && !isNaN(olderValue)) {
+    let deltaPercent;
+    
+    if (olderValue === 0) {
+      deltaPercent = newerValue > 0 ? Infinity : newerValue < 0 ? -Infinity : 0;
+    } else {
+      deltaPercent = ((newerValue - olderValue) / Math.abs(olderValue)) * 100;
+    }
+    
+    // Format based on value range
+    let formattedDelta;
+    if (deltaPercent === Infinity || deltaPercent === -Infinity) {
+      formattedDelta = '∞';
+    } else if (Math.abs(deltaPercent) > 99.99) {
+      formattedDelta = Math.round(deltaPercent);
+    } else {
+      formattedDelta = deltaPercent.toFixed(1);
+    }
+    
+    if (deltaPercent > 0) {
+      return {
+        arrow: '▲',
+        value: deltaPercent === Infinity ? formattedDelta : `${formattedDelta}%`,
+        color: '#288cfa'
+      };
+    } else if (deltaPercent < 0) {
+      return {
+        arrow: '▼',
+        value: deltaPercent === -Infinity ? formattedDelta : `${Math.abs(formattedDelta)}%`,
+        color: '#dc3545'
+      };
+    } else {
+      return {
+        arrow: '',
+        value: '0.0%',
+        color: 'black'
+      };
+    }
+  }
+  return '-';
+};
+
+
+
+// Helper function to prepare periods from column order
+const preparePeriods = (columnOrder) => {
+  const periods = [];
+  
+  columnOrder.forEach(col => {
+    let monthsToInclude = [];
+    
+    if (col.months && Array.isArray(col.months)) {
+      // Custom range - use all months in the range
+      monthsToInclude = col.months;
+    } else {
+      // Handle quarters and standard periods using helper function
+      monthsToInclude = getMonthsForPeriod(col.month);
+    }
+    
+    // Add each month as a separate period for backend aggregation
+    monthsToInclude.forEach(monthName => {
+      periods.push({
+        year: col.year,
+        month: getMonthNumber(monthName),
+        type: col.type || 'Actual',
+        originalColumn: col // Keep reference to original column for grouping
+      });
+    });
+  });
+  
+  return periods;
+};
+
+// Helper function to fetch dashboard data from API
+const fetchDashboardData = async (salesRep, variable, periods) => {
+  const response = await fetch('/api/fp/sales-rep-dashboard', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      salesRep,
+      valueTypes: [variable], // Use original case to match database
+      periods
+    })
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to fetch dashboard data:', response.status);
+    throw new Error(`API request failed with status: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.data;
+};
+
+// Helper function to build extended columns structure
+const buildExtendedColumns = (columnOrder) => {
+  const extendedColumns = [];
+  
+  columnOrder.forEach((col, index) => {
+    extendedColumns.push({
+      ...col,
+      columnType: 'data',
+      label: `${col.year}-${col.isCustomRange ? col.displayName : col.month}-${col.type}`
+    });
+    
+    // Add delta column after each data column (except the last one)
+    if (index < columnOrder.length - 1) {
+      extendedColumns.push({
+        columnType: 'delta',
+        label: 'Delta'
+      });
+    }
+  });
+  
+  return extendedColumns;
+};
+
+// Helper function to aggregate monthly data for a column
+const aggregateColumnData = (pgName, variable, col, dashboardData) => {
+  try {
+    const year = col.year;
+    const type = col.type || 'Actual';
+    let aggregatedValue = 0;
+    
+    // Determine which months to aggregate based on column configuration
+    let monthsToAggregate = [];
+    
+    if (col.months && Array.isArray(col.months)) {
+      // Custom range - use all months in the range
+      monthsToAggregate = col.months;
+    } else {
+      // Handle quarters and standard periods using helper function
+      monthsToAggregate = getMonthsForPeriod(col.month);
+    }
+    
+    // Sum values for all months in the period
+    monthsToAggregate.forEach(monthName => {
+      const month = getMonthNumber(monthName);
+      const key = `${year}-${month}-${type}`;
+      const monthValue = dashboardData[pgName]?.[variable]?.[key] || 0;
+      
+      if (typeof monthValue === 'number') {
+        aggregatedValue += monthValue;
+      }
+    });
+    
+    return aggregatedValue;
+  } catch (error) {
+    // Error extracting sales data
+    return 0;
+  }
+};
+
+// Helper function to sort product groups with "Others" at the end
+const sortProductGroups = (productGroups) => {
+  return productGroups.sort((a, b) => {
+    // If 'a' is "Others", it should come after 'b'
+    if (a.toLowerCase() === 'others') return 1;
+    // If 'b' is "Others", it should come after 'a'
+    if (b.toLowerCase() === 'others') return -1;
+    // For all other cases, maintain alphabetical order
+    return a.localeCompare(b);
+  });
+};
+
+// Helper function to process data for a single product group
+const processProductGroupData = (pgName, variable, extendedColumns, dashboardData) => {
+  const values = [];
+  const dataValues = []; // Store only data values for delta calculation
+  
+  // First pass: process all data columns
+  for (let idx = 0; idx < extendedColumns.length; idx++) {
+    const col = extendedColumns[idx];
+    
+    if (col.columnType === 'data') {
+      const aggregatedValue = aggregateColumnData(pgName, variable, col, dashboardData);
+      
+      // Format as comma-separated integer without decimals
+      const formattedValue = Math.round(aggregatedValue).toLocaleString();
+      dataValues.push(aggregatedValue); // Store raw value for delta calculation
+      values.push(formattedValue);
+    }
+  }
+  
+  // Second pass: insert delta calculations
+  const finalValues = [];
+  let dataIndex = 0;
+  
+  for (let idx = 0; idx < extendedColumns.length; idx++) {
+    const col = extendedColumns[idx];
+    
+    if (col.columnType === 'data') {
+      finalValues.push(values[dataIndex]);
+      dataIndex++;
+    } else if (col.columnType === 'delta') {
+      // Calculate delta between adjacent data columns
+      // dataIndex points to the next data column (newer)
+      // dataIndex-1 points to the previous data column (older)
+      const newerDataIndex = dataIndex;
+      const olderDataIndex = dataIndex - 1;
+      
+      if (olderDataIndex >= 0 && newerDataIndex < dataValues.length) {
+        const newerValue = dataValues[newerDataIndex];
+        const olderValue = dataValues[olderDataIndex];
+        
+        const deltaResult = calculateDeltaDisplay(newerValue, olderValue);
+        finalValues.push(deltaResult);
+      } else {
+        finalValues.push('-');
+      }
+    }
+  }
+  
+  return {
+    name: pgName,
+    values: finalValues,
+    rawValues: dataValues // Store raw numeric values for total calculations
+  };
+};
+
+// Main function to fetch actual product groups and sales data from fp_data for each sales rep
 const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder) => {
   try {
     // Safety check for columnOrder
@@ -27,251 +264,22 @@ const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder) => {
       return [];
     }
     
-    // Prepare periods from columnOrder with proper quarter/period expansion
-    const periods = [];
+    // Step 1: Prepare periods from columnOrder
+    const periods = preparePeriods(columnOrder);
     
-    columnOrder.forEach(col => {
-      let monthsToInclude = [];
-      
-      if (col.months && Array.isArray(col.months)) {
-        // Custom range - use all months in the range
-        monthsToInclude = col.months;
-      } else {
-        // Handle quarters and standard periods
-        if (col.month === 'Q1') {
-          monthsToInclude = ['January', 'February', 'March'];
-        } else if (col.month === 'Q2') {
-          monthsToInclude = ['April', 'May', 'June'];
-        } else if (col.month === 'Q3') {
-          monthsToInclude = ['July', 'August', 'September'];
-        } else if (col.month === 'Q4') {
-          monthsToInclude = ['October', 'November', 'December'];
-        } else if (col.month === 'HY1') {
-          monthsToInclude = ['January', 'February', 'March', 'April', 'May', 'June'];
-        } else if (col.month === 'HY2') {
-          monthsToInclude = ['July', 'August', 'September', 'October', 'November', 'December'];
-        } else if (col.month === 'Year') {
-          monthsToInclude = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ];
-        } else {
-          monthsToInclude = [col.month];
-        }
-      }
-      
-      // Add each month as a separate period for backend aggregation
-      monthsToInclude.forEach(monthName => {
-        periods.push({
-          year: col.year,
-          month: getMonthNumber(monthName),
-          type: col.type || 'Actual',
-          originalColumn: col // Keep reference to original column for grouping
-        });
-      });
-    });
+    // Step 2: Fetch data from API
+    const { productGroups, dashboardData } = await fetchDashboardData(salesRep, variable, periods);
     
-    // Use the new batch API endpoint
-    const response = await fetch('/api/fp/sales-rep-dashboard', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        salesRep,
-        valueTypes: [variable], // Use original case to match database
-        periods
-      })
-    });
+    // Step 3: Sort product groups with "Others" at the end
+    const sortedProductGroups = sortProductGroups(productGroups);
     
-    if (!response.ok) {
-      console.error('Failed to fetch dashboard data:', response.status);
-      return [{
-        name: 'No Product Groups Found',
-        values: columnOrder ? new Array(columnOrder.length * 2 - 1).fill('-') : []
-      }];
-    }
+    // Step 4: Build extended columns structure
+    const extendedColumns = buildExtendedColumns(columnOrder);
     
-    const result = await response.json();
-    const { productGroups, dashboardData } = result.data;
-    
-    // Debug logging removed - Amount data now working correctly
-    
-    // Build extended columns from columnOrder
-    const extendedColumns = [];
-    columnOrder.forEach((col, index) => {
-      extendedColumns.push({
-        ...col,
-        columnType: 'data',
-        label: `${col.year}-${col.isCustomRange ? col.displayName : col.month}-${col.type}`
-      });
-      
-      // Add delta column after each data column (except the last one)
-      if (index < columnOrder.length - 1) {
-        extendedColumns.push({
-          columnType: 'delta',
-          label: 'Delta'
-        });
-      }
-    });
-    
-    // Process data for each product group
-    const processedResult = productGroups.map((pgName) => {
-      const values = [];
-      const dataValues = []; // Store only data values for delta calculation
-      
-      // First pass: process all data columns
-      for (let idx = 0; idx < extendedColumns.length; idx++) {
-        const col = extendedColumns[idx];
-        
-        if (col.columnType === 'data') {
-          // Extract and aggregate sales data from batch response for the column period
-          try {
-            const year = col.year;
-            const type = col.type || 'Actual';
-            let aggregatedValue = 0;
-            
-            // Determine which months to aggregate based on column configuration
-            let monthsToAggregate = [];
-            
-            if (col.months && Array.isArray(col.months)) {
-              // Custom range - use all months in the range
-              monthsToAggregate = col.months;
-            } else {
-              // Handle quarters and standard periods
-              if (col.month === 'Q1') {
-                monthsToAggregate = ['January', 'February', 'March'];
-              } else if (col.month === 'Q2') {
-                monthsToAggregate = ['April', 'May', 'June'];
-              } else if (col.month === 'Q3') {
-                monthsToAggregate = ['July', 'August', 'September'];
-              } else if (col.month === 'Q4') {
-                monthsToAggregate = ['October', 'November', 'December'];
-              } else if (col.month === 'HY1') {
-                monthsToAggregate = ['January', 'February', 'March', 'April', 'May', 'June'];
-              } else if (col.month === 'HY2') {
-                monthsToAggregate = ['July', 'August', 'September', 'October', 'November', 'December'];
-              } else if (col.month === 'Year') {
-                monthsToAggregate = [
-                  'January', 'February', 'March', 'April', 'May', 'June',
-                  'July', 'August', 'September', 'October', 'November', 'December'
-                ];
-              } else {
-                monthsToAggregate = [col.month];
-              }
-            }
-            
-            // Sum values for all months in the period
-            monthsToAggregate.forEach(monthName => {
-              const month = getMonthNumber(monthName);
-              const key = `${year}-${month}-${type}`;
-              const monthValue = dashboardData[pgName]?.[variable]?.[key] || 0;
-              
-              // Amount data aggregation working correctly
-              
-              if (typeof monthValue === 'number') {
-                aggregatedValue += monthValue;
-              }
-            });
-            
-            // Format as comma-separated integer without decimals
-            const formattedValue = Math.round(aggregatedValue).toLocaleString();
-            dataValues.push(aggregatedValue); // Store raw value for delta calculation
-            values.push(formattedValue);
-          } catch (error) {
-            // Error extracting sales data
-            dataValues.push(0);
-            values.push('-');
-          }
-        }
-      }
-      
-      // Second pass: insert delta calculations
-      const finalValues = [];
-      let dataIndex = 0;
-      
-      for (let idx = 0; idx < extendedColumns.length; idx++) {
-        const col = extendedColumns[idx];
-        
-        if (col.columnType === 'data') {
-          finalValues.push(values[dataIndex]);
-          dataIndex++;
-        } else if (col.columnType === 'delta') {
-          // Calculate delta between adjacent data columns
-          // dataIndex points to the next data column (newer)
-          // dataIndex-1 points to the previous data column (older)
-          const newerDataIndex = dataIndex;
-          const olderDataIndex = dataIndex - 1;
-          
-          if (olderDataIndex >= 0 && newerDataIndex < dataValues.length) {
-            const newerValue = dataValues[newerDataIndex];
-            const olderValue = dataValues[olderDataIndex];
-            
-            if (!isNaN(newerValue) && !isNaN(olderValue)) {
-              let deltaPercent;
-              
-              if (olderValue === 0) {
-                // Handle division by zero: if old value is 0 and new value > 0, show as infinite growth
-                if (newerValue > 0) {
-                  deltaPercent = Infinity;
-                } else if (newerValue < 0) {
-                  deltaPercent = -Infinity;
-                } else {
-                  deltaPercent = 0; // Both are 0
-                }
-              } else {
-                // Normal calculation: ((New Value - Old Value) / Old Value) * 100
-                deltaPercent = ((newerValue - olderValue) / Math.abs(olderValue)) * 100;
-              }
-              
-              // Format based on value range
-              let formattedDelta;
-              if (deltaPercent === Infinity) {
-                formattedDelta = '∞'; // Infinity symbol for division by zero growth
-              } else if (deltaPercent === -Infinity) {
-                formattedDelta = '∞'; // Infinity symbol for division by zero decline
-              } else if (Math.abs(deltaPercent) > 99.99) {
-                formattedDelta = Math.round(deltaPercent); // No decimals for values > 99.99%
-              } else {
-                formattedDelta = deltaPercent.toFixed(1); // One decimal for values -99.99% to +99.99%
-              }
-              
-              if (deltaPercent > 0) {
-                finalValues.push({
-                  arrow: '▲',
-                  value: deltaPercent === Infinity ? `${formattedDelta}` : `${formattedDelta}%`,
-                  color: 'blue'
-                });
-              } else if (deltaPercent < 0) {
-                finalValues.push({
-                  arrow: '▼',
-                  value: deltaPercent === -Infinity ? `${formattedDelta}` : `${Math.abs(formattedDelta)}%`,
-                  color: 'red'
-                });
-              } else {
-                finalValues.push({
-                  arrow: '',
-                  value: '0.0%',
-                  color: 'black'
-                });
-              }
-            } else {
-              finalValues.push('-');
-            }
-          } else {
-            finalValues.push('-');
-          }
-        }
-      }
-      
-      return {
-        name: pgName,
-        values: finalValues,
-        rawValues: dataValues // Store raw numeric values for total calculations
-      };
-    });
-    
-    // Amount data processing completed successfully
+    // Step 5: Process data for each product group
+    const processedResult = sortedProductGroups.map((pgName) => 
+      processProductGroupData(pgName, variable, extendedColumns, dashboardData)
+    );
     
     return processedResult;
     
@@ -511,7 +519,6 @@ const SalesRepTabContent = ({ rep }) => {
       return total;
     }, 0);
     
-    console.log('🎯 Final total:', total);
     return total;
   };
 
@@ -539,7 +546,7 @@ const SalesRepTabContent = ({ rep }) => {
     
     const delta = ((toTotal - fromTotal) / fromTotal) * 100;
     const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '';
-    const color = delta > 0 ? 'blue' : delta < 0 ? 'red' : 'black';
+    const color = delta > 0 ? '#288cfa' : delta < 0 ? '#dc3545' : 'black';
     
     // Format delta based on range: -99.99% to +99.9% should have decimals, outside should not
     const absDelta = Math.abs(delta);
@@ -556,7 +563,7 @@ const SalesRepTabContent = ({ rep }) => {
     return { arrow, value: formattedValue, color };
   };
   
-  // Removed unused formatDeltaValue and getDeltaClass functions
+
   
   const hiddenAmountColumnIndices = new Set(); // No columns hidden for now
   

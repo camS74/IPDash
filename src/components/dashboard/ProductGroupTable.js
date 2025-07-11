@@ -696,7 +696,7 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
     <div className="product-group-table-container">
       <div ref={internalTableRef} className="table-container-for-export">
         <div className="table-title">
-          <h2>{getDivisionDisplayName()} - Product Group Analysis</h2>
+          <h3>{getDivisionDisplayName()} - Product Group Analysis</h3>
         </div>
         <div className="table-scroll-container">
           <table className="product-group-table-table">
