@@ -109,8 +109,9 @@ td[class*="delta"] {
 /* Total row base styles */
 .total-row td {
   font-weight: bold;
-  background-color: #4a90e2 !important;
+  background-color: #b3d9ff !important; /* Lighter blue */
   font-size: 14px;
+  color: #333 !important; /* Darker text for better contrast */
 }
 
 /* Remove the pseudo-element arrows since we're handling them in the JS */
@@ -136,7 +137,7 @@ td[class*="delta"] {
 .total-label {
   text-align: left !important;
   padding-left: 8px !important;
-  color: #FFFFFF !important; /* White text for dark blue background */
+  color: #333 !important; /* Dark text for lighter blue background */
 }
 
 /* General text color rule based on background */
@@ -192,6 +193,11 @@ td[class*="delta"] {
 .sales-rep-content .financial-table tr.total-row td {
   font-weight: bold;
   color: #222;
+}
+
+/* Allow delta cells in total row to use inline color styles */
+.sales-rep-content .financial-table tr.total-row td.delta-cell {
+  color: unset !important;
 } 
 
 /* Delta column coloring for Sales by Sales Rep table */
@@ -199,9 +205,30 @@ td[class*="delta"] {
   color: #288cfa;
   font-weight: bold;
 }
+
 .sales-rep-content .financial-table td.delta-down {
-  color: #d32f2f;
+  color: #dc3545;
   font-weight: bold;
+}
+
+/* New delta cell styling with arrows */
+.delta-cell {
+  font-weight: bold;
+  text-align: center;
+}
+
+.delta-arrow {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+.delta-value {
+  font-size: 12px;
+}
+
+/* Ensure delta cells have white background */
+.delta-cell {
+  background-color: #FFFFFF !important;
 } 
 
 /* Sales Rep Table Title and Subtitle Styling */
@@ -342,4 +369,4 @@ th.product-header[rowspan="3"] {
   width: 90px !important;
   min-width: 60px !important;
   max-width: 110px !important;
-} 
+}

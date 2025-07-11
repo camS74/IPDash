@@ -98,13 +98,13 @@ export const SalesDataProvider = ({ children }) => {
   }, [loading, dataLoaded, selectedDivision]);
 
   // Function to load sales rep configuration
-  const loadSalesRepConfig = useCallback(async (forceReload = false) => {
+  const loadSalesRepConfig = useCallback(async (forceReload = false, division = 'FP') => {
     if (salesRepConfigLoaded && !forceReload) {
       return;
     }
     
     try {
-       const response = await fetch('http://localhost:3001/api/sales-reps-defaults?division=FP');
+       const response = await fetch(`http://localhost:3001/api/sales-reps-defaults?division=${division}`);
        if (response.ok) {
          const result = await response.json();
          
@@ -130,9 +130,9 @@ export const SalesDataProvider = ({ children }) => {
   }, [salesRepConfigLoaded]);
 
   // Function to refresh sales rep configuration
-  const refreshSalesRepConfig = useCallback(async () => {
+  const refreshSalesRepConfig = useCallback(async (division = 'FP') => {
     setSalesRepConfigLoaded(false);
-    await loadSalesRepConfig(true);
+    await loadSalesRepConfig(true, division);
   }, [loadSalesRepConfig]);
 
   // Function to get product groups from the selected division

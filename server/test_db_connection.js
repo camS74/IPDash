@@ -23,12 +23,12 @@ async function testConnection() {
     console.log('PostgreSQL version:', result.rows[0].version);
     client.release();
     
-    // Test if IPDashboard database exists
-    const dbResult = await pool.query("SELECT 1 FROM pg_database WHERE datname = 'IPDashboard'");
-    if (dbResult.rows.length > 0) {
-      console.log('✅ IPDashboard database exists');
+    // Test fp_data table exists
+    const tableResult = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_name = 'fp_data'");
+    if (tableResult.rows.length > 0) {
+      console.log('✅ fp_data table exists');
     } else {
-      console.log('❌ IPDashboard database does not exist');
+      console.log('❌ fp_data table does not exist');
     }
     
   } catch (error) {

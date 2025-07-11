@@ -73,27 +73,31 @@ const MasterData = () => {
       const fetchSalesReps = async () => {
         try {
           if (divisionCode === 'FP') {
-            // Fetch from PostgreSQL database for FP division
-            const res = await fetch('http://localhost:3001/api/fp/sales-reps');
+            // Fetch from fp_data table for FP division
+            const res = await fetch('http://localhost:3001/api/fp/sales-reps-from-db');
             if (!res.ok) {
               throw new Error(`HTTP error! status: ${res.status}`);
             }
             const data = await res.json();
-            setSalesReps(data.data || []);
+            if (data.success) {
+              setSalesReps(data.data || []);
+            } else {
+              throw new Error(data.message || 'Failed to load sales reps');
+            }
           } else {
-          // For other divisions, show "Coming Soon" message
+            // For other divisions, show "Not Available" message
+            setSalesReps([]);
+            setErrorReps('Sales Rep data Not Available');
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading sales reps:', error);
+          if (divisionCode === 'FP') {
+            setErrorReps(`Failed to load sales representatives: ${error.message}`);
+          } else {
+            setErrorReps('Sales Rep data Not Available');
+          }
           setSalesReps([]);
-          setErrorReps('Sales representative configuration for this division is coming soon!');
-          return;
-        }
-      } catch (error) {
-        console.error('Error loading sales reps:', error);
-        if (divisionCode === 'FP') {
-          setErrorReps(`Failed to load sales representatives: ${error.message}`);
-        } else {
-          setErrorReps('Sales representative configuration for this division is coming soon!');
-        }
-        setSalesReps([]);
         }
       };
       
@@ -651,9 +655,13 @@ const MasterData = () => {
                   <>
                     {(!salesReps || salesReps.length === 0) ? (
                       <div className="no-sales-reps-message">
-                        <p><strong>List not available</strong></p>
-                        <p>No sales representatives are configured for {divisionCode} division.</p>
-                        <p>Please configure sales representatives data for this division.</p>
+                        <p><strong>Sales Rep data Not Available</strong></p>
+                        <p>No sales representatives are available for {divisionCode} division.</p>
+                        {divisionCode === 'FP' ? (
+                          <p>Please check the database connection or fp_data table.</p>
+                        ) : (
+                          <p>Sales representative data is not configured for this division.</p>
+                        )}
                       </div>
                     ) : (
                       <>

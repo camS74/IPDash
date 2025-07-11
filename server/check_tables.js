@@ -11,27 +11,27 @@ const pool = new Pool({
 
 async function checkTables() {
   try {
-    console.log('Checking for fp_database table...');
+    console.log('Checking for fp_data table...');
     console.log(`Database: ${process.env.DB_NAME}`);
     
     const client = await pool.connect();
     
-    // Check if fp_database table exists
+    // Check if fp_data table exists
     const tableResult = await client.query(`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name = 'fp_database'
+      AND table_name = 'fp_data'
     `);
     
     if (tableResult.rows.length > 0) {
-      console.log('✅ fp_database table exists');
+      console.log('✅ fp_data table exists');
       
       // Check table structure
       const columnsResult = await client.query(`
         SELECT column_name, data_type 
         FROM information_schema.columns 
-        WHERE table_name = 'fp_database' 
+        WHERE table_name = 'fp_data' 
         ORDER BY ordinal_position
       `);
       
@@ -41,11 +41,11 @@ async function checkTables() {
       });
       
       // Check if there's any data
-      const countResult = await client.query('SELECT COUNT(*) FROM fp_database');
+      const countResult = await client.query('SELECT COUNT(*) FROM fp_data');
       console.log(`Total records: ${countResult.rows[0].count}`);
       
     } else {
-      console.log('❌ fp_database table does not exist');
+      console.log('❌ fp_data table does not exist');
       
       // List all tables
       const allTablesResult = await client.query(`

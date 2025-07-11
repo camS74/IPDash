@@ -5,12 +5,27 @@
       "Christopher Dela Cruz",
       "MOUHCINE FELLAH",
       "Sofiane Salah",
-      "Narek Koroukian"
+      "Narek Koroukian",
+      "Direct Sales",
+      "Direct Sales F&b",
+      "Sojy Jose Ukken",
+      "Harwal Company Limited"
     ],
     "groups": {
       "Sofiane & Morocco": [
         "MOUHCINE FELLAH",
         "Sofiane Salah"
+      ],
+      "Sojy & Direct Sales": [
+        "Direct Sales",
+        "Direct Sales F&b",
+        "Sojy Jose Ukken",
+        "Harwal Company Limited"
+      ],
+      "Riad & Nidal": [
+        "Riad Al Zier",
+        "Nidal Hanan",
+        "Direct Sales – Riad"
       ]
     }
   }

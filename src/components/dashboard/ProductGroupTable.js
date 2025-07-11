@@ -618,14 +618,14 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
     if (isNaN(delta) || delta === 0) return '';
     
     let arrow = '';
-    let color = '#000000';
+    let color = 'black';
     
     if (delta > 0) {
       arrow = '▲'; // Up arrow for positive
-      color = '#0066cc'; // Blue
+      color = 'blue'; // Blue
     } else if (delta < 0) {
       arrow = '▼'; // Down arrow for negative  
-      color = '#cc0000'; // Dark red
+      color = 'red'; // Red
     }
     
     const sign = delta > 0 ? '+' : '';
@@ -1146,4 +1146,4 @@ const ProductGroupTable = React.forwardRef((props, ref) => {
   );
 });
 
-export default ProductGroupTable; 
+export default ProductGroupTable;

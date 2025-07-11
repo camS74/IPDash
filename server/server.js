@@ -2,12 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const odbc = require('odbc');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 
 // Database imports
-const { testConnection } = require('./database/config');
+const { testConnection, pool } = require('./database/config');
 const fpDataService = require('./database/fpDataService');
 
 const app = express();
@@ -601,10 +600,29 @@ app.get('/api/db/test', async (req, res) => {
   }
 });
 
-// Get all sales representatives
+// Get all sales representatives (legacy endpoint - now uses fp_data table)
 app.get('/api/fp/sales-reps', async (req, res) => {
   try {
-    const salesReps = await fpDataService.getSalesReps();
+    console.log('🔍 Getting sales reps from fp_data table (legacy endpoint)...');
+    
+    const client = await pool.connect();
+    
+    // Get unique sales rep names from fp_data table
+    const salesRepsResult = await client.query(`
+      SELECT DISTINCT salesrepname 
+      FROM fp_data 
+      WHERE salesrepname IS NOT NULL 
+      AND TRIM(salesrepname) != ''
+      AND salesrepname != '(blank)'
+      ORDER BY salesrepname
+    `);
+    
+    const salesReps = salesRepsResult.rows.map(row => row.salesrepname);
+    
+    console.log(`✅ Found ${salesReps.length} unique sales reps from fp_data`);
+    
+    client.release();
+    
     res.json({ success: true, data: salesReps });
   } catch (error) {
     console.error('Error fetching sales reps:', error);
@@ -667,7 +685,182 @@ app.get('/api/fp/product-groups', async (req, res) => {
   }
 });
 
+// Get sales data for a specific sales rep, product group, and period
+app.get('/api/fp/sales-data', async (req, res) => {
+  try {
+    const { salesRep, productGroup, valueType, year, month, dataType = 'actual' } = req.query;
+    
+    if (!salesRep || !productGroup || !year || !month) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'salesRep, productGroup, year, and month are required' 
+      });
+    }
+    
+    // Check if salesRep is actually a group name
+    const config = loadSalesRepConfig();
+    const fpConfig = config.FP || { groups: {} };
+    
+    let salesData;
+    
+    if (fpConfig.groups && fpConfig.groups[salesRep]) {
+      // It's a group - get sales data for all members
+      const groupMembers = fpConfig.groups[salesRep];
+      
+      if (valueType) {
+        // Use value type specific query for groups
+        salesData = 0;
+        for (const member of groupMembers) {
+          const memberData = await fpDataService.getSalesDataByValueType(member, productGroup, valueType, year, month, dataType);
+          salesData += memberData;
+        }
+      } else {
+        salesData = await fpDataService.getSalesDataForGroup(groupMembers, productGroup, dataType, year, month);
+      }
+    } else {
+      // It's an individual sales rep
+      if (valueType) {
+        salesData = await fpDataService.getSalesDataByValueType(salesRep, productGroup, valueType, year, month, dataType);
+      } else {
+        salesData = await fpDataService.getSalesData(salesRep, productGroup, dataType, year, month);
+      }
+    }
+    
+    res.json({ success: true, data: salesData });
+  } catch (error) {
+    console.error('Error fetching sales data:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch sales data', error: error.message });
+  }
+});
 
+// API endpoint to get sales reps from fp_data table for FP division
+app.get('/api/fp/sales-reps-from-db', async (req, res) => {
+  try {
+    console.log('🔍 Getting sales reps from fp_data table...');
+    
+    const client = await pool.connect();
+    
+    // Get unique sales rep names from fp_data table
+    const salesRepsResult = await client.query(`
+      SELECT DISTINCT salesrepname 
+      FROM fp_data 
+      WHERE salesrepname IS NOT NULL 
+      AND TRIM(salesrepname) != ''
+      AND salesrepname != '(blank)'
+      ORDER BY salesrepname
+    `);
+    
+    const salesReps = salesRepsResult.rows.map(row => row.salesrepname);
+    
+    console.log(`✅ Found ${salesReps.length} unique sales reps from fp_data`);
+    
+    client.release();
+    
+    res.json({
+      success: true,
+      data: salesReps,
+      message: `Retrieved ${salesReps.length} sales representatives from fp_data table`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting sales reps from fp_data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve sales representatives from database',
+      message: error.message
+    });
+  }
+});
+
+// Optimized batch API endpoint for sales rep dashboard data
+app.post('/api/fp/sales-rep-dashboard', async (req, res) => {
+  try {
+    const { salesRep, valueTypes = ['KGS', 'Amount'], periods = [] } = req.body;
+    
+    if (!salesRep) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'salesRep is required' 
+      });
+    }
+    
+    console.log(`🔍 Getting dashboard data for sales rep: ${salesRep}`);
+    
+    // Check if salesRep is actually a group name
+    const config = loadSalesRepConfig();
+    const fpConfig = config.FP || { groups: {} };
+    
+    let productGroups;
+    
+    if (fpConfig.groups && fpConfig.groups[salesRep]) {
+      // It's a group - get product groups for all members
+      const groupMembers = fpConfig.groups[salesRep];
+      console.log(`Fetching data for group '${salesRep}' with members:`, groupMembers);
+      
+      const allProductGroups = new Set();
+      for (const member of groupMembers) {
+        try {
+          const memberProductGroups = await fpDataService.getProductGroupsBySalesRep(member);
+          memberProductGroups.forEach(pg => allProductGroups.add(pg));
+        } catch (memberError) {
+          console.warn(`Failed to fetch product groups for member '${member}':`, memberError.message);
+        }
+      }
+      productGroups = Array.from(allProductGroups);
+    } else {
+      // It's an individual sales rep
+      productGroups = await fpDataService.getProductGroupsBySalesRep(salesRep);
+    }
+    
+    // Get batch sales data for all combinations
+    const dashboardData = {};
+    
+    for (const productGroup of productGroups) {
+      dashboardData[productGroup] = {};
+      
+      for (const valueType of valueTypes) {
+        dashboardData[productGroup][valueType] = {};
+        
+        for (const period of periods) {
+          const { year, month, type = 'Actual' } = period;
+          
+          let salesData;
+          if (fpConfig.groups && fpConfig.groups[salesRep]) {
+            // Group data
+            const groupMembers = fpConfig.groups[salesRep];
+            salesData = await fpDataService.getSalesDataForGroup(groupMembers, productGroup, valueType, year, month, type);
+          } else {
+            // Individual sales rep data
+            salesData = await fpDataService.getSalesDataByValueType(salesRep, productGroup, valueType, year, month, type);
+          }
+          
+          dashboardData[productGroup][valueType][`${year}-${month}-${type}`] = salesData;
+        }
+      }
+    }
+    
+    console.log(`✅ Retrieved dashboard data for ${productGroups.length} product groups`);
+    
+    res.json({
+      success: true,
+      data: {
+        salesRep,
+        productGroups,
+        dashboardData,
+        isGroup: !!(fpConfig.groups && fpConfig.groups[salesRep])
+      },
+      message: `Retrieved dashboard data for ${salesRep}`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting sales rep dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve sales rep dashboard data',
+      message: error.message
+    });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

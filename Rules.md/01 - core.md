@@ -182,3 +182,37 @@ _If the agent inadvertently violates the “no new files” rule, it must immedi
 - Pursue holistic diagnosis; reject superficial patches.
 - Institute root-cause interventions that durably harden the system.
 - Escalate only after exhaustive inquiry, furnishing findings and recommended countermeasures.
+
+---
+
+## 11 · Database Performance Optimization Protocol
+
+### A · PostgreSQL Query Optimization
+
+- **ANY() Syntax Optimization** — Replace `ANY(ARRAY[...])` with `ANY(VALUES(...))` for large datasets (>1000 elements) to achieve 10-100x performance improvements.
+- **Batch Query Consolidation** — Combine multiple individual queries into single batch operations using optimized `ANY()` patterns.
+- **Group Operations** — For sales representative groups, use single queries with `GROUP BY` instead of iterative individual queries.
+
+### B · Performance Monitoring
+
+- **Query Analysis** — Use `EXPLAIN ANALYZE` to identify Bitmap Heap Scans and inefficient query plans.
+- **Metrics Tracking** — Monitor `rows_fetched`, CPU utilization, and query execution times.
+- **Performance Logging** — Log slow queries (>1s) with execution plans for optimization review.
+
+### C · IPDashboard-Specific Optimizations
+
+- **Sales Rep Group Queries** — Optimize `getSalesDataForGroup()` method using batch `ANY(VALUES(...))` syntax.
+- **Dashboard Batch API** — Consolidate multiple period/value type queries into single database calls.
+- **Product Group Filtering** — Use efficient array operations for multi-representative queries.
+
+### D · Implementation Priority
+
+1. **High Priority** — Group queries, batch dashboard API, query performance logging
+2. **Medium Priority** — Period-based query consolidation, connection pooling, query caching
+3. **Expected Gains** — 50-90% reduction in query time, improved scalability under load
+
+### E · Validation Requirements
+
+- Profile existing queries before optimization using `EXPLAIN ANALYZE`
+- Validate improvements with realistic production datasets
+- Implement performance regression testing for critical queries
