@@ -619,6 +619,45 @@ app.delete('/api/sales-rep-groups', (req, res) => {
   }
 });
 
+// --- Confirmed Customer Merges API ---
+const confirmedMergesPath = path.join(__dirname, 'data', 'confirmed-merges.json');
+
+// Helper to read merges
+function readConfirmedMerges() {
+  try {
+    if (!fs.existsSync(confirmedMergesPath)) return [];
+    const data = fs.readFileSync(confirmedMergesPath, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+// Helper to write merges
+function writeConfirmedMerges(merges) {
+  fs.writeFileSync(confirmedMergesPath, JSON.stringify(merges, null, 2), 'utf8');
+}
+
+// GET all confirmed merges
+app.get('/api/confirmed-merges', (req, res) => {
+  res.json({ success: true, data: readConfirmedMerges() });
+});
+
+// POST a new confirmed merge
+app.post('/api/confirmed-merges', (req, res) => {
+  const { group } = req.body;
+  if (!Array.isArray(group) || group.length < 2) {
+    return res.status(400).json({ success: false, message: 'Group must be an array of at least 2 customer names.' });
+  }
+  const merges = readConfirmedMerges();
+  const sortedGroup = [...group].sort();
+  if (!merges.some(g => JSON.stringify(g) === JSON.stringify(sortedGroup))) {
+    merges.push(sortedGroup);
+    writeConfirmedMerges(merges);
+  }
+  res.json({ success: true, message: 'Merge confirmed and saved.' });
+});
+
 // PostgreSQL Database API Endpoints
 
 // Test database connection

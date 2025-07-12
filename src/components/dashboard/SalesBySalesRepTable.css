@@ -170,7 +170,7 @@ td[class*="delta"] {
 .sales-rep-content .financial-table tr.total-row td.delta-cell {
   font-weight: bold;
   /* Remove color override to allow inline styles to work */
-} 
+}
 
 
 

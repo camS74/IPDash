@@ -80,107 +80,107 @@ const calculateDeltaDisplay = (newerValue, olderValue) => {
 
 // Helper function to prepare periods from column order
 const preparePeriods = (columnOrder) => {
-  const periods = [];
-  
-  columnOrder.forEach(col => {
-    let monthsToInclude = [];
+    const periods = [];
     
-    if (col.months && Array.isArray(col.months)) {
-      // Custom range - use all months in the range
-      monthsToInclude = col.months;
-    } else {
+    columnOrder.forEach(col => {
+      let monthsToInclude = [];
+      
+      if (col.months && Array.isArray(col.months)) {
+        // Custom range - use all months in the range
+        monthsToInclude = col.months;
+      } else {
       // Handle quarters and standard periods using helper function
       monthsToInclude = getMonthsForPeriod(col.month);
-    }
-    
-    // Add each month as a separate period for backend aggregation
-    monthsToInclude.forEach(monthName => {
-      periods.push({
-        year: col.year,
-        month: getMonthNumber(monthName),
-        type: col.type || 'Actual',
-        originalColumn: col // Keep reference to original column for grouping
+      }
+      
+      // Add each month as a separate period for backend aggregation
+      monthsToInclude.forEach(monthName => {
+        periods.push({
+          year: col.year,
+          month: getMonthNumber(monthName),
+          type: col.type || 'Actual',
+          originalColumn: col // Keep reference to original column for grouping
+        });
       });
     });
-  });
-  
+    
   return periods;
 };
 
 // Helper function to fetch dashboard data from API
 const fetchDashboardData = async (salesRep, variable, periods) => {
-  const response = await fetch('/api/fp/sales-rep-dashboard', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      salesRep,
-      valueTypes: [variable], // Use original case to match database
-      periods
-    })
-  });
-  
-  if (!response.ok) {
-    console.error('Failed to fetch dashboard data:', response.status);
-    throw new Error(`API request failed with status: ${response.status}`);
-  }
-  
-  const result = await response.json();
-  return result.data;
-};
-
-// Helper function to build extended columns structure
-const buildExtendedColumns = (columnOrder) => {
-  const extendedColumns = [];
-  
-  columnOrder.forEach((col, index) => {
-    extendedColumns.push({
-      ...col,
-      columnType: 'data',
-      label: `${col.year}-${col.isCustomRange ? col.displayName : col.month}-${col.type}`
+    const response = await fetch('/api/fp/sales-rep-dashboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        salesRep,
+        valueTypes: [variable], // Use original case to match database
+        periods
+      })
     });
     
-    // Add delta column after each data column (except the last one)
-    if (index < columnOrder.length - 1) {
-      extendedColumns.push({
-        columnType: 'delta',
-        label: 'Delta'
-      });
+    if (!response.ok) {
+      console.error('Failed to fetch dashboard data:', response.status);
+    throw new Error(`API request failed with status: ${response.status}`);
     }
-  });
+    
+    const result = await response.json();
+  return result.data;
+};
+    
+// Helper function to build extended columns structure
+const buildExtendedColumns = (columnOrder) => {
+    const extendedColumns = [];
   
+    columnOrder.forEach((col, index) => {
+      extendedColumns.push({
+        ...col,
+        columnType: 'data',
+        label: `${col.year}-${col.isCustomRange ? col.displayName : col.month}-${col.type}`
+      });
+      
+      // Add delta column after each data column (except the last one)
+      if (index < columnOrder.length - 1) {
+        extendedColumns.push({
+          columnType: 'delta',
+          label: 'Delta'
+        });
+      }
+    });
+    
   return extendedColumns;
 };
 
 // Helper function to aggregate monthly data for a column
 const aggregateColumnData = (pgName, variable, col, dashboardData) => {
-  try {
-    const year = col.year;
-    const type = col.type || 'Actual';
-    let aggregatedValue = 0;
-    
-    // Determine which months to aggregate based on column configuration
-    let monthsToAggregate = [];
-    
-    if (col.months && Array.isArray(col.months)) {
-      // Custom range - use all months in the range
-      monthsToAggregate = col.months;
-    } else {
+          try {
+            const year = col.year;
+            const type = col.type || 'Actual';
+            let aggregatedValue = 0;
+            
+            // Determine which months to aggregate based on column configuration
+            let monthsToAggregate = [];
+            
+            if (col.months && Array.isArray(col.months)) {
+              // Custom range - use all months in the range
+              monthsToAggregate = col.months;
+            } else {
       // Handle quarters and standard periods using helper function
       monthsToAggregate = getMonthsForPeriod(col.month);
-    }
-    
-    // Sum values for all months in the period
-    monthsToAggregate.forEach(monthName => {
-      const month = getMonthNumber(monthName);
-      const key = `${year}-${month}-${type}`;
-      const monthValue = dashboardData[pgName]?.[variable]?.[key] || 0;
-      
-      if (typeof monthValue === 'number') {
-        aggregatedValue += monthValue;
-      }
-    });
+            }
+            
+            // Sum values for all months in the period
+            monthsToAggregate.forEach(monthName => {
+              const month = getMonthNumber(monthName);
+              const key = `${year}-${month}-${type}`;
+              const monthValue = dashboardData[pgName]?.[variable]?.[key] || 0;
+              
+              if (typeof monthValue === 'number') {
+                aggregatedValue += monthValue;
+              }
+            });
     
     return aggregatedValue;
   } catch (error) {
@@ -202,35 +202,38 @@ const sortProductGroups = (productGroups) => {
 };
 
 // Helper function for fuzzy customer name matching and grouping
-const groupSimilarCustomers = (customers) => {
+const groupSimilarCustomers = (customers, rejectedMerges = []) => {
   const groups = [];
   const processed = new Set();
-  
+
   customers.forEach(customer => {
     if (processed.has(customer)) return;
-    
+
     const group = [customer];
     processed.add(customer);
-    
+
     // Find similar customer names
     customers.forEach(otherCustomer => {
       if (processed.has(otherCustomer)) return;
-      
-      // Simple similarity check - can be enhanced with more sophisticated algorithms
+
+      // Skip if this pair was previously rejected by the user
+      if (rejectedMerges.some(pair => pair.includes(customer) && pair.includes(otherCustomer))) return;
+
+      // Lowered similarity threshold to 0.6
       const similarity = calculateSimilarity(customer, otherCustomer);
-      if (similarity > 0.8) { // 80% similarity threshold
+      if (similarity > 0.6) { // 60% similarity threshold
         group.push(otherCustomer);
         processed.add(otherCustomer);
       }
     });
-    
+
     groups.push({
       name: group[0], // Use the first name as the group name
       members: group,
       totalMembers: group.length
     });
   });
-  
+
   return groups;
 };
 
@@ -291,48 +294,48 @@ const processProductGroupData = (pgName, variable, extendedColumns, dashboardDat
     
     if (col.columnType === 'data') {
       const aggregatedValue = aggregateColumnData(pgName, variable, col, dashboardData);
+            
+            // Format as comma-separated integer without decimals
+            const formattedValue = Math.round(aggregatedValue).toLocaleString();
+            dataValues.push(aggregatedValue); // Store raw value for delta calculation
+            values.push(formattedValue);
+        }
+      }
       
-      // Format as comma-separated integer without decimals
-      const formattedValue = Math.round(aggregatedValue).toLocaleString();
-      dataValues.push(aggregatedValue); // Store raw value for delta calculation
-      values.push(formattedValue);
-    }
-  }
-  
-  // Second pass: insert delta calculations
-  const finalValues = [];
-  let dataIndex = 0;
-  
-  for (let idx = 0; idx < extendedColumns.length; idx++) {
-    const col = extendedColumns[idx];
-    
-    if (col.columnType === 'data') {
-      finalValues.push(values[dataIndex]);
-      dataIndex++;
-    } else if (col.columnType === 'delta') {
-      // Calculate delta between adjacent data columns
-      // dataIndex points to the next data column (newer)
-      // dataIndex-1 points to the previous data column (older)
-      const newerDataIndex = dataIndex;
-      const olderDataIndex = dataIndex - 1;
+      // Second pass: insert delta calculations
+      const finalValues = [];
+      let dataIndex = 0;
       
-      if (olderDataIndex >= 0 && newerDataIndex < dataValues.length) {
-        const newerValue = dataValues[newerDataIndex];
-        const olderValue = dataValues[olderDataIndex];
+      for (let idx = 0; idx < extendedColumns.length; idx++) {
+        const col = extendedColumns[idx];
         
+        if (col.columnType === 'data') {
+          finalValues.push(values[dataIndex]);
+          dataIndex++;
+        } else if (col.columnType === 'delta') {
+          // Calculate delta between adjacent data columns
+          // dataIndex points to the next data column (newer)
+          // dataIndex-1 points to the previous data column (older)
+          const newerDataIndex = dataIndex;
+          const olderDataIndex = dataIndex - 1;
+          
+          if (olderDataIndex >= 0 && newerDataIndex < dataValues.length) {
+            const newerValue = dataValues[newerDataIndex];
+            const olderValue = dataValues[olderDataIndex];
+            
         const deltaResult = calculateDeltaDisplay(newerValue, olderValue);
         finalValues.push(deltaResult);
-      } else {
-        finalValues.push('-');
+          } else {
+            finalValues.push('-');
+          }
+        }
       }
-    }
-  }
-  
-  return {
-    name: pgName,
-    values: finalValues,
-    rawValues: dataValues // Store raw numeric values for total calculations
-  };
+      
+      return {
+        name: pgName,
+        values: finalValues,
+        rawValues: dataValues // Store raw numeric values for total calculations
+      };
 };
 
 // Main function to fetch actual product groups and sales data from fp_data for each sales rep
@@ -457,7 +460,12 @@ const processCustomerData = (customerName, extendedColumns, dashboardData) => {
       values.push(value);
     }
   });
-  
+
+  // Pad values array to match extendedColumns length (fill missing with 0)
+  while (values.length < extendedColumns.length) {
+    values.push(0);
+  }
+
   return {
     name: customerName,
     values: values
@@ -465,7 +473,7 @@ const processCustomerData = (customerName, extendedColumns, dashboardData) => {
 };
 
 // Main function to get customers for a sales rep with volume-based sorting
-const getCustomersForSalesRep = async (salesRep, columnOrder) => {
+const getCustomersForSalesRep = async (salesRep, columnOrder, basePeriodIndex) => {
   try {
     // Step 1: Prepare periods from column order
     const periods = preparePeriods(columnOrder);
@@ -485,12 +493,24 @@ const getCustomersForSalesRep = async (salesRep, columnOrder) => {
     );
     
     // Step 6: Sort by base period volume (highest to lowest)
-    // Find the first data column (base period)
-    const basePeriodIndex = extendedColumns.findIndex(col => col.columnType === 'data');
-    if (basePeriodIndex !== -1) {
+    // Map basePeriodIndex (from columnOrder) to the correct data column in extendedColumns
+    let baseDataColIdx = -1;
+    if (basePeriodIndex != null && basePeriodIndex >= 0) {
+      let dataColCount = 0;
+      for (let i = 0; i < extendedColumns.length; i++) {
+        if (extendedColumns[i].columnType === 'data') {
+          if (dataColCount === basePeriodIndex) {
+            baseDataColIdx = i;
+            break;
+          }
+          dataColCount++;
+        }
+      }
+    }
+    if (baseDataColIdx !== -1) {
       processedResult.sort((a, b) => {
-        const aValue = a.values[basePeriodIndex] || 0;
-        const bValue = b.values[basePeriodIndex] || 0;
+        const aValue = a.values[baseDataColIdx] || 0;
+        const bValue = b.values[baseDataColIdx] || 0;
         return bValue - aValue; // Sort descending (highest first)
       });
     }
@@ -501,6 +521,26 @@ const getCustomersForSalesRep = async (salesRep, columnOrder) => {
     throw error;
   }
 };
+
+// Add utility to store and retrieve confirmed merges (simulate backend with localStorage)
+const CONFIRMED_MERGES_KEY = 'confirmedCustomerMerges';
+function getConfirmedMerges() {
+  try {
+    const data = localStorage.getItem(CONFIRMED_MERGES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+function addConfirmedMerge(group) {
+  const confirmed = getConfirmedMerges();
+  // Store as sorted array for consistency
+  const sortedGroup = [...group].sort();
+  if (!confirmed.some(g => JSON.stringify(g) === JSON.stringify(sortedGroup))) {
+    confirmed.push(sortedGroup);
+    localStorage.setItem(CONFIRMED_MERGES_KEY, JSON.stringify(confirmed));
+  }
+}
 
 const SalesBySaleRepTable = () => {
   const { columnOrder, dataGenerated } = useFilter();
@@ -605,12 +645,41 @@ const SalesBySaleRepTable = () => {
 
 // Component to display static product group structure for each tab
 const SalesRepTabContent = ({ rep }) => {
-  const { columnOrder } = useFilter();
+  const { columnOrder, basePeriodIndex } = useFilter();
   const [kgsData, setKgsData] = useState([]);
   const [amountData, setAmountData] = useState([]);
   const [customerData, setCustomerData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [rejectedMerges, setRejectedMerges] = useState([]); // Track user-rejected merges
+  const [mergedGroups, setMergedGroups] = useState([]); // Track merged groups for display
+  const [confirmedMerges, setConfirmedMerges] = useState([]);
+
+  // Fetch confirmed merges from backend on mount
+  useEffect(() => {
+    fetch('/api/confirmed-merges')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setConfirmedMerges(data.data);
+        }
+      });
+  }, []);
+
+  // Handler for confirming a group
+  const handleConfirmGroup = async (group) => {
+    await fetch('/api/confirmed-merges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group: group.members })
+    });
+    // Refetch confirmed merges
+    const res = await fetch('/api/confirmed-merges');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      setConfirmedMerges(data.data);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -622,17 +691,27 @@ const SalesRepTabContent = ({ rep }) => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch product groups for both KGS and Amount, and customer data
-        const [kgsResult, amountResult, customerResult] = await Promise.all([
+        const [kgsResult, amountResult] = await Promise.all([
           getProductGroupsForSalesRep(rep, 'KGS', columnOrder),
-          getProductGroupsForSalesRep(rep, 'Amount', columnOrder),
-          getCustomersForSalesRep(rep, columnOrder)
+          getProductGroupsForSalesRep(rep, 'Amount', columnOrder)
         ]);
-        
+
+        // For customers, use fuzzy grouping with rejectedMerges
+        const { customers, dashboardData } = await fetchCustomerDashboardData(rep, preparePeriods(columnOrder));
+        const customerGroups = groupSimilarCustomers(customers, rejectedMerges);
+        // Only show groups that are not confirmed
+        const unconfirmedGroups = customerGroups.filter(g => g.totalMembers > 1 && !confirmedMerges.some(cm => JSON.stringify([...cm].sort()) === JSON.stringify([...g.members].sort())));
+        setMergedGroups(unconfirmedGroups);
+        const extendedColumns = buildExtendedColumns(columnOrder);
+        const processedResult = customerGroups.map((customerGroup) =>
+          processCustomerData(customerGroup.name, extendedColumns, dashboardData)
+        );
+
         setKgsData(kgsResult);
         setAmountData(amountResult);
-        setCustomerData(customerResult);
+        setCustomerData(processedResult);
       } catch (err) {
         // Error loading data
         setError('Failed to load data');
@@ -642,7 +721,7 @@ const SalesRepTabContent = ({ rep }) => {
     };
 
     fetchData();
-  }, [rep, columnOrder]);
+  }, [rep, columnOrder, basePeriodIndex, rejectedMerges, confirmedMerges]);
   
   // Build extended columns from columnOrder
   const extendedColumns = [];
@@ -701,40 +780,49 @@ const SalesRepTabContent = ({ rep }) => {
     return {};
   };
 
-  // Calculate totals for a specific column across all product groups
+  // Check if a column is the base period
+  const isBasePeriodColumn = (colIndex) => {
+    if (basePeriodIndex === null || basePeriodIndex === undefined) return false;
+    
+    // Count data columns up to this index
+    const dataColumnsBeforeThis = extendedColumns.slice(0, colIndex).filter(col => col.columnType === 'data').length;
+    return dataColumnsBeforeThis === basePeriodIndex;
+  };
+
+  // Calculate totals for a specific column across all product groups or customers
   const calculateColumnTotal = (data, columnIndex, extendedCols) => {
-    console.log('🔍 calculateColumnTotal DEBUG:', {
-      dataLength: data.length,
-      columnIndex,
-      extendedColsLength: extendedCols?.length,
-      sampleData: data[0]
-    });
-    
-    // Map columnIndex to rawValues index (skip delta columns)
-    const extendedColumnsForData = extendedCols.filter(col => col.columnType === 'data');
-    const dataColumnIndex = extendedCols.slice(0, columnIndex).filter(col => col.columnType === 'data').length;
-    
-    console.log('🔍 Column mapping:', { dataColumnIndex, totalDataColumns: extendedColumnsForData.length });
-    
-    const total = data.reduce((total, productGroup) => {
-      if (!productGroup.rawValues || dataColumnIndex >= productGroup.rawValues.length) {
-        console.log('❌ No rawValues for:', productGroup.name);
+    // Directly sum the values at the given columnIndex for each row
+    const total = data.reduce((total, row) => {
+      const arr = row.rawValues || row.values;
+      if (!arr || columnIndex >= arr.length) {
         return total;
       }
-      
-      const rawValue = productGroup.rawValues[dataColumnIndex];
-      console.log('✅', productGroup.name, 'rawValue:', rawValue);
-      
-      if (typeof rawValue === 'number' && !isNaN(rawValue)) {
-        return total + rawValue;
+      const value = arr[columnIndex];
+      if (typeof value === 'number' && !isNaN(value)) {
+        return total + value;
       }
       return total;
     }, 0);
-    
     return total;
   };
 
   // Format number for display
+  const formatValue = (value, variable) => {
+    if (typeof value !== 'number') return value || '-';
+    
+    if (variable === 'Amount') {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    } else {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    }
+  };
+
   const formatTotalValue = (value, variable) => {
     if (variable === 'Amount') {
       return new Intl.NumberFormat('en-US', {
@@ -782,6 +870,34 @@ const SalesRepTabContent = ({ rep }) => {
   // Custom header rendering for tables
   const renderAmountHeaderWithBlanks = () => (
     <thead>
+      {/* Star Indicator Row */}
+      <tr>
+        <th className="product-header" style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>
+        <th className="spacer-col" style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></th>
+        {extendedColumns.map((col, idx) => {
+          if (hiddenAmountColumnIndices.has(idx)) {
+            return <th key={`star-blank-${idx}`} style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>;
+          }
+          if (col.columnType === 'delta') {
+            return <th key={`star-delta-${idx}`} style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>;
+          }
+          return (
+            <th 
+              key={`star-${idx}`} 
+              style={{ 
+                backgroundColor: '#ffffff', 
+                border: 'none', 
+                textAlign: 'center', 
+                padding: '4px',
+                fontSize: '32px',
+                color: '#FFD700'
+              }}
+            >
+              {isBasePeriodColumn(idx) ? '★' : ''}
+            </th>
+          );
+        })}
+      </tr>
       <tr className="main-header-row">
         <th className="product-header" rowSpan={3}>Product Group</th>
         <th className="spacer-col" rowSpan={3} style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></th>
@@ -874,7 +990,7 @@ const SalesRepTabContent = ({ rep }) => {
                   }
                   return <td key={idx} className="metric-cell">{val || '-'}</td>;
                 }
-                return <td key={idx} className="metric-cell">{val}</td>;
+                return <td key={idx} className="metric-cell">{formatValue(val, 'KGS')}</td>;
               })}
             </tr>
           ))}
@@ -937,7 +1053,7 @@ const SalesRepTabContent = ({ rep }) => {
                   }
                   return <td key={idx} className="metric-cell">{val || '-'}</td>;
                 }
-                return <td key={idx} className="metric-cell">{val}</td>;
+                return <td key={idx} className="metric-cell">{formatValue(val, 'Amount')}</td>;
               })}
             </tr>
           ))}
@@ -974,6 +1090,34 @@ const SalesRepTabContent = ({ rep }) => {
       <div className="sales-rep-subtitle">Sales by Customer (KGS)</div>
       <table className="financial-table">
         <thead>
+          {/* Star Indicator Row */}
+          <tr>
+            <th className="product-header" style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>
+            <th className="spacer-col" style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></th>
+            {extendedColumns.map((col, idx) => {
+              if (hiddenAmountColumnIndices.has(idx)) {
+                return <th key={`star-blank-${idx}`} style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>;
+              }
+              if (col.columnType === 'delta') {
+                return <th key={`star-delta-${idx}`} style={{ backgroundColor: '#ffffff', border: 'none', padding: '4px' }}></th>;
+              }
+              return (
+                <th 
+                  key={`star-${idx}`} 
+                  style={{ 
+                    backgroundColor: '#ffffff', 
+                    border: 'none', 
+                    textAlign: 'center', 
+                    padding: '4px',
+                    fontSize: '32px',
+                    color: '#FFD700'
+                  }}
+                >
+                  {isBasePeriodColumn(idx) ? '★' : ''}
+                </th>
+              );
+            })}
+          </tr>
           <tr className="main-header-row">
             <th className="product-header" rowSpan={3}>Customer</th>
             <th className="spacer-col" rowSpan={3} style={{ width: '10px', minWidth: '10px', maxWidth: '10px', background: 'transparent', border: 'none', padding: 0 }}></th>
@@ -1028,7 +1172,7 @@ const SalesRepTabContent = ({ rep }) => {
                   }
                   return <td key={idx} className="metric-cell">{val || '-'}</td>;
                 }
-                return <td key={idx} className="metric-cell">{val}</td>;
+                return <td key={idx} className="metric-cell">{formatValue(val, 'KGS')}</td>;
               })}
             </tr>
           ))}
@@ -1061,6 +1205,54 @@ const SalesRepTabContent = ({ rep }) => {
           </tr>
         </tbody>
       </table>
+      {/* Add extra space before the merged customer groups list */}
+      <div style={{ marginTop: '80px' }} />
+      {mergedGroups.length > 0 && (
+        <div className="merged-customer-groups" style={{ textAlign: 'left', marginLeft: 0 }}>
+          <h4>Merged Customer Groups (Fuzzy Match)</h4>
+          <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: '12px' }}>
+            <thead>
+              <tr>
+                <th style={{ borderBottom: '1px solid #ccc', padding: '6px 12px', textAlign: 'left' }}>Group Name</th>
+                <th style={{ borderBottom: '1px solid #ccc', padding: '6px 12px', textAlign: 'left' }}>Merged Customers</th>
+                <th style={{ borderBottom: '1px solid #ccc', padding: '6px 12px', textAlign: 'left' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mergedGroups.map((group, idx) => (
+                <tr key={idx}>
+                  <td style={{ padding: '6px 12px', fontWeight: 'bold' }}>{group.name}</td>
+                  <td style={{ padding: '6px 12px' }}>{group.members.join(', ')}</td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <button
+                      style={{ color: 'green', cursor: 'pointer', padding: '4px 10px', border: '1px solid #28a745', borderRadius: '4px', background: '#fff', marginRight: '8px' }}
+                      onClick={() => handleConfirmGroup(group)}
+                    >
+                      Correct
+                    </button>
+                    <button
+                      style={{ color: 'red', cursor: 'pointer', padding: '4px 10px', border: '1px solid #dc3545', borderRadius: '4px', background: '#fff' }}
+                      onClick={() => {
+                        // Add all pairs in this group to rejectedMerges
+                        const newPairs = [];
+                        for (let i = 0; i < group.members.length; i++) {
+                          for (let j = i + 1; j < group.members.length; j++) {
+                            newPairs.push([group.members[i], group.members[j]]);
+                          }
+                        }
+                        setRejectedMerges(prev => [...prev, ...newPairs]);
+                      }}
+                    >
+                      Not Correct
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ fontSize: '0.9em', color: '#888', marginTop: '8px' }}>If you click "Not Correct", these customers will be treated as unique in future renders. If you click "Correct", this merge will be memorized and not shown again.</p>
+        </div>
+      )}
     </div>
   );
 };
