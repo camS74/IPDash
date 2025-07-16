@@ -658,6 +658,16 @@ app.post('/api/confirmed-merges', (req, res) => {
   res.json({ success: true, message: 'Merge confirmed and saved.' });
 });
 
+// PUT to update all confirmed merges (for deletion)
+app.put('/api/confirmed-merges', (req, res) => {
+  const { merges } = req.body;
+  if (!Array.isArray(merges)) {
+    return res.status(400).json({ success: false, message: 'Merges must be an array.' });
+  }
+  writeConfirmedMerges(merges);
+  res.json({ success: true, message: 'Merges updated successfully.' });
+});
+
 // PostgreSQL Database API Endpoints
 
 // Test database connection
@@ -1009,6 +1019,49 @@ app.post('/api/fp/customer-dashboard', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve customer dashboard data',
+      message: error.message
+    });
+  }
+});
+
+// Get all customers for a division (for centralized merging)
+app.get('/api/fp/all-customers', async (req, res) => {
+  try {
+    const { division } = req.query;
+    
+    if (!division) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'division parameter is required' 
+      });
+    }
+    
+    console.log(`🔍 Getting all customers for division: ${division}`);
+    
+    // For now, only FP division is supported
+    if (division !== 'FP') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only FP division is currently supported for customer merging' 
+      });
+    }
+    
+    // Get all unique customers from the fp_data table
+    const customers = await fpDataService.getAllCustomers();
+    
+    console.log(`✅ Retrieved ${customers.length} customers for ${division} division`);
+    
+    res.json({
+      success: true,
+      data: customers,
+      message: `Retrieved ${customers.length} customers for ${division} division`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting all customers:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve all customers',
       message: error.message
     });
   }

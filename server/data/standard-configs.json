@@ -1,9 +1,9 @@
 {
   "chartVisibleColumns": [
-    "2023-HY1-Actual",
     "2024-HY1-Actual",
     "2025-HY1-Actual",
-    "2025-HY1-Budget"
+    "2025-HY1-Budget",
+    "2023-HY1-Actual"
   ],
   "standardColumnSelection": [
     {
@@ -67,5 +67,5 @@
       "customColor": "boldContrast"
     }
   ],
-  "basePeriodIndex": 2
+  "basePeriodIndex": 1
 }

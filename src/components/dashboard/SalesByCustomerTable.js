@@ -1,14 +1,37 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useFilter } from '../../contexts/FilterContext';
 import './SalesByCountryTable.css'; // Reuse the same CSS
+
+// Helper to normalize customer names for robust matching
+const normalizeName = (name) =>
+  name ? name.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
 
 const SalesByCustomerTable = () => {
   const { salesData } = useSalesData();
   const { selectedDivision } = useExcelData(); 
   const { columnOrder, basePeriodIndex, dataGenerated } = useFilter();
   const tableRef = useRef(null);
+  const [mergedCustomers, setMergedCustomers] = useState([]);
+
+  useEffect(() => {
+    // Fetch confirmed merges from backend
+    const fetchConfirmedMerges = async () => {
+      try {
+        const response = await fetch('/api/confirmed-merges');
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          setMergedCustomers(result.data);
+        } else {
+          setMergedCustomers([]);
+        }
+      } catch {
+        setMergedCustomers([]);
+      }
+    };
+    fetchConfirmedMerges();
+  }, []);
 
   // Create extended columns with delta columns, filtering out Budget/Forecast
   const createExtendedColumns = () => {
@@ -36,22 +59,74 @@ const SalesByCustomerTable = () => {
 
   const extendedColumns = createExtendedColumns();
 
-  // Get unique customers from the data
-  const getCustomers = () => {
+  // Get unique customers from the data, grouped by merged customers
+  const getMergedCustomers = () => {
     const divisionName = selectedDivision;
     const customersSheetName = `${divisionName}-Customers`;
     const customersData = salesData[customersSheetName] || [];
-    
     if (!customersData.length) return [];
-
-    const customers = [];
+    const allCustomers = [];
     for (let i = 3; i < customersData.length; i++) {
       const row = customersData[i];
-      if (row && row[0] && !customers.includes(row[0])) {
-        customers.push(row[0]);
+      if (row && row[0] && !allCustomers.includes(row[0])) {
+        allCustomers.push(row[0]);
       }
     }
-    return customers;
+    // Build a normalized map of all merged groups
+    const groupMap = [];
+    mergedCustomers.forEach((group, idx) => {
+      groupMap[idx] = group.map(normalizeName);
+    });
+    // For each customer from SQL, assign to group if normalized name matches any in group
+    const groupToCustomerNames = {};
+    const ungrouped = [];
+    allCustomers.forEach(name => {
+      const norm = normalizeName(name);
+      let found = false;
+      groupMap.forEach((normNames, idx) => {
+        if (normNames.includes(norm)) {
+          if (!groupToCustomerNames[idx]) groupToCustomerNames[idx] = [];
+          groupToCustomerNames[idx].push(name);
+          found = true;
+        }
+      });
+      if (!found) {
+        ungrouped.push(name);
+      }
+    });
+    // Build merged customer groups
+    const processed = new Set();
+    const mergedGroups = [];
+    mergedCustomers.forEach((group, idx) => {
+      const sqlNames = groupToCustomerNames[idx] || [];
+      if (sqlNames.length === 0) return; // No matches in SQL
+      let groupRow = null;
+      sqlNames.forEach((customerName, i) => {
+        const row = customersData.find(r => r && r[0] && r[0] === customerName);
+        if (row) {
+          if (i === 0) {
+            groupRow = [...row];
+          } else {
+            for (let colIndex = 1; colIndex < row.length; colIndex++) {
+              if (!isNaN(parseFloat(row[colIndex]))) {
+                groupRow[colIndex] = (parseFloat(groupRow[colIndex]) || 0) + parseFloat(row[colIndex]);
+              }
+            }
+          }
+          processed.add(customerName);
+        }
+      });
+      if (groupRow) {
+        groupRow[0] = group[0]; // Use first name as label
+        mergedGroups.push(groupRow);
+      }
+    });
+    // Add ungrouped customers
+    ungrouped.forEach(customerName => {
+      const row = customersData.find(r => r && r[0] && r[0] === customerName);
+      if (row) mergedGroups.push(row);
+    });
+    return mergedGroups;
   };
 
   // Helper function to get customer sales amount for a specific period
@@ -64,7 +139,7 @@ const SalesByCustomerTable = () => {
 
     // Find the row with this customer name
     const customerRow = customersData.find(row => 
-      row && row[0] && row[0].toString().toLowerCase() === customerName.toLowerCase()
+      row && row[0] && normalizeName(row[0]) === normalizeName(customerName)
     );
     
     if (!customerRow) return 0;
@@ -121,7 +196,7 @@ const SalesByCustomerTable = () => {
 
   // Helper function to calculate total sales for a period
   const getTotalSalesForPeriod = (column) => {
-    const customers = getCustomers();
+    const customers = getMergedCustomers();
     let total = 0;
     
     customers.forEach(customerName => {
@@ -309,7 +384,8 @@ const SalesByCustomerTable = () => {
     );
   }
 
-  const customers = getCustomers();
+  // Use merged customers for all calculations
+  const customers = getMergedCustomers();
 
   if (!customers.length) {
     return (

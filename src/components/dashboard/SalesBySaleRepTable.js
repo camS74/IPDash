@@ -201,87 +201,9 @@ const sortProductGroups = (productGroups) => {
   });
 };
 
-// Helper function for fuzzy customer name matching and grouping
-const groupSimilarCustomers = (customers, rejectedMerges = []) => {
-  const groups = [];
-  const processed = new Set();
 
-  customers.forEach(customer => {
-    if (processed.has(customer)) return;
 
-    const group = [customer];
-    processed.add(customer);
 
-    // Find similar customer names
-    customers.forEach(otherCustomer => {
-      if (processed.has(otherCustomer)) return;
-
-      // Skip if this pair was previously rejected by the user
-      if (rejectedMerges.some(pair => pair.includes(customer) && pair.includes(otherCustomer))) return;
-
-      // Lowered similarity threshold to 0.6
-      const similarity = calculateSimilarity(customer, otherCustomer);
-      if (similarity > 0.6) { // 60% similarity threshold
-        group.push(otherCustomer);
-        processed.add(otherCustomer);
-      }
-    });
-
-    groups.push({
-      name: group[0], // Use the first name as the group name
-      members: group,
-      totalMembers: group.length
-    });
-  });
-
-  return groups;
-};
-
-// Helper function to calculate string similarity (simple implementation)
-const calculateSimilarity = (str1, str2) => {
-  const s1 = str1.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const s2 = str2.toLowerCase().replace(/[^a-z0-9]/g, '');
-  
-  if (s1 === s2) return 1;
-  
-  const longer = s1.length > s2.length ? s1 : s2;
-  const shorter = s1.length > s2.length ? s2 : s1;
-  
-  if (longer.length === 0) return 1;
-  
-  // Simple Levenshtein distance calculation
-  const distance = levenshteinDistance(longer, shorter);
-  return (longer.length - distance) / longer.length;
-};
-
-// Helper function to calculate Levenshtein distance
-const levenshteinDistance = (str1, str2) => {
-  const matrix = [];
-  
-  for (let i = 0; i <= str2.length; i++) {
-    matrix[i] = [i];
-  }
-  
-  for (let j = 0; j <= str1.length; j++) {
-    matrix[0][j] = j;
-  }
-  
-  for (let i = 1; i <= str2.length; i++) {
-    for (let j = 1; j <= str1.length; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
-    }
-  }
-  
-  return matrix[str2.length][str1.length];
-};
 
 // Helper function to process data for a single product group
 const processProductGroupData = (pgName, variable, extendedColumns, dashboardData) => {
@@ -436,40 +358,69 @@ const aggregateCustomerColumnData = (customerName, col, dashboardData) => {
 // Helper function to process data for a single customer
 const processCustomerData = (customerName, extendedColumns, dashboardData) => {
   const values = [];
+  const dataValues = []; // Store only data values for delta calculation
   
-  extendedColumns.forEach((col, index) => {
-    if (col.columnType === 'delta') {
-      // Calculate delta between previous and current data columns
-      const dataColumns = extendedColumns.filter(c => c.columnType === 'data');
-      const deltaIndex = extendedColumns.slice(0, index).filter(c => c.columnType === 'delta').length;
-      
-      if (deltaIndex < dataColumns.length - 1) {
-        const fromCol = dataColumns[deltaIndex];
-        const toCol = dataColumns[deltaIndex + 1];
-        
-        const fromValue = aggregateCustomerColumnData(customerName, fromCol, dashboardData);
-        const toValue = aggregateCustomerColumnData(customerName, toCol, dashboardData);
-        
-        values.push(calculateDeltaDisplay(toValue, fromValue));
-      } else {
-        values.push('-');
-      }
-    } else {
-      // Regular data column
+  // First pass: process all data columns
+  for (let idx = 0; idx < extendedColumns.length; idx++) {
+    const col = extendedColumns[idx];
+    
+    if (col.columnType === 'data') {
       const value = aggregateCustomerColumnData(customerName, col, dashboardData);
+      dataValues.push(value); // Store raw value for delta calculation
       values.push(value);
     }
-  });
-
-  // Pad values array to match extendedColumns length (fill missing with 0)
-  while (values.length < extendedColumns.length) {
-    values.push(0);
+  }
+  
+  // Second pass: insert delta calculations
+  const finalValues = [];
+  let dataIndex = 0;
+  
+  for (let idx = 0; idx < extendedColumns.length; idx++) {
+    const col = extendedColumns[idx];
+    
+    if (col.columnType === 'data') {
+      finalValues.push(values[dataIndex]);
+      dataIndex++;
+    } else if (col.columnType === 'delta') {
+      // Calculate delta between adjacent data columns
+      const newerDataIndex = dataIndex;
+      const olderDataIndex = dataIndex - 1;
+      
+      if (olderDataIndex >= 0 && newerDataIndex < dataValues.length) {
+        const newerValue = dataValues[newerDataIndex];
+        const olderValue = dataValues[olderDataIndex];
+        
+        const deltaResult = calculateDeltaDisplay(newerValue, olderValue);
+        finalValues.push(deltaResult);
+      } else {
+        finalValues.push('-');
+      }
+    }
   }
 
   return {
     name: customerName,
-    values: values
+    values: finalValues,
+    rawValues: dataValues // Store raw numeric values for total calculations
   };
+};
+
+// Helper to normalize customer names for robust matching
+const normalizeName = (name) =>
+  name ? name.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+
+// Fetch confirmed merges from backend
+const fetchConfirmedMerges = async () => {
+  try {
+    const response = await fetch('/api/confirmed-merges');
+    const result = await response.json();
+    if (result.success && Array.isArray(result.data)) {
+      return result.data;
+    }
+    return [];
+  } catch {
+    return [];
+  }
 };
 
 // Main function to get customers for a sales rep with volume-based sorting
@@ -481,19 +432,73 @@ const getCustomersForSalesRep = async (salesRep, columnOrder, basePeriodIndex) =
     // Step 2: Fetch data from API
     const { customers, dashboardData } = await fetchCustomerDashboardData(salesRep, periods);
     
-    // Step 3: Group similar customers using fuzzy matching
-    const customerGroups = groupSimilarCustomers(customers);
-    
-    // Step 4: Build extended columns structure
+    // Step 3: Build extended columns structure
     const extendedColumns = buildExtendedColumns(columnOrder);
     
-    // Step 5: Process data for each customer group
-    const processedResult = customerGroups.map((customerGroup) => 
-      processCustomerData(customerGroup.name, extendedColumns, dashboardData)
-    );
-    
-    // Step 6: Sort by base period volume (highest to lowest)
-    // Map basePeriodIndex (from columnOrder) to the correct data column in extendedColumns
+    // Step 4: Fetch confirmed merges
+    const confirmedMerges = await fetchConfirmedMerges();
+    // Build a normalized map of all merged groups
+    const groupMap = [];
+    confirmedMerges.forEach((group, idx) => {
+      groupMap[idx] = group.map(normalizeName);
+    });
+    // For each customer from SQL, assign to group if normalized name matches any in group
+    const groupToCustomerNames = {};
+    const ungrouped = [];
+    customers.forEach(name => {
+      const norm = normalizeName(name);
+      let found = false;
+      groupMap.forEach((normNames, idx) => {
+        if (normNames.includes(norm)) {
+          if (!groupToCustomerNames[idx]) groupToCustomerNames[idx] = [];
+          groupToCustomerNames[idx].push(name);
+          found = true;
+        }
+      });
+      if (!found) {
+        ungrouped.push(name);
+      }
+    });
+    // Step 5: Build merged customer groups
+    const groupResults = [];
+    const processed = new Set();
+    confirmedMerges.forEach((group, idx) => {
+      const sqlNames = groupToCustomerNames[idx] || [];
+      if (sqlNames.length === 0) return; // No matches in SQL
+      let groupValues = null;
+      let groupRawValues = null;
+      sqlNames.forEach((customerName, i) => {
+        const customerData = processCustomerData(customerName, extendedColumns, dashboardData);
+        if (i === 0) {
+          groupValues = [...customerData.values];
+          groupRawValues = [...customerData.rawValues];
+        } else {
+          groupValues = groupValues.map((v, j) => (typeof v === 'number' && typeof customerData.values[j] === 'number') ? v + customerData.values[j] : v);
+          groupRawValues = groupRawValues.map((v, j) => (typeof v === 'number' && typeof customerData.rawValues[j] === 'number') ? v + customerData.rawValues[j] : v);
+        }
+        processed.add(customerName);
+      });
+      if (groupValues) {
+        groupResults.push({
+          name: group[0], // Use first name in group as display name
+          group: sqlNames,
+          values: groupValues,
+          rawValues: groupRawValues,
+          isMergedGroup: true
+        });
+      }
+    });
+    // Step 6: Add ungrouped customers
+    ungrouped.forEach(customerName => {
+      const customerData = processCustomerData(customerName, extendedColumns, dashboardData);
+      groupResults.push({
+        name: customerName,
+        values: customerData.values,
+        rawValues: customerData.rawValues,
+        isMergedGroup: false
+      });
+    });
+    // Step 7: Sort by base period volume (highest to lowest)
     let baseDataColIdx = -1;
     if (basePeriodIndex != null && basePeriodIndex >= 0) {
       let dataColCount = 0;
@@ -508,14 +513,13 @@ const getCustomersForSalesRep = async (salesRep, columnOrder, basePeriodIndex) =
       }
     }
     if (baseDataColIdx !== -1) {
-      processedResult.sort((a, b) => {
+      groupResults.sort((a, b) => {
         const aValue = a.values[baseDataColIdx] || 0;
         const bValue = b.values[baseDataColIdx] || 0;
         return bValue - aValue; // Sort descending (highest first)
       });
     }
-    
-    return processedResult;
+    return groupResults;
   } catch (error) {
     console.error('Error getting customers for sales rep:', error);
     throw error;
@@ -651,35 +655,6 @@ const SalesRepTabContent = ({ rep }) => {
   const [customerData, setCustomerData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [rejectedMerges, setRejectedMerges] = useState([]); // Track user-rejected merges
-  const [mergedGroups, setMergedGroups] = useState([]); // Track merged groups for display
-  const [confirmedMerges, setConfirmedMerges] = useState([]);
-
-  // Fetch confirmed merges from backend on mount
-  useEffect(() => {
-    fetch('/api/confirmed-merges')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data)) {
-          setConfirmedMerges(data.data);
-        }
-      });
-  }, []);
-
-  // Handler for confirming a group
-  const handleConfirmGroup = async (group) => {
-    await fetch('/api/confirmed-merges', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ group: group.members })
-    });
-    // Refetch confirmed merges
-    const res = await fetch('/api/confirmed-merges');
-    const data = await res.json();
-    if (data.success && Array.isArray(data.data)) {
-      setConfirmedMerges(data.data);
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -698,30 +673,37 @@ const SalesRepTabContent = ({ rep }) => {
           getProductGroupsForSalesRep(rep, 'Amount', columnOrder)
         ]);
 
-        // For customers, use fuzzy grouping with rejectedMerges
+        // For customers, use individual customers (no fuzzy grouping here)
         const { customers, dashboardData } = await fetchCustomerDashboardData(rep, preparePeriods(columnOrder));
-        const customerGroups = groupSimilarCustomers(customers, rejectedMerges);
-        // Only show groups that are not confirmed
-        const unconfirmedGroups = customerGroups.filter(g => g.totalMembers > 1 && !confirmedMerges.some(cm => JSON.stringify([...cm].sort()) === JSON.stringify([...g.members].sort())));
-        setMergedGroups(unconfirmedGroups);
         const extendedColumns = buildExtendedColumns(columnOrder);
-        const processedResult = customerGroups.map((customerGroup) =>
-          processCustomerData(customerGroup.name, extendedColumns, dashboardData)
+        
+        // Process individual customers
+        const processedResult = customers.map(customerName => 
+          processCustomerData(customerName, extendedColumns, dashboardData)
         );
+
+        // Sort customers by base period volume (highest to lowest)
+        if (basePeriodIndex != null && basePeriodIndex >= 0) {
+          processedResult.sort((a, b) => {
+            const aValue = a.rawValues[basePeriodIndex] || 0;
+            const bValue = b.rawValues[basePeriodIndex] || 0;
+            return bValue - aValue; // Sort descending (highest first)
+          });
+        }
 
         setKgsData(kgsResult);
         setAmountData(amountResult);
         setCustomerData(processedResult);
-      } catch (err) {
-        // Error loading data
-        setError('Failed to load data');
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to load data. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [rep, columnOrder, basePeriodIndex, rejectedMerges, confirmedMerges]);
+  }, [rep, columnOrder, basePeriodIndex]);
   
   // Build extended columns from columnOrder
   const extendedColumns = [];
@@ -791,13 +773,15 @@ const SalesRepTabContent = ({ rep }) => {
 
   // Calculate totals for a specific column across all product groups or customers
   const calculateColumnTotal = (data, columnIndex, extendedCols) => {
-    // Directly sum the values at the given columnIndex for each row
+    // Map columnIndex to rawValues index (skip delta columns)
+    const dataColumnIndex = extendedCols.slice(0, columnIndex).filter(col => col.columnType === 'data').length;
+    
     const total = data.reduce((total, row) => {
       const arr = row.rawValues || row.values;
-      if (!arr || columnIndex >= arr.length) {
+      if (!arr || dataColumnIndex >= arr.length) {
         return total;
       }
-      const value = arr[columnIndex];
+      const value = arr[dataColumnIndex];
       if (typeof value === 'number' && !isNaN(value)) {
         return total + value;
       }
@@ -1205,54 +1189,6 @@ const SalesRepTabContent = ({ rep }) => {
           </tr>
         </tbody>
       </table>
-      {/* Add extra space before the merged customer groups list */}
-      <div style={{ marginTop: '80px' }} />
-      {mergedGroups.length > 0 && (
-        <div className="merged-customer-groups" style={{ textAlign: 'left', marginLeft: 0 }}>
-          <h4>Merged Customer Groups (Fuzzy Match)</h4>
-          <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: '12px' }}>
-            <thead>
-              <tr>
-                <th style={{ borderBottom: '1px solid #ccc', padding: '6px 12px', textAlign: 'left' }}>Group Name</th>
-                <th style={{ borderBottom: '1px solid #ccc', padding: '6px 12px', textAlign: 'left' }}>Merged Customers</th>
-                <th style={{ borderBottom: '1px solid #ccc', padding: '6px 12px', textAlign: 'left' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mergedGroups.map((group, idx) => (
-                <tr key={idx}>
-                  <td style={{ padding: '6px 12px', fontWeight: 'bold' }}>{group.name}</td>
-                  <td style={{ padding: '6px 12px' }}>{group.members.join(', ')}</td>
-                  <td style={{ padding: '6px 12px' }}>
-                    <button
-                      style={{ color: 'green', cursor: 'pointer', padding: '4px 10px', border: '1px solid #28a745', borderRadius: '4px', background: '#fff', marginRight: '8px' }}
-                      onClick={() => handleConfirmGroup(group)}
-                    >
-                      Correct
-                    </button>
-                    <button
-                      style={{ color: 'red', cursor: 'pointer', padding: '4px 10px', border: '1px solid #dc3545', borderRadius: '4px', background: '#fff' }}
-                      onClick={() => {
-                        // Add all pairs in this group to rejectedMerges
-                        const newPairs = [];
-                        for (let i = 0; i < group.members.length; i++) {
-                          for (let j = i + 1; j < group.members.length; j++) {
-                            newPairs.push([group.members[i], group.members[j]]);
-                          }
-                        }
-                        setRejectedMerges(prev => [...prev, ...newPairs]);
-                      }}
-                    >
-                      Not Correct
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p style={{ fontSize: '0.9em', color: '#888', marginTop: '8px' }}>If you click "Not Correct", these customers will be treated as unique in future renders. If you click "Correct", this merge will be memorized and not shown again.</p>
-        </div>
-      )}
     </div>
   );
 };

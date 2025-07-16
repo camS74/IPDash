@@ -869,3 +869,533 @@
 .cancel-btn:hover {
   background: #5a6268;
 }
+
+/* Merged Customers Tab Styles */
+.merged-customers-tab {
+  padding: 20px;
+}
+
+.merged-customers-header {
+  margin-bottom: 20px;
+}
+
+.merged-customers-header h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.merged-customers-header p {
+  margin: 0 0 16px 0;
+  color: #666;
+}
+
+.merged-customers-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.refresh-button {
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.refresh-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+.no-merged-customers {
+  text-align: center;
+  padding: 40px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.no-merged-customers h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+}
+
+.no-merged-customers p {
+  margin: 0 0 8px 0;
+  color: #6c757d;
+}
+
+.merged-customers-list {
+  margin-bottom: 20px;
+}
+
+.merged-customers-list h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+.merged-customers-table {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.merged-customers-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.merged-customers-table th {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.merged-customers-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: top;
+}
+
+.merged-customer-group:hover {
+  background: #f8f9fa;
+}
+
+.group-name {
+  font-weight: 600;
+  color: #333;
+  min-width: 200px;
+}
+
+.group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customer-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.group-actions {
+  text-align: center;
+  min-width: 100px;
+}
+
+.delete-group-btn {
+  padding: 6px 12px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.delete-group-btn:hover {
+  background: #c82333;
+}
+
+.merged-customers-notes {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.merged-customers-notes h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+}
+
+.merged-customers-notes ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #6c757d;
+}
+
+.merged-customers-notes li {
+  margin-bottom: 6px;
+}
+
+/* Centralized Customer Merging Styles */
+.customer-merging-interface {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.confirmed-merges-section,
+.possible-merges-section {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.confirmed-merges-section h4,
+.possible-merges-section h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.no-data-message {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+.confirmed-merges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirmed-group {
+  border: 1px solid #e8f5e8;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f8fff8;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.group-name {
+  font-weight: 600;
+  color: #2e7d32;
+  font-size: 14px;
+}
+
+.delete-group-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.delete-group-btn:hover {
+  background-color: #ffebee;
+}
+
+.group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customer-tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid #bbdefb;
+}
+
+.customer-tag.confirmed {
+  background: #e8f5e8;
+  color: #2e7d32;
+  border-color: #c8e6c9;
+}
+
+.possible-merges-interface {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.select-all-btn,
+.deselect-all-btn {
+  padding: 6px 12px;
+  border: 1px solid #007bff;
+  background: #fff;
+  color: #007bff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.select-all-btn:hover,
+.deselect-all-btn:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+.bulk-approve-btn,
+.bulk-reject-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.bulk-approve-btn {
+  background: #28a745;
+  color: #fff;
+}
+
+.bulk-approve-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+.bulk-approve-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.bulk-reject-btn {
+  background: #dc3545;
+  color: #fff;
+}
+
+.bulk-reject-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.bulk-reject-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.possible-merges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.possible-merge-group {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  background: #fff;
+}
+
+.merge-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.group-checkbox {
+  margin: 0;
+  cursor: pointer;
+}
+
+.merge-group-title {
+  flex: 1;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.merge-group-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.approve-group-btn,
+.reject-group-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.approve-group-btn {
+  background: #28a745;
+  color: #fff;
+}
+
+.approve-group-btn:hover {
+  background: #218838;
+}
+
+.reject-group-btn {
+  background: #dc3545;
+  color: #fff;
+}
+
+.reject-group-btn:hover {
+  background: #c82333;
+}
+
+.merge-group-members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.customer-selection-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.customer-checkbox {
+  margin: 0;
+  cursor: pointer;
+}
+
+.customer-name {
+  flex: 1;
+  font-size: 13px;
+  color: #333;
+}
+
+.customer-similarity {
+  font-size: 11px;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.partial-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.approve-partial-btn {
+  padding: 6px 12px;
+  border: 1px solid #28a745;
+  background: #fff;
+  color: #28a745;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.approve-partial-btn:hover:not(:disabled) {
+  background: #28a745;
+  color: #fff;
+}
+
+.approve-partial-btn:disabled {
+  border-color: #6c757d;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.merging-instructions {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.merging-instructions h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.merging-instructions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.merging-instructions li {
+  margin-bottom: 6px;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.merging-instructions strong {
+  color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bulk-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .merge-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .merge-group-actions {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+  
+  .customer-selection-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .customer-similarity {
+    align-self: flex-end;
+  }
+}

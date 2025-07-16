@@ -6,11 +6,19 @@ import './MasterData.css';
 
 const MasterData = () => {
   const [activeTab, setActiveTab] = useState('materials');
+  const [mergedCustomers, setMergedCustomers] = useState([]);
+  const [loadingMergedCustomers, setLoadingMergedCustomers] = useState(false);
   const [masterData, setMasterData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+
+  // Centralized Customer Merging State
+  const [possibleMerges, setPossibleMerges] = useState([]);
+  const [selectedPossibleMerges, setSelectedPossibleMerges] = useState(new Set());
+  const [selectedCustomersInPossibleGroup, setSelectedCustomersInPossibleGroup] = useState({});
+  const [rejectedMerges, setRejectedMerges] = useState([]);
 
   // Get current division from ExcelDataContext
   const { selectedDivision } = useExcelData();
@@ -63,6 +71,405 @@ const MasterData = () => {
   useEffect(() => {
     loadMasterData();
   }, []);
+
+  // Load merged customers when division changes
+  useEffect(() => {
+    if (divisionCode) {
+      loadMergedCustomers();
+    }
+  }, [divisionCode]);
+
+  const loadMergedCustomers = async () => {
+    try {
+      setLoadingMergedCustomers(true);
+      const response = await fetch('/api/confirmed-merges');
+      const result = await response.json();
+      
+      if (result.success) {
+        setMergedCustomers(result.data || []);
+      } else {
+        console.error('Failed to load merged customers:', result.message);
+        setMergedCustomers([]);
+      }
+    } catch (error) {
+      console.error('Error loading merged customers:', error);
+      setMergedCustomers([]);
+    } finally {
+      setLoadingMergedCustomers(false);
+    }
+  };
+
+  // Load all possible customer merges for the division
+  const loadAllPossibleMerges = async () => {
+    try {
+      setLoadingMergedCustomers(true);
+      
+      // First load confirmed merges
+      await loadMergedCustomers();
+      
+      // Then fetch all customers for the division and find possible merges
+      const response = await fetch(`/api/fp/all-customers?division=${divisionCode}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        const allCustomers = result.data || [];
+        const possibleMerges = findPossibleCustomerMerges(allCustomers);
+        setPossibleMerges(possibleMerges);
+      } else {
+        console.error('Failed to load all customers:', result.message);
+        setPossibleMerges([]);
+      }
+    } catch (error) {
+      console.error('Error loading possible merges:', error);
+      setPossibleMerges([]);
+    } finally {
+      setLoadingMergedCustomers(false);
+    }
+  };
+
+  // Helper function to calculate similarity between two customer names
+  const calculateSimilarity = (str1, str2) => {
+    const s1 = str1.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const s2 = str2.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    if (s1 === s2) return 1.0;
+    
+    // Check if shorter name is contained within longer name
+    const shorter = s1.length <= s2.length ? s1 : s2;
+    const longer = s1.length <= s2.length ? s2 : s1;
+    const isContained = longer.includes(shorter);
+    
+    if (isContained && shorter.length >= 4) {
+      return 0.9; // High similarity for contained names
+    }
+    
+    // Calculate Levenshtein distance
+    const matrix = [];
+    for (let i = 0; i <= s1.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= s2.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= s1.length; i++) {
+      for (let j = 1; j <= s2.length; j++) {
+        if (s1[i - 1] === s2[j - 1]) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j - 1] + 1
+          );
+        }
+      }
+    }
+    
+    const distance = matrix[s1.length][s2.length];
+    const maxLength = Math.max(s1.length, s2.length);
+    return 1 - (distance / maxLength);
+  };
+
+  // Find all possible customer merges
+  const findPossibleCustomerMerges = (customers) => {
+    const groups = [];
+    const processed = new Set();
+    const confirmedCustomerNames = new Set();
+    
+    // Add all confirmed customers to the set
+    mergedCustomers.forEach(group => {
+      group.forEach(customer => confirmedCustomerNames.add(customer));
+    });
+
+    customers.forEach(customer => {
+      if (processed.has(customer) || confirmedCustomerNames.has(customer)) return;
+
+      const group = [customer];
+      const similarities = [100]; // First customer has 100% similarity with itself
+      processed.add(customer);
+
+      // Find similar customer names
+      customers.forEach(otherCustomer => {
+        if (processed.has(otherCustomer) || confirmedCustomerNames.has(otherCustomer)) return;
+
+        // Skip if this pair was previously rejected
+        if (rejectedMerges.some(pair => pair.includes(customer) && pair.includes(otherCustomer))) return;
+
+        const similarity = calculateSimilarity(customer, otherCustomer);
+        
+        // Smart grouping rules
+        const s1 = customer.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const s2 = otherCustomer.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        const shorter = s1.length <= s2.length ? s1 : s2;
+        const longer = s1.length <= s2.length ? s2 : s1;
+        const isContained = longer.includes(shorter);
+        
+        const shouldGroup = (
+          similarity > 0.8 || // High similarity
+          (isContained && shorter.length >= 4) || // Shorter name contained in longer name
+          (similarity > 0.6 && s1.length >= 8 && s2.length >= 8) // Medium similarity for longer names
+        );
+        
+        if (shouldGroup) {
+          group.push(otherCustomer);
+          similarities.push(Math.round(similarity * 100));
+          processed.add(otherCustomer);
+        }
+      });
+
+      // Only add groups with more than one customer
+      if (group.length > 1) {
+        groups.push({
+          members: group,
+          similarities: similarities,
+          totalMembers: group.length
+        });
+      }
+    });
+
+    return groups;
+  };
+
+  // Handler for selecting/deselecting a possible merge group
+  const handlePossibleGroupSelection = (groupIndex) => {
+    setSelectedPossibleMerges(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupIndex)) {
+        newSet.delete(groupIndex);
+        // Also clear individual selections for this group
+        setSelectedCustomersInPossibleGroup(prevCustomers => {
+          const newCustomers = { ...prevCustomers };
+          delete newCustomers[groupIndex];
+          return newCustomers;
+        });
+      } else {
+        newSet.add(groupIndex);
+        // Select all customers in this group
+        const group = possibleMerges[groupIndex];
+        setSelectedCustomersInPossibleGroup(prevCustomers => ({
+          ...prevCustomers,
+          [groupIndex]: new Set(group.members)
+        }));
+      }
+      return newSet;
+    });
+  };
+
+  // Handler for selecting/deselecting customers within a possible group
+  const handleCustomerSelectionInPossibleGroup = (groupIndex, customerName) => {
+    setSelectedCustomersInPossibleGroup(prev => {
+      const newState = { ...prev };
+      if (!newState[groupIndex]) {
+        newState[groupIndex] = new Set();
+      }
+      
+      const groupSet = new Set(newState[groupIndex]);
+      if (groupSet.has(customerName)) {
+        groupSet.delete(customerName);
+      } else {
+        groupSet.add(customerName);
+      }
+      
+      newState[groupIndex] = groupSet;
+      return newState;
+    });
+  };
+
+  // Handler for selecting all possible merges
+  const handleSelectAllPossible = () => {
+    const allIndices = possibleMerges.map((_, index) => index);
+    setSelectedPossibleMerges(new Set(allIndices));
+    
+    // Select all customers in all groups
+    const allCustomers = {};
+    possibleMerges.forEach((group, index) => {
+      allCustomers[index] = new Set(group.members);
+    });
+    setSelectedCustomersInPossibleGroup(allCustomers);
+  };
+
+  // Handler for deselecting all possible merges
+  const handleDeselectAllPossible = () => {
+    setSelectedPossibleMerges(new Set());
+    setSelectedCustomersInPossibleGroup({});
+  };
+
+  // Handler for approving an entire group
+  const handleApproveGroup = async (groupIndex) => {
+    const group = possibleMerges[groupIndex];
+    await approveCustomerMerge(group.members);
+    
+    // Remove from possible merges
+    setPossibleMerges(prev => prev.filter((_, index) => index !== groupIndex));
+    
+    // Clear selections
+    setSelectedPossibleMerges(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(groupIndex);
+      return newSet;
+    });
+    setSelectedCustomersInPossibleGroup(prev => {
+      const newState = { ...prev };
+      delete newState[groupIndex];
+      return newState;
+    });
+  };
+
+  // Handler for rejecting an entire group
+  const handleRejectGroup = async (groupIndex) => {
+    const group = possibleMerges[groupIndex];
+    
+    // Add all pairs to rejected merges
+    const newRejectedMerges = [...rejectedMerges];
+    for (let i = 0; i < group.members.length; i++) {
+      for (let j = i + 1; j < group.members.length; j++) {
+        newRejectedMerges.push([group.members[i], group.members[j]].sort());
+      }
+    }
+    setRejectedMerges(newRejectedMerges);
+    
+    // Remove from possible merges
+    setPossibleMerges(prev => prev.filter((_, index) => index !== groupIndex));
+    
+    // Clear selections
+    setSelectedPossibleMerges(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(groupIndex);
+      return newSet;
+    });
+    setSelectedCustomersInPossibleGroup(prev => {
+      const newState = { ...prev };
+      delete newState[groupIndex];
+      return newState;
+    });
+  };
+
+  // Handler for approving a partial group (only selected customers)
+  const handleApprovePartialGroup = async (groupIndex) => {
+    const selectedCustomers = selectedCustomersInPossibleGroup[groupIndex];
+    if (!selectedCustomers || selectedCustomers.size < 2) return;
+    
+    const customersToMerge = Array.from(selectedCustomers);
+    await approveCustomerMerge(customersToMerge);
+    
+    // Remove selected customers from the group
+    const group = possibleMerges[groupIndex];
+    const remainingCustomers = group.members.filter(customer => !selectedCustomers.has(customer));
+    
+    if (remainingCustomers.length <= 1) {
+      // Remove entire group if no customers left or only one customer
+      setPossibleMerges(prev => prev.filter((_, index) => index !== groupIndex));
+    } else {
+      // Update group with remaining customers
+      setPossibleMerges(prev => prev.map((g, index) => 
+        index === groupIndex 
+          ? { ...g, members: remainingCustomers, totalMembers: remainingCustomers.length }
+          : g
+      ));
+    }
+    
+    // Clear selections for this group
+    setSelectedCustomersInPossibleGroup(prev => {
+      const newState = { ...prev };
+      delete newState[groupIndex];
+      return newState;
+    });
+  };
+
+  // Handler for bulk approving selected possible merges
+  const handleBulkApprovePossible = async () => {
+    const selectedGroups = Array.from(selectedPossibleMerges);
+    
+    for (const groupIndex of selectedGroups) {
+      const group = possibleMerges[groupIndex];
+      await approveCustomerMerge(group.members);
+    }
+    
+    // Remove approved groups from possible merges
+    setPossibleMerges(prev => prev.filter((_, index) => !selectedGroups.includes(index)));
+    
+    // Clear all selections
+    setSelectedPossibleMerges(new Set());
+    setSelectedCustomersInPossibleGroup({});
+  };
+
+  // Handler for bulk rejecting selected possible merges
+  const handleBulkRejectPossible = async () => {
+    const selectedGroups = Array.from(selectedPossibleMerges);
+    
+    for (const groupIndex of selectedGroups) {
+      const group = possibleMerges[groupIndex];
+      
+      // Add all pairs to rejected merges
+      const newRejectedMerges = [...rejectedMerges];
+      for (let i = 0; i < group.members.length; i++) {
+        for (let j = i + 1; j < group.members.length; j++) {
+          newRejectedMerges.push([group.members[i], group.members[j]].sort());
+        }
+      }
+      setRejectedMerges(newRejectedMerges);
+    }
+    
+    // Remove rejected groups from possible merges
+    setPossibleMerges(prev => prev.filter((_, index) => !selectedGroups.includes(index)));
+    
+    // Clear all selections
+    setSelectedPossibleMerges(new Set());
+    setSelectedCustomersInPossibleGroup({});
+  };
+
+  // Helper function to approve a customer merge
+  const approveCustomerMerge = async (customers) => {
+    try {
+      const response = await fetch('/api/confirmed-merges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group: customers })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        // Reload confirmed merges
+        await loadMergedCustomers();
+        setSaveMessage('Customer merge approved successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        throw new Error('Failed to approve customer merge');
+      }
+    } catch (error) {
+      console.error('Error approving customer merge:', error);
+      setError(error.message);
+    }
+  };
+
+  const deleteMergedCustomerGroup = async (groupIndex) => {
+    try {
+      const updatedMerges = mergedCustomers.filter((_, index) => index !== groupIndex);
+      
+      const response = await fetch('/api/confirmed-merges', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ merges: updatedMerges }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setMergedCustomers(updatedMerges);
+        setSaveMessage('Merged customer group deleted successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else {
+        throw new Error('Failed to delete merged customer group');
+      }
+    } catch (error) {
+      console.error('Error deleting merged customer group:', error);
+      setError(error.message);
+    }
+  };
 
   // Load sales reps and defaults when division changes
   useEffect(() => {
@@ -518,6 +925,12 @@ const MasterData = () => {
         >
           🧑‍💼 Sales Rep Selection
         </button>
+        <button
+          className={`tab-button ${activeTab === 'mergedcustomers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('mergedcustomers')}
+        >
+          🔗 Merged Customers
+        </button>
       </div>
 
       <div className="tab-content">
@@ -815,6 +1228,178 @@ const MasterData = () => {
             ) : (
               <div className="no-division-message">
                 <p>Please select a division to view and configure sales representatives.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'mergedcustomers' && (
+          <div className="merged-customers-tab">
+            <div className="merged-customers-header">
+              <h3>{divisionCode}-Merged Customer Groups</h3>
+              <p>Centralized customer merging for {divisionCode} division - Review and approve customer name matches</p>
+              <div className="merged-customers-actions">
+                <button 
+                  onClick={loadAllPossibleMerges} 
+                  disabled={loadingMergedCustomers}
+                  className="refresh-button"
+                >
+                  {loadingMergedCustomers ? 'Refreshing...' : '🔄 Refresh All Possible Merges'}
+                </button>
+                {saveMessage && <span className="save-message">{saveMessage}</span>}
+              </div>
+            </div>
+
+            {loadingMergedCustomers ? (
+              <div className="loading-message">Loading all possible customer merges...</div>
+            ) : (
+              <div className="customer-merging-interface">
+                {/* Confirmed Merges Section */}
+                <div className="confirmed-merges-section">
+                  <h4>✅ Confirmed Customer Groups ({mergedCustomers.length})</h4>
+                  {mergedCustomers.length === 0 ? (
+                    <p className="no-data-message">No customer groups have been confirmed yet.</p>
+                  ) : (
+                    <div className="confirmed-merges-list">
+                      {mergedCustomers.map((group, index) => (
+                        <div key={index} className="confirmed-group">
+                          <div className="group-header">
+                            <span className="group-name">{group[0]}</span>
+                            <button
+                              onClick={() => deleteMergedCustomerGroup(index)}
+                              className="delete-group-btn"
+                              title="Delete this merged group"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                          <div className="group-members">
+                            {group.map((customer, customerIndex) => (
+                              <span key={customerIndex} className="customer-tag confirmed">
+                                {customer}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Possible Merges Section */}
+                <div className="possible-merges-section">
+                  <h4>🔍 Possible Customer Merges ({possibleMerges.length})</h4>
+                  {possibleMerges.length === 0 ? (
+                    <p className="no-data-message">No potential customer merges found. All customers appear to be unique.</p>
+                  ) : (
+                    <div className="possible-merges-interface">
+                      {/* Bulk Actions */}
+                      <div className="bulk-actions">
+                        <button
+                          onClick={handleSelectAllPossible}
+                          className="select-all-btn"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={handleDeselectAllPossible}
+                          className="deselect-all-btn"
+                        >
+                          Deselect All
+                        </button>
+                        <button
+                          onClick={handleBulkApprovePossible}
+                          disabled={selectedPossibleMerges.size === 0}
+                          className="bulk-approve-btn"
+                        >
+                          Approve Selected ({selectedPossibleMerges.size})
+                        </button>
+                        <button
+                          onClick={handleBulkRejectPossible}
+                          disabled={selectedPossibleMerges.size === 0}
+                          className="bulk-reject-btn"
+                        >
+                          Reject Selected ({selectedPossibleMerges.size})
+                        </button>
+                      </div>
+
+                      {/* Merges List */}
+                      <div className="possible-merges-list">
+                        {possibleMerges.map((mergeGroup, groupIndex) => (
+                          <div key={groupIndex} className="possible-merge-group">
+                            <div className="merge-group-header">
+                              <input
+                                type="checkbox"
+                                checked={selectedPossibleMerges.has(groupIndex)}
+                                onChange={() => handlePossibleGroupSelection(groupIndex)}
+                                className="group-checkbox"
+                              />
+                              <span className="merge-group-title">
+                                Potential Merge Group {groupIndex + 1} ({mergeGroup.members.length} customers)
+                              </span>
+                              <div className="merge-group-actions">
+                                <button
+                                  onClick={() => handleApproveGroup(groupIndex)}
+                                  className="approve-group-btn"
+                                  title="Approve entire group"
+                                >
+                                  ✅ Approve All
+                                </button>
+                                <button
+                                  onClick={() => handleRejectGroup(groupIndex)}
+                                  className="reject-group-btn"
+                                  title="Reject entire group"
+                                >
+                                  ❌ Reject All
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="merge-group-members">
+                              {mergeGroup.members.map((customer, customerIndex) => (
+                                <div key={customerIndex} className="customer-selection-item">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedCustomersInPossibleGroup[groupIndex]?.has(customer) || false}
+                                    onChange={() => handleCustomerSelectionInPossibleGroup(groupIndex, customer)}
+                                    className="customer-checkbox"
+                                  />
+                                  <span className="customer-name">{customer}</span>
+                                  <span className="customer-similarity">
+                                    Similarity: {mergeGroup.similarities[customerIndex]}%
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="partial-actions">
+                              <button
+                                onClick={() => handleApprovePartialGroup(groupIndex)}
+                                disabled={!selectedCustomersInPossibleGroup[groupIndex] || selectedCustomersInPossibleGroup[groupIndex].size === 0}
+                                className="approve-partial-btn"
+                              >
+                                Approve Selected ({selectedCustomersInPossibleGroup[groupIndex]?.size || 0})
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Instructions */}
+                <div className="merging-instructions">
+                  <h4>📋 How to Use Customer Merging:</h4>
+                  <ul>
+                    <li><strong>Review:</strong> All potential customer name matches are automatically detected</li>
+                    <li><strong>Select:</strong> Use checkboxes to select specific customers or entire groups</li>
+                    <li><strong>Approve:</strong> Merge selected customers into a single entity</li>
+                    <li><strong>Reject:</strong> Keep selected customers as separate entities</li>
+                    <li><strong>Partial Approval:</strong> Select only some customers in a group to merge them while keeping others separate</li>
+                    <li><strong>Confirmed Groups:</strong> Successfully merged customers appear in the top section</li>
+                  </ul>
+                </div>
               </div>
             )}
           </div>

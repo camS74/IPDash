@@ -165,6 +165,18 @@ class FPDataService {
     }
   }
 
+  // Get all unique customers from the entire fp_data table
+  async getAllCustomers() {
+    try {
+      const query = 'SELECT DISTINCT customername FROM fp_data WHERE customername IS NOT NULL AND TRIM(customername) != \'\' ORDER BY customername';
+      const result = await pool.query(query);
+      return result.rows.map(row => row.customername);
+    } catch (err) {
+      console.error('Error fetching all customers:', err);
+      throw err;
+    }
+  }
+
   // Get customers for multiple sales reps (for groups)
   async getCustomersForGroup(salesReps) {
     try {
