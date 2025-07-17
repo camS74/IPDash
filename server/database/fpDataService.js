@@ -111,20 +111,14 @@ class FPDataService {
     }
   }
 
-  // Helper function to convert month number to month name or return month name as-is
-  getMonthName(monthInput) {
-    // If it's already a string month name, return it as-is
-    if (typeof monthInput === 'string' && isNaN(parseInt(monthInput))) {
-      return monthInput;
-    }
+  // Helper function to get month name
+  getMonthName(monthNumber) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
     
-    // If it's a number or numeric string, convert to month name
-    const months = {
-      1: 'January', 2: 'February', 3: 'March', 4: 'April',
-      5: 'May', 6: 'June', 7: 'July', 8: 'August',
-      9: 'September', 10: 'October', 11: 'November', 12: 'December'
-    };
-    return months[parseInt(monthInput)] || monthInput;
+    return months[monthNumber - 1];
   }
 
   // Batch fetch sales data for multiple periods and value types

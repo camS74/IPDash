@@ -2,25 +2,9 @@
   "chartVisibleColumns": [
     "2024-HY1-Actual",
     "2025-HY1-Actual",
-    "2025-HY1-Budget",
-    "2023-HY1-Actual"
+    "2025-HY1-Budget"
   ],
   "standardColumnSelection": [
-    {
-      "year": "2023",
-      "month": "HY1",
-      "type": "Actual",
-      "months": [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June"
-      ],
-      "id": "2023-HY1-Actual",
-      "customColor": "blue"
-    },
     {
       "year": "2024",
       "month": "HY1",

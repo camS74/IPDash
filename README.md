@@ -270,3 +270,34 @@ cd server && npm start
 **Built with ❤️ for business intelligence and data analysis**
 
 *For technical support or feature requests, please refer to the troubleshooting section or contact the development team.*
+
+## Sales Rep HTML Report
+
+### Overview
+A new feature has been added to the dashboard that allows users to export a detailed HTML report for each sales representative. This report is designed to match the in-app dashboard style and provides a shareable, static HTML file with all key sales metrics and tables.
+
+### What Has Been Implemented
+- **Sales Reports Tab:** A new tab called 'Sales Reports' is available under 'Sales by Sales Rep'.
+- **Export Button:** For each sales rep (starting with Narek Koroukian as an example), there is an 'Export HTML Report' button.
+- **Live Data Export:** When exporting, the report gathers all current live data for the selected sales rep, including product group performance, customer performance, and summary metrics.
+- **Dynamic Period Logic:** The report uses the current period selection from the dashboard (not hardcoded). It dynamically determines the base period, previous period, and next period, and uses these for all tables and summaries.
+- **Tables:**
+  - Product group performance table (with previous, current, budget, YoY, and achievement columns)
+  - Customer performance table (top 10 customers, with period breakdowns and YoY)
+- **Executive Summary:** The report includes a summary of total volume, YoY growth, and budget achievement, all based on live data.
+- **Data Consistency:** All exported data matches the current dashboard view and selection.
+
+### In Progress / Planned
+- **Period Header UI:** Finalizing the HTML/CSS for the period header at the top of the report, matching the app’s style (with color, star, and checkmarks as in the app).
+- **Charts:** Adding interactive charts (using Chart.js) for YoY growth, budget achievement, and customer performance, with data hardcoded at export time.
+- **Key Findings & Recommendations:** Automatically generating key findings and recommended actions based on the exported data.
+- **Q2 (or next period) Growth Targets:** Adding a section for required growth targets for the next period, based on current and target values.
+- **Full Style Matching:** Ensuring the exported HTML matches the in-app design, including fonts, colors, and layout.
+- **Support for All Sales Reps:** Extending the export to all sales reps, not just the example.
+
+### Usage
+1. Go to the 'Sales by Sales Rep' section and select the 'Sales Reports' tab.
+2. Click the 'Export HTML Report' button for the desired sales rep.
+3. The report will be generated using the current dashboard data and downloaded as an HTML file.
+
+This feature is under active development and will continue to be improved for completeness and visual fidelity.
