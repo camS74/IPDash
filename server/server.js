@@ -125,7 +125,15 @@ app.get('/api/standard-config/:key', (req, res) => {
     if (data) {
       console.log(`🔍 Retrieved standard config for key: ${key}`);
       if (Array.isArray(data)) {
-        console.log(`📊 Data is array with ${data.length} items:`, data.map(item => item.id || item.year));
+        // Handle different types of arrays - objects with id/year properties vs simple strings/values
+        const displayItems = data.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return item.id || item.year || JSON.stringify(item);
+          } else {
+            return item;
+          }
+        });
+        console.log(`📊 Data is array with ${data.length} items:`, displayItems);
       } else {
         console.log(`📊 Data type: ${typeof data}, value:`, data);
       }

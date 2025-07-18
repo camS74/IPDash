@@ -68,31 +68,9 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
   // Limit to 5 periods max
   const periodsToUse = selectedPeriods.slice(0, 5);
   const dynamicFontSize = getDynamicFontSize(periodsToUse.length);
-  console.log('ManufacturingCostChart - periodsToUse:', periodsToUse.length, periodsToUse.map(p => ({
-    year: p.year,
-    month: p.month,
-    type: p.type,
-    isCustomRange: p.isCustomRange,
-    displayName: p.displayName
-  })));
 
-  // DEBUG: Check if we can find the Sales row
-  if (periodsToUse.length > 0 && tableData && tableData.length) {
-    console.group('Searching for Sales row');
-    // Check first few rows to find where Sales data might be
-    for (let i = 0; i < Math.min(7, tableData.length); i++) {
-      try {
-        const rowValue = computeCellValue(i, periodsToUse[0]);
-        console.log(`Row ${i} data:`, {
-          value: rowValue,
-          row: tableData[i]
-        });
-      } catch (err) {
-        console.error(`Error reading row ${i}:`, err);
-      }
-    }
-    console.groupEnd();
-  }
+
+
 
   // Extract data for all ledgers across all periods
   const ledgersData = {};
@@ -102,22 +80,12 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
   const allPeriodNames = periodsToUse.map(period => {
     const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
     
-    // Debug custom ranges specifically
-    if (period.isCustomRange) {
-      console.log('Custom Range Debug:', {
-        year: period.year,
-        month: period.month,
-        displayName: period.displayName,
-        months: period.months,
-        type: period.type,
-        finalPeriodName: periodName
-      });
-    }
+
     
     return periodName;
   });
   
-  console.log('ManufacturingCostChart - allPeriodNames:', allPeriodNames);
+
 
   // Initialize data structure for ALL periods and ledgers
   ledgerItems.forEach(ledger => {
@@ -161,11 +129,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           // Row 7 is Sales Volume (kg)
           const salesVolumeValue = computeCellValue(7, period);
           
-          console.log(`Ledger [${ledger.label}] raw values:`, {
-            rowValue: amount,
-            salesValue,
-            salesVolumeValue
-          });
+
           
           // Calculate percent of sales exactly as in TableView.js
           let percentOfSales = 0;
@@ -179,11 +143,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
             perKgValue = amount / salesVolumeValue;
           }
           
-          console.log(`Calculated values for [${ledger.label}]:`, {
-            amount,
-            percentOfSales,
-            perKgValue
-          });
+
 
           // Store the values in our data structure
           const validAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
@@ -237,11 +197,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
           totalPerKgValue = actualTotal / salesVolumeValue;
         }
         
-        console.log(`Total values for period ${periodName}:`, { 
-          actualTotal,
-          totalPercentOfSales,
-          totalPerKgValue
-        });
+
         
         // Use the actual values if available, otherwise use our calculated ones
         if (typeof actualTotal === 'number' && !isNaN(actualTotal)) {
@@ -271,13 +227,13 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
   // Use the pre-calculated period names to ensure all 5 periods appear
   const periodNames = allPeriodNames;
   
-  console.log('ManufacturingCostChart - Final periodNames for legend:', periodNames);
+
 
   // Prepare series for each period
   const series = periodsToUse.map((period, index) => {
     const periodName = `${period.year} ${period.isCustomRange ? period.displayName : (period.month || '')} ${period.type}`;
     
-    console.log(`Creating series for period ${index + 1}/${periodsToUse.length}: ${periodName}`);
+
     
     // Get color based on period's customColor or fallback to default (same as other components)
     let color;
@@ -496,13 +452,7 @@ const ManufacturingCostChart = ({ tableData, selectedPeriods, computeCellValue, 
     }))
   };
 
-  console.log('ManufacturingCostChart - Final chart configuration:', {
-    seriesCount: series.length,
-    legendDataCount: periodNames.length,
-    periodsToUseCount: periodsToUse.length,
-    seriesNames: series.map(s => s.name),
-    legendData: periodNames
-  });
+
 
   // Format a summary for each period's total
   const renderTotals = () => {

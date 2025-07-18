@@ -334,7 +334,7 @@ const WriteUpView = ({ tableData, selectedPeriods }) => {
       function getCleanPeriodName(period) {
         if (!period) return 'Unknown';
         
-        console.log('DEBUG Period:', period); // Debug line
+
         
         // Handle custom ranges with better formatting
         if (period.isCustomRange && period.displayName) {

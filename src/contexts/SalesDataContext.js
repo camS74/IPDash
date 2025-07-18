@@ -28,25 +28,20 @@ export const SalesDataProvider = ({ children }) => {
   // Function to load Sales Excel file from API endpoint
   const loadSalesData = useCallback(async (url = '/api/sales.xlsx') => {
     if (loading || dataLoaded) {
-      // console.log('Skipping sales load - already loading or data loaded:', { loading, dataLoaded });
       return;
     }
     
-    // console.log('Loading Sales data from:', url);
     setLoading(true);
     setError(null);
     
     try {
-      // console.log('Fetching sales data...');
       const res = await fetch(url);
-      // console.log('Sales response status:', res.status);
       
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
       const buffer = await res.arrayBuffer();
-      // console.log('Received sales buffer size:', buffer.byteLength);
       
       if (buffer.byteLength === 0) {
         throw new Error('Received empty sales file');
@@ -54,7 +49,6 @@ export const SalesDataProvider = ({ children }) => {
       
       // Parse Excel data using xlsx library
       const workbook = XLSX.read(buffer, { type: 'buffer' });
-      // console.log('Sales workbook sheets:', workbook.SheetNames);
       
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
         throw new Error('No sheets found in Sales Excel file');
@@ -68,14 +62,8 @@ export const SalesDataProvider = ({ children }) => {
       const parsedData = {};
       sheetNames.forEach(name => {
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1 });
-        // console.log(`Sales Sheet ${name} data structure:`, {
-        //   rowCount: sheetData.length,
-        //   columnCount: sheetData[0]?.length || 0,
-        //   headers: sheetData[0],
-        //   productGroups: sheetData.slice(3, 10).map(row => row[0]).filter(Boolean)
-        // });
         if (!sheetData || sheetData.length === 0) {
-          // console.warn(`Warning: Sales Sheet ${name} is empty`);
+          // Empty sheet - continue
         }
         parsedData[name] = sheetData;
       });
@@ -90,7 +78,6 @@ export const SalesDataProvider = ({ children }) => {
       
       return parsedData;
     } catch (error) {
-      // console.error('Error loading sales data:', error);
       setError(error.message);
     } finally {
       setLoading(false);

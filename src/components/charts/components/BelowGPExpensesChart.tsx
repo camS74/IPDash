@@ -42,16 +42,7 @@ const getDynamicFontSize = (periodCount: number) => {
 };
 
 const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, style }) => {
-  // Debug initial props
-  useEffect(() => {
-    console.group('BelowGPExpensesChart - Initial Props');
-    console.log('tableData:', tableData);
-    console.log('selectedPeriods:', selectedPeriods);
-    console.log('computeCellValue function available:', typeof computeCellValue === 'function');
-    console.log('Number of selected periods:', selectedPeriods?.length || 0);
-    console.log('Style prop:', style);
-    console.groupEnd();
-  }, [tableData, selectedPeriods, computeCellValue, style]);
+
 
   // If no periods selected or no compute function, show empty state
   if (!selectedPeriods || selectedPeriods.length === 0 || typeof computeCellValue !== 'function') {
@@ -68,25 +59,9 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
   // Limit to 5 periods max
   const periodsToUse = selectedPeriods.slice(0, 5);
   const dynamicFontSize = getDynamicFontSize(periodsToUse.length);
-  console.log('Using periods:', periodsToUse);
 
-  // DEBUG: Check if we can find the Sales row
-  if (periodsToUse.length > 0 && tableData && tableData.length) {
-    console.group('Searching for Sales row');
-    // Check first few rows to find where Sales data might be
-    for (let i = 0; i < Math.min(7, tableData.length); i++) {
-      try {
-        const rowValue = computeCellValue(i, periodsToUse[0]);
-        console.log(`Row ${i} data:`, {
-          value: rowValue,
-          row: tableData[i]
-        });
-      } catch (err) {
-        console.error(`Error reading row ${i}:`, err);
-      }
-    }
-    console.groupEnd();
-  }
+
+
 
   // Extract data for all ledgers across all periods
   const ledgersData = {};
@@ -116,11 +91,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
           // Row 7 is Sales Volume (kg)
           const salesVolumeValue = computeCellValue(7, period);
           
-          console.log(`Ledger [${ledger.label}] raw values:`, {
-            rowValue: amount,
-            salesValue,
-            salesVolumeValue
-          });
+
           
           // Calculate percent of sales exactly as in TableView.js
           let percentOfSales = 0;
@@ -134,11 +105,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
             perKgValue = amount / salesVolumeValue;
           }
           
-          console.log(`Calculated values for [${ledger.label}]:`, {
-            amount,
-            percentOfSales,
-            perKgValue
-          });
+
 
           // Store the values in our data structure
           const validAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
@@ -192,11 +159,7 @@ const BelowGPExpensesChart = ({ tableData, selectedPeriods, computeCellValue, st
           totalPerKgValue = actualTotal / salesVolumeValue;
         }
         
-        console.log(`Total values for period ${periodName}:`, { 
-          actualTotal,
-          totalPercentOfSales,
-          totalPerKgValue
-        });
+
         
         // Use the actual values if available, otherwise use our calculated ones
         if (typeof actualTotal === 'number' && !isNaN(actualTotal)) {

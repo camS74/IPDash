@@ -196,13 +196,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
       pdf.setFontSize(16);
       pdf.setTextColor(0, 51, 102); // Logo blue color instead of gray
       
-      // DEBUG: Log the base period information
-      console.log('PDF Export - Base Period Debug:', {
-        basePeriodIndex,
-        basePeriod,
-        periodsLength: periods?.length,
-        periods: periods
-      });
+
       
       // Format base period text from the period object
       if (basePeriod && basePeriodIndex !== null) {
@@ -285,15 +279,7 @@ const ChartContainer = ({ tableData, selectedPeriods, onExportRefsReady }) => {
 
         console.log(`Processing ${name}:`, { width: rect.width, height: rect.height });
 
-        // DEBUG: Add specific logging for Combined Trends
-        if (name === 'Combined Trends') {
-          console.log('Combined Trends Debug:', {
-            visiblePeriods: visiblePeriods,
-            selectedPeriods: selectedPeriods,
-            containerNode: !!containerNode,
-            children: containerNode?.children?.length
-          });
-        }
+
 
         // Hide any tooltips before capture
         const tooltips = document.querySelectorAll('.ant-tooltip, [role="tooltip"], .echarts-tooltip, .tooltip');

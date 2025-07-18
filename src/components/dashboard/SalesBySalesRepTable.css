@@ -335,3 +335,157 @@ th.product-header[rowspan="3"] {
   min-width: 60px !important;
   max-width: 110px !important;
 }
+
+/* Export button styling */
+.export-button {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-left: 10px;
+}
+
+.export-button:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.export-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.export-button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Report tab content styling */
+.sales-rep-report-content {
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin: 10px 0;
+}
+
+.report-header {
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+}
+
+.report-header h2 {
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.report-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  border: 2px dashed #dee2e6;
+}
+
+.placeholder-content {
+  text-align: center;
+  max-width: 500px;
+  padding: 40px 20px;
+}
+
+.placeholder-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.placeholder-content h3 {
+  color: #495057;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.placeholder-content p {
+  color: #6c757d;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.placeholder-content ul {
+  text-align: left;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 20px 0;
+  padding-left: 20px;
+}
+
+.placeholder-content li {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.placeholder-content li::marker {
+  color: #007bff;
+}
+
+.placeholder-note {
+  margin-top: 30px;
+  padding: 15px;
+  background: rgba(0, 123, 255, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.placeholder-note em {
+  color: #0056b3;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Tables and Report tab content containers */
+.tables-tab-content,
+.report-tab-content {
+  margin-top: 10px;
+}
+
+/* Responsive design for report content */
+@media (max-width: 768px) {
+  .sales-rep-report-content {
+    padding: 15px;
+    margin: 5px 0;
+  }
+  
+  .report-header h2 {
+    font-size: 20px;
+  }
+  
+  .placeholder-content {
+    padding: 20px 10px;
+  }
+  
+  .placeholder-content h3 {
+    font-size: 24px;
+  }
+  
+  .placeholder-icon {
+    font-size: 48px;
+  }
+}

@@ -635,13 +635,32 @@ const SalesBySaleRepTable = () => {
   return (
     <div className="sales-rep-table-container">
       <TabsComponent>
-        {getFilteredReps().map(rep => {
-          return (
-            <Tab key={rep} label={toProperCase(rep)}>
-              <SalesRepTabContent rep={rep} />
-            </Tab>
-          );
-        })}
+        <Tab key="tables" label="Tables">
+          <div className="tables-tab-content">
+            <TabsComponent>
+              {getFilteredReps().map(rep => {
+                return (
+                  <Tab key={rep} label={toProperCase(rep)}>
+                    <SalesRepTabContent rep={rep} />
+                  </Tab>
+                );
+              })}
+            </TabsComponent>
+          </div>
+        </Tab>
+        <Tab key="report" label="Report">
+          <div className="report-tab-content">
+            <TabsComponent>
+              {getFilteredReps().map(rep => {
+                return (
+                  <Tab key={rep} label={toProperCase(rep)}>
+                    <SalesRepReportContent rep={rep} />
+                  </Tab>
+                );
+              })}
+            </TabsComponent>
+          </div>
+        </Tab>
       </TabsComponent>
     </div>
   );
@@ -1189,6 +1208,43 @@ const SalesRepTabContent = ({ rep }) => {
           </tr>
         </tbody>
       </table>
+    </div>
+  );
+};
+
+// Component to display report placeholder for each sales rep
+const SalesRepReportContent = ({ rep }) => {
+  const toProperCase = (str) => {
+    if (!str) return '';
+    return str.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  return (
+    <div className="sales-rep-report-content">
+      <div className="report-header">
+        <h2>Sales Report - {toProperCase(rep)}</h2>
+      </div>
+      <div className="report-placeholder">
+        <div className="placeholder-content">
+          <div className="placeholder-icon">📊</div>
+          <h3>Report Coming Soon</h3>
+          <p>The detailed HTML report for <strong>{toProperCase(rep)}</strong> is currently under development.</p>
+          <p>This report will include:</p>
+          <ul>
+            <li>Executive Summary with key metrics</li>
+            <li>Product Group Performance Analysis</li>
+            <li>Customer Performance Breakdown</li>
+            <li>Year-over-Year Growth Analysis</li>
+            <li>Budget Achievement Tracking</li>
+            <li>Exportable HTML format</li>
+          </ul>
+          <div className="placeholder-note">
+            <em>Stay tuned for the complete reporting experience!</em>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
