@@ -3,6 +3,7 @@ import TabsComponent, { Tab } from './TabsComponent';
 import { useFilter } from '../../contexts/FilterContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
 import { useSalesData } from '../../contexts/SalesDataContext';
+import SalesRepReport from '../reports/SalesRepReport';
 import './SalesBySalesRepTable.css'; // Use dedicated CSS file
 
 
@@ -76,7 +77,13 @@ const calculateDeltaDisplay = (newerValue, olderValue) => {
   return '-';
 };
 
-
+// Helper function to format names to proper case (Xxxx Xxxx)
+const toProperCase = (str) => {
+  if (!str) return '';
+  return str.split(' ').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  ).join(' ');
+};
 
 // Helper function to prepare periods from column order
 const preparePeriods = (columnOrder) => {
@@ -108,8 +115,10 @@ const preparePeriods = (columnOrder) => {
 };
 
 // Helper function to fetch dashboard data from API
-const fetchDashboardData = async (salesRep, variable, periods) => {
-    const response = await fetch('/api/fp/sales-rep-dashboard', {
+const fetchDashboardData = async (salesRep, variable, periods, selectedDivision = 'FP') => {
+  if (selectedDivision === 'FP') {
+    // Use real FP data from PostgreSQL
+    const response = await fetch('http://localhost:3001/api/fp/sales-rep-dashboard', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -123,11 +132,57 @@ const fetchDashboardData = async (salesRep, variable, periods) => {
     
     if (!response.ok) {
       console.error('Failed to fetch dashboard data:', response.status);
-    throw new Error(`API request failed with status: ${response.status}`);
+      throw new Error(`API request failed with status: ${response.status}`);
     }
     
     const result = await response.json();
-  return result.data;
+    return result.data;
+  } else {
+    // Generate placeholder data for SB/TF/HCM divisions
+    return generatePlaceholderDashboardData(salesRep, variable, periods, selectedDivision);
+  }
+};
+
+// Helper function to generate placeholder dashboard data for non-FP divisions
+const generatePlaceholderDashboardData = (salesRep, variable, periods, division) => {
+  // Define product groups for each division
+  const divisionProductGroups = {
+    'SB': ['Stretch Films', 'Shrink Films', 'Agricultural Films', 'Barrier Films'],
+    'TF': ['Technical Films', 'Barrier Films', 'Specialty Films', 'Industrial Films'],
+    'HCM': ['Hygiene Films', 'Medical Films', 'Pharmaceutical', 'Safety Films']
+  };
+  
+  const productGroups = divisionProductGroups[division] || ['Product Group 1', 'Product Group 2', 'Product Group 3'];
+  
+  // Generate realistic placeholder data
+  const dashboardData = {};
+  
+  productGroups.forEach(pg => {
+    dashboardData[pg] = {};
+    dashboardData[pg][variable] = {};
+    
+    periods.forEach(period => {
+      const { year, month, type } = period;
+      const key = `${year}-${month}-${type}`;
+      
+      // Generate random but realistic values
+      const baseValue = variable === 'KGS' ? 
+        Math.floor(Math.random() * 50000) + 10000 : // 10K-60K KGS
+        Math.floor(Math.random() * 500000) + 100000; // 100K-600K Amount
+      
+      // Add some variation based on sales rep name for consistency
+      const repVariation = salesRep.length * 1000;
+      const pgVariation = pg.length * 500;
+      
+      dashboardData[pg][variable][key] = baseValue + repVariation + pgVariation;
+    });
+  });
+  
+  return {
+    productGroups,
+    dashboardData,
+    isPlaceholder: true
+  };
 };
     
 // Helper function to build extended columns structure
@@ -261,7 +316,7 @@ const processProductGroupData = (pgName, variable, extendedColumns, dashboardDat
 };
 
 // Main function to fetch actual product groups and sales data from fp_data for each sales rep
-const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder) => {
+const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder, selectedDivision = 'FP') => {
   try {
     // Safety check for columnOrder
     if (!columnOrder || columnOrder.length === 0) {
@@ -272,7 +327,7 @@ const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder) => {
     const periods = preparePeriods(columnOrder);
     
     // Step 2: Fetch data from API
-    const { productGroups, dashboardData } = await fetchDashboardData(salesRep, variable, periods);
+    const { productGroups, dashboardData } = await fetchDashboardData(salesRep, variable, periods, selectedDivision);
     
     // Step 3: Sort product groups with "Others" at the end
     const sortedProductGroups = sortProductGroups(productGroups);
@@ -298,25 +353,70 @@ const getProductGroupsForSalesRep = async (salesRep, variable, columnOrder) => {
 };
 
 // Helper function to fetch customer dashboard data from API
-const fetchCustomerDashboardData = async (salesRep, periods) => {
-  const response = await fetch('/api/fp/customer-dashboard', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      salesRep,
-      periods
-    })
+const fetchCustomerDashboardData = async (salesRep, periods, selectedDivision = 'FP') => {
+  if (selectedDivision === 'FP') {
+    // Use real FP data from PostgreSQL
+    const response = await fetch('http://localhost:3001/api/fp/customer-dashboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        salesRep,
+        periods
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch customer dashboard data:', response.status);
+      throw new Error(`API request failed with status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+  } else {
+    // Generate placeholder data for SB/TF/HCM divisions
+    return generatePlaceholderCustomerData(salesRep, periods, selectedDivision);
+  }
+};
+
+// Helper function to generate placeholder customer data for non-FP divisions
+const generatePlaceholderCustomerData = (salesRep, periods, division) => {
+  // Generate customer names based on division
+  const divisionCustomers = {
+    'SB': ['Industrial Corp A', 'Packaging Solutions B', 'AgriTech Industries', 'Stretch Film Co', 'Barrier Solutions Ltd'],
+    'TF': ['Technical Films Inc', 'Advanced Materials Co', 'Specialty Products Ltd', 'Industrial Tech Corp', 'Barrier Tech Solutions'],
+    'HCM': ['MedTech Industries', 'Healthcare Solutions', 'Pharma Packaging Co', 'Medical Films Ltd', 'Safety Products Inc']
+  };
+  
+  const customers = divisionCustomers[division] || ['Customer A', 'Customer B', 'Customer C', 'Customer D', 'Customer E'];
+  
+  // Generate realistic placeholder data
+  const dashboardData = {};
+  
+  customers.forEach(customer => {
+    dashboardData[customer] = {};
+    
+    periods.forEach(period => {
+      const { year, month, type } = period;
+      const key = `${year}-${month}-${type}`;
+      
+      // Generate random but realistic KGS values
+      const baseValue = Math.floor(Math.random() * 30000) + 5000; // 5K-35K KGS
+      
+      // Add some variation based on sales rep and customer name for consistency
+      const repVariation = salesRep.length * 500;
+      const customerVariation = customer.length * 200;
+      
+      dashboardData[customer][key] = baseValue + repVariation + customerVariation;
+    });
   });
   
-  if (!response.ok) {
-    console.error('Failed to fetch customer dashboard data:', response.status);
-    throw new Error(`API request failed with status: ${response.status}`);
-  }
-  
-  const result = await response.json();
-  return result.data;
+  return {
+    customers,
+    dashboardData,
+    isPlaceholder: true
+  };
 };
 
 // Helper function to aggregate customer monthly data for a column
@@ -398,8 +498,12 @@ const processCustomerData = (customerName, extendedColumns, dashboardData) => {
     }
   }
 
+  // Format customer name for display while keeping original for data queries
+  const displayName = toProperCase(customerName);
+
   return {
-    name: customerName,
+    name: displayName, // Use formatted name for display
+    originalName: customerName, // Keep original for potential future data queries
     values: finalValues,
     rawValues: dataValues // Store raw numeric values for total calculations
   };
@@ -492,7 +596,8 @@ const getCustomersForSalesRep = async (salesRep, columnOrder, basePeriodIndex) =
     ungrouped.forEach(customerName => {
       const customerData = processCustomerData(customerName, extendedColumns, dashboardData);
       groupResults.push({
-        name: customerName,
+        name: customerData.name, // Use formatted name for display
+        originalName: customerName, // Keep original for potential future data queries
         values: customerData.values,
         rawValues: customerData.rawValues,
         isMergedGroup: false
@@ -536,72 +641,103 @@ function getConfirmedMerges() {
     return [];
   }
 }
-function addConfirmedMerge(group) {
-  const confirmed = getConfirmedMerges();
-  // Store as sorted array for consistency
-  const sortedGroup = [...group].sort();
-  if (!confirmed.some(g => JSON.stringify(g) === JSON.stringify(sortedGroup))) {
-    confirmed.push(sortedGroup);
-    localStorage.setItem(CONFIRMED_MERGES_KEY, JSON.stringify(confirmed));
-  }
-}
+// Note: addConfirmedMerge function removed to clean up unused code
 
 const SalesBySaleRepTable = () => {
   const { columnOrder, dataGenerated } = useFilter();
-  const { salesData, loading, error, selectedDivision } = useExcelData();
-  const { defaultReps, salesRepGroups, loadSalesRepConfig, salesRepConfigLoaded } = useSalesData();
+  const { selectedDivision } = useExcelData();
+  const { defaultReps, salesRepGroups, loadSalesRepConfig } = useSalesData();
 
-  // Ensure sales rep config is loaded
+  // Ensure sales rep config is loaded for the current division
   useEffect(() => {
-    if (!salesRepConfigLoaded) {
-      loadSalesRepConfig();
+    if (selectedDivision) {
+      loadSalesRepConfig(false, selectedDivision);
     }
-  }, [salesRepConfigLoaded, loadSalesRepConfig]);
+  }, [selectedDivision]); // Remove loadSalesRepConfig from dependencies to prevent loop
 
-  const toProperCase = (str) => {
-    if (!str) return '';
-    return str.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ');
-  };
-
-  // Check if FP division is selected - fp_data table only contains FP division data
-  const isFPDivision = selectedDivision && selectedDivision.startsWith('FP');
-  if (!isFPDivision) {
+  // Check if division is selected
+  if (!selectedDivision) {
     return (
       <div className="sales-rep-table-container">
         <div className="table-empty-state">
-          <h3>Sales by Sales Rep - FP Division Only</h3>
-          <p>This component displays data from the fp_data database table, which contains only FP (Flexible Packaging) division data.</p>
-          <p>Currently selected division: <strong>{selectedDivision}</strong></p>
-          <p>Please select <strong>FP</strong> division to view sales representative data.</p>
+          <h3>Sales by Sales Rep</h3>
+          <p>Please select a division to view sales representative data.</p>
         </div>
       </div>
     );
   }
 
-  if (loading) return (
+  // Division status information
+  const divisionStatus = {
+    'FP': { 
+      status: 'active', 
+      database: 'fp_data PostgreSQL', 
+      message: 'Live data from PostgreSQL database' 
+    },
+    'SB': { 
+      status: 'placeholder', 
+      database: 'sb_data PostgreSQL', 
+      message: 'Will connect to sb_data PostgreSQL table when implemented' 
+    },
+    'TF': { 
+      status: 'placeholder', 
+      database: 'tf_data PostgreSQL', 
+      message: 'Will connect to tf_data PostgreSQL table when implemented' 
+    },
+    'HCM': { 
+      status: 'placeholder', 
+      database: 'hcm_data PostgreSQL', 
+      message: 'Will connect to hcm_data PostgreSQL table when implemented' 
+    }
+  };
+
+  const currentStatus = divisionStatus[selectedDivision] || { status: 'unknown', database: 'Unknown', message: 'Division not recognized' };
+
+  // Simple loading check - if no sales reps loaded yet, show loading
+  const isLoading = !defaultReps && !salesRepGroups;
+  
+  if (isLoading) return (
     <div className="sales-rep-table-container">
       <div className="table-empty-state">Loading sales rep data...</div>
     </div>
   );
   
-  if (error) return (
-    <div className="sales-rep-table-container">
-      <div className="table-empty-state" style={{ color: '#d84315' }}>{error}</div>
-    </div>
-  );
-  
   if (!defaultReps || defaultReps.length === 0) return (
     <div className="sales-rep-table-container">
-      <div className="table-empty-state">No sales reps configured. Please select sales reps in Master Data tab.</div>
+      <div className="table-empty-state">
+        <h3>Sales by Sales Rep - {selectedDivision} Division</h3>
+        <p>No sales reps configured for {selectedDivision} division.</p>
+        <p>Please configure sales reps in Master Data tab.</p>
+        <div style={{ 
+          marginTop: '15px', 
+          padding: '10px', 
+          backgroundColor: currentStatus.status === 'active' ? '#d4edda' : '#fff3cd',
+          border: currentStatus.status === 'active' ? '1px solid #c3e6cb' : '1px solid #ffeaa7',
+          borderRadius: '4px',
+          fontSize: '14px'
+        }}>
+          <strong>📊 Data Source:</strong> {currentStatus.database}<br/>
+          <strong>📝 Status:</strong> {currentStatus.message}
+        </div>
+      </div>
     </div>
   );
 
   if (!dataGenerated) {
     return (
       <div className="sales-rep-table-container">
-        <h3 className="table-title">Sales Rep Product Group Table</h3>
+        <h3 className="table-title">Sales Rep Product Group Table - {selectedDivision} Division</h3>
+        <div style={{ 
+          marginBottom: '15px', 
+          padding: '10px', 
+          backgroundColor: currentStatus.status === 'active' ? '#d4edda' : '#fff3cd',
+          border: currentStatus.status === 'active' ? '1px solid #c3e6cb' : '1px solid #ffeaa7',
+          borderRadius: '4px',
+          fontSize: '14px'
+        }}>
+          <strong>📊 Data Source:</strong> {currentStatus.database}<br/>
+          <strong>📝 Status:</strong> {currentStatus.message}
+        </div>
         <div className="table-empty-state">
           <p>Please select columns and click the Generate button to view sales rep product group data.</p>
         </div>
@@ -669,6 +805,7 @@ const SalesBySaleRepTable = () => {
 // Component to display static product group structure for each tab
 const SalesRepTabContent = ({ rep }) => {
   const { columnOrder, basePeriodIndex } = useFilter();
+  const { selectedDivision } = useExcelData();
   const [kgsData, setKgsData] = useState([]);
   const [amountData, setAmountData] = useState([]);
   const [customerData, setCustomerData] = useState([]);
@@ -688,12 +825,12 @@ const SalesRepTabContent = ({ rep }) => {
 
         // Fetch product groups for both KGS and Amount, and customer data
         const [kgsResult, amountResult] = await Promise.all([
-          getProductGroupsForSalesRep(rep, 'KGS', columnOrder),
-          getProductGroupsForSalesRep(rep, 'Amount', columnOrder)
+          getProductGroupsForSalesRep(rep, 'KGS', columnOrder, selectedDivision),
+          getProductGroupsForSalesRep(rep, 'Amount', columnOrder, selectedDivision)
         ]);
 
         // For customers, use individual customers (no fuzzy grouping here)
-        const { customers, dashboardData } = await fetchCustomerDashboardData(rep, preparePeriods(columnOrder));
+        const { customers, dashboardData } = await fetchCustomerDashboardData(rep, preparePeriods(columnOrder), selectedDivision);
         const extendedColumns = buildExtendedColumns(columnOrder);
         
         // Process individual customers
@@ -722,7 +859,7 @@ const SalesRepTabContent = ({ rep }) => {
     };
 
     fetchData();
-  }, [rep, columnOrder, basePeriodIndex]);
+  }, [rep, columnOrder, basePeriodIndex, selectedDivision]);
   
   // Build extended columns from columnOrder
   const extendedColumns = [];
@@ -1212,40 +1349,21 @@ const SalesRepTabContent = ({ rep }) => {
   );
 };
 
-// Component to display report placeholder for each sales rep
+// Component to display the actual sales rep report
 const SalesRepReportContent = ({ rep }) => {
-  const toProperCase = (str) => {
-    if (!str) return '';
-    return str.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ');
-  };
-
+  const { selectedDivision } = useExcelData();
+  
   return (
-    <div className="sales-rep-report-content">
-      <div className="report-header">
-        <h2>Sales Report - {toProperCase(rep)}</h2>
-      </div>
-      <div className="report-placeholder">
-        <div className="placeholder-content">
-          <div className="placeholder-icon">📊</div>
-          <h3>Report Coming Soon</h3>
-          <p>The detailed HTML report for <strong>{toProperCase(rep)}</strong> is currently under development.</p>
-          <p>This report will include:</p>
-          <ul>
-            <li>Executive Summary with key metrics</li>
-            <li>Product Group Performance Analysis</li>
-            <li>Customer Performance Breakdown</li>
-            <li>Year-over-Year Growth Analysis</li>
-            <li>Budget Achievement Tracking</li>
-            <li>Exportable HTML format</li>
-          </ul>
-          <div className="placeholder-note">
-            <em>Stay tuned for the complete reporting experience!</em>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SalesRepReport 
+      rep={rep}
+      selectedDivision={selectedDivision}
+      toProperCase={toProperCase}
+      getProductGroupsForSalesRep={getProductGroupsForSalesRep}
+      fetchCustomerDashboardData={fetchCustomerDashboardData}
+      preparePeriods={preparePeriods}
+      buildExtendedColumns={buildExtendedColumns}
+      processCustomerData={processCustomerData}
+    />
   );
 };
 

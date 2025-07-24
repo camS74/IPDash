@@ -1,6 +1,17 @@
 const { pool } = require('./config');
 
 class FPDataService {
+  // Helper function to format names to proper case (Xxxx Xxxx)
+  formatToProperCase(name) {
+    if (!name || typeof name !== 'string') return name;
+    
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   // Get all unique sales representatives
   async getSalesReps() {
     try {
@@ -152,6 +163,7 @@ class FPDataService {
     try {
       const query = 'SELECT DISTINCT customername FROM fp_data WHERE salesrepname = $1 AND customername IS NOT NULL AND TRIM(customername) != \'\' ORDER BY customername';
       const result = await pool.query(query, [salesRep]);
+      // Return original names - formatting will be handled in the frontend for display only
       return result.rows.map(row => row.customername);
     } catch (err) {
       console.error('Error fetching customers for sales rep:', err);
@@ -164,6 +176,7 @@ class FPDataService {
     try {
       const query = 'SELECT DISTINCT customername FROM fp_data WHERE customername IS NOT NULL AND TRIM(customername) != \'\' ORDER BY customername';
       const result = await pool.query(query);
+      // Return original names - formatting will be handled in the frontend for display only
       return result.rows.map(row => row.customername);
     } catch (err) {
       console.error('Error fetching all customers:', err);
@@ -185,12 +198,13 @@ class FPDataService {
         SELECT DISTINCT customername 
         FROM fp_data 
         WHERE salesrepname IN (${placeholders}) 
-        AND customername IS NOT NULL 
+        AND customername IS NOT NULL
         AND TRIM(customername) != ''
         ORDER BY customername
       `;
       
       const result = await pool.query(query, salesReps);
+      // Return original names - formatting will be handled in the frontend for display only
       return result.rows.map(row => row.customername);
     } catch (err) {
       console.error('Error fetching customers for group:', err);

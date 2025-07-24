@@ -24,6 +24,7 @@ export const SalesDataProvider = ({ children }) => {
   const [defaultReps, setDefaultReps] = useState([]);
   const [salesRepGroups, setSalesRepGroups] = useState({});
   const [salesRepConfigLoaded, setSalesRepConfigLoaded] = useState(false);
+  const [configLoadedForDivision, setConfigLoadedForDivision] = useState(null); // Track which division config is loaded for
   
   // Function to load Sales Excel file from API endpoint
   const loadSalesData = useCallback(async (url = '/api/sales.xlsx') => {
@@ -86,7 +87,8 @@ export const SalesDataProvider = ({ children }) => {
 
   // Function to load sales rep configuration
   const loadSalesRepConfig = useCallback(async (forceReload = false, division = 'FP') => {
-    if (salesRepConfigLoaded && !forceReload) {
+    // Only reload if forced, not loaded yet, or division changed
+    if (salesRepConfigLoaded && !forceReload && configLoadedForDivision === division) {
       return;
     }
     
@@ -99,26 +101,31 @@ export const SalesDataProvider = ({ children }) => {
            setDefaultReps(result.selection || []);
            setSalesRepGroups(result.groups || {});
            setSalesRepConfigLoaded(true);
+           setConfigLoadedForDivision(division);
          } else {
            console.error('API returned error:', result.message);
            setDefaultReps([]);
            setSalesRepGroups({});
+           setConfigLoadedForDivision(null);
          }
       } else {
         console.error('Failed to load sales rep configuration');
         setDefaultReps([]);
         setSalesRepGroups({});
+        setConfigLoadedForDivision(null);
       }
     } catch (error) {
       console.error('Error loading sales rep configuration:', error);
       setDefaultReps([]);
       setSalesRepGroups({});
+      setConfigLoadedForDivision(null);
     }
-  }, [salesRepConfigLoaded]);
+  }, []); // Empty dependency array since we handle state changes internally
 
   // Function to refresh sales rep configuration
   const refreshSalesRepConfig = useCallback(async (division = 'FP') => {
     setSalesRepConfigLoaded(false);
+    setConfigLoadedForDivision(null);
     await loadSalesRepConfig(true, division);
   }, [loadSalesRepConfig]);
 

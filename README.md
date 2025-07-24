@@ -13,31 +13,53 @@ IPDash is a sophisticated business intelligence dashboard that processes Excel d
 ## Quick Start
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn package manager
+- Node.js (v14 or higher) - Required
+- npm or yarn package manager - Required
+- PostgreSQL - Can be installed later
 
 ### Starting the Application
 
-Use the provided PowerShell script to start both frontend and backend servers:
+#### Using Automation Scripts (Recommended)
 
-```powershell
-.\start-servers.ps1
+We've created several automation scripts to simplify the setup and running process:
+
+```bash
+# First time setup (installs dependencies without requiring PostgreSQL)
+./setup.sh
+
+# Check if environment is properly configured
+./check-environment.sh
+
+# If PostgreSQL is installed - start both frontend and backend servers
+./start-servers.sh
+
+# If PostgreSQL is NOT installed - start frontend only
+./start-frontend-only.sh
 ```
 
-This will start:
-- Backend server: http://localhost:3001
-- Frontend server: http://localhost:3000
+For macOS users, these scripts will:
+- Install all dependencies without requiring PostgreSQL
+- Set up environment files
+- Start the application based on your PostgreSQL installation status
+
+See [SETUP_GUIDE.md](SETUP_GUIDE.md) and [AUTOMATION_SCRIPTS.md](AUTOMATION_SCRIPTS.md) for detailed instructions on both frontend-only and full setup options.
+
+#### Manual Start
 
 Alternatively, you can start servers manually:
 
 ```bash
 # Start backend server
 cd server
-npm start
+node server.js
 
 # Start frontend server (in new terminal)
 npm start
 ```
+
+This will start:
+- Backend server: http://localhost:3001
+- Frontend server: http://localhost:3000
 
 ## Key Features
 

@@ -209,9 +209,9 @@ td[class*="delta"] {
 /* Product Group column fixed width - updated */
 .sales-rep-content .financial-table th.product-header,
 .sales-rep-content .financial-table td:first-child {
-  width: 220px;
-  min-width: 160px;
-  max-width: 260px;
+  width: 516px; /* Increased from 396px by adding 120px from delta columns */
+  min-width: 408px; /* Increased from 288px by adding 120px */
+  max-width: 588px; /* Increased from 468px by adding 120px */
   text-align: left;
 }
 
@@ -246,12 +246,12 @@ td[class*="delta"] {
   text-align: right;
 }
 
-/* Delta columns fixed width */
+/* Delta columns fixed width - REDUCED */
 .sales-rep-content .financial-table th[rowspan="3"],
 .sales-rep-content .financial-table td.metric-cell.delta-cell {
-  width: 90px;
-  min-width: 60px;
-  max-width: 110px;
+  width: 60px; /* Reduced from 90px to 60px (30px reduction) */
+  min-width: 40px; /* Reduced from 60px to 40px */
+  max-width: 80px; /* Reduced from 110px to 80px */
   text-align: right;
 }
 
