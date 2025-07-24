@@ -11,7 +11,9 @@ const PeriodComparison = ({ prevPeriod, basePeriod, nextPeriod, kgsTotals, baseP
 
   const getPeriodLabel = (period) => {
     if (!period) return '';
-    return `${period.year} ${period.isCustomRange ? period.displayName : period.month} ${period.type}`;
+    // Capitalize period types like HY1, HY2, Q1, Q2, etc.
+    const formattedMonth = period.isCustomRange ? period.displayName : period.month.toUpperCase();
+    return `${period.year} ${formattedMonth} ${period.type}`;
   };
 
   return (

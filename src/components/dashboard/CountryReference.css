@@ -352,6 +352,23 @@
   font-size: 1rem;
 }
 
+.unmatched-country {
+  background-color: #fff0f0 !important;
+}
+.unmatched-country-text {
+  color: #d32f2f !important;
+  font-weight: bold;
+}
+.unmatched-warning {
+  color: #d32f2f;
+  font-size: 0.95em;
+  margin-top: 2px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .country-reference {

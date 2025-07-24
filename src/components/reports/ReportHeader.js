@@ -16,7 +16,9 @@ const ReportHeader = ({ rep, basePeriod, toProperCase }) => {
     if (!period) return '';
     if (typeof period === 'string') return period;
     if (typeof period === 'object' && period.year && period.month) {
-      return `${period.month} ${period.year}`;
+      // Capitalize period types like HY1, HY2, Q1, Q2, etc.
+      const formattedMonth = period.month.toUpperCase();
+      return `${formattedMonth} ${period.year}`;
     }
     return '';
   };
@@ -25,13 +27,15 @@ const ReportHeader = ({ rep, basePeriod, toProperCase }) => {
     if (!period) return '';
     
     if (typeof period === 'object' && period.year && period.month) {
+      // Capitalize period types like HY1, HY2, Q1, Q2, etc.
+      const formattedMonth = period.month.toUpperCase();
       if (isBudget) {
         // For budget comparison, use the same period but with "Budget"
-        return `${period.month} ${period.year} Budget`;
+        return `${formattedMonth} ${period.year} Budget`;
       } else {
         // For previous year comparison, adjust the year
         const prevYear = parseInt(period.year) - 1;
-        return `${period.month} ${prevYear}`;
+        return `${formattedMonth} ${prevYear}`;
       }
     }
     

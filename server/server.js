@@ -1032,6 +1032,176 @@ app.post('/api/fp/customer-dashboard', async (req, res) => {
   }
 });
 
+// Get yearly budget total for a specific sales rep and year
+app.post('/api/fp/yearly-budget', async (req, res) => {
+  try {
+    const { salesRep, year, valuesType } = req.body;
+    
+    if (!salesRep || !year || !valuesType) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'salesRep, year, and valuesType are required' 
+      });
+    }
+    
+    console.log(`🔍 Getting yearly budget for sales rep: ${salesRep}, year: ${year}, valuesType: ${valuesType}`);
+    
+    // Check if salesRep is actually a group name
+    const config = loadSalesRepConfig();
+    const fpConfig = config.FP || { groups: {} };
+    
+    let yearlyBudgetTotal;
+    
+    if (fpConfig.groups && fpConfig.groups[salesRep]) {
+      // It's a group - get yearly budget for all members
+      const groupMembers = fpConfig.groups[salesRep];
+      console.log(`Fetching yearly budget for group '${salesRep}' with members:`, groupMembers);
+      
+      yearlyBudgetTotal = await fpDataService.getYearlyBudget(salesRep, year, valuesType, groupMembers);
+    } else {
+      // It's an individual sales rep
+      yearlyBudgetTotal = await fpDataService.getYearlyBudget(salesRep, year, valuesType);
+    }
+    
+    console.log(`✅ Retrieved yearly budget total: ${yearlyBudgetTotal} for ${salesRep}`);
+    
+    res.json({
+      success: true,
+      data: yearlyBudgetTotal,
+      message: `Retrieved yearly budget for ${salesRep} - ${year} (${valuesType})`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting yearly budget:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve yearly budget',
+      message: error.message
+    });
+  }
+});
+
+// Get sales by country for a specific sales rep and period
+app.post('/api/fp/sales-by-country', async (req, res) => {
+  try {
+    const { salesRep, year, months, dataType = 'Actual' } = req.body;
+    if (!salesRep || !year || !months || !Array.isArray(months) || months.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'salesRep, year, and months (array) are required' 
+      });
+    }
+    console.log(`🔍 Getting sales by country for sales rep: ${salesRep}, year: ${year}, months: [${months.join(', ')}], dataType: ${dataType}`);
+    
+    // Check if salesRep is actually a group name
+    const config = loadSalesRepConfig();
+    const fpConfig = config.FP || { groups: {} };
+    
+    let countrySalesData;
+    
+    if (fpConfig.groups && fpConfig.groups[salesRep]) {
+      // It's a group - get sales by country for all members
+      const groupMembers = fpConfig.groups[salesRep];
+      console.log(`Fetching sales by country for group '${salesRep}' with members:`, groupMembers);
+      
+      countrySalesData = await fpDataService.getSalesByCountry(salesRep, year, months, dataType, groupMembers);
+    } else {
+      // It's an individual sales rep
+      countrySalesData = await fpDataService.getSalesByCountry(salesRep, year, months, dataType);
+    }
+    
+    console.log(`✅ Retrieved sales by country data: ${countrySalesData.length} countries for ${salesRep}`);
+    
+    res.json({
+      success: true,
+      data: countrySalesData,
+      message: `Retrieved sales by country for ${salesRep} - ${year}/[${months.join(', ')}] (${dataType})`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting sales by country:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve sales by country',
+      message: error.message
+    });
+  }
+});
+
+// Get countries from fp_data database for FP division
+app.get('/api/fp/countries', async (req, res) => {
+  try {
+    console.log('🔍 Getting countries from fp_data database...');
+    
+    const countries = await fpDataService.getCountriesFromDatabase();
+    
+    console.log(`✅ Retrieved ${countries.length} countries from fp_data database`);
+    
+    res.json({
+      success: true,
+      data: countries,
+      message: `Retrieved ${countries.length} countries from database`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting countries from database:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve countries from database',
+      message: error.message
+    });
+  }
+});
+
+// Get countries by sales rep from fp_data database
+app.get('/api/fp/countries-by-sales-rep', async (req, res) => {
+  try {
+    const { salesRep } = req.query;
+    
+    if (!salesRep) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'salesRep parameter is required' 
+      });
+    }
+    
+    console.log(`🔍 Getting countries for sales rep: ${salesRep} from fp_data database...`);
+    
+    // Check if salesRep is actually a group name
+    const config = loadSalesRepConfig();
+    const fpConfig = config.FP || { groups: {} };
+    
+    let countries;
+    
+    if (fpConfig.groups && fpConfig.groups[salesRep]) {
+      // It's a group - get countries for all members
+      const groupMembers = fpConfig.groups[salesRep];
+      console.log(`Fetching countries for group '${salesRep}' with members:`, groupMembers);
+      
+      countries = await fpDataService.getCountriesBySalesRep(salesRep, groupMembers);
+    } else {
+      // It's an individual sales rep
+      countries = await fpDataService.getCountriesBySalesRep(salesRep);
+    }
+    
+    console.log(`✅ Retrieved ${countries.length} countries for ${salesRep}`);
+    
+    res.json({
+      success: true,
+      data: countries,
+      message: `Retrieved ${countries.length} countries for ${salesRep}`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting countries by sales rep:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve countries by sales rep',
+      message: error.message
+    });
+  }
+});
+
 // Get all customers for a division (for centralized merging)
 app.get('/api/fp/all-customers', async (req, res) => {
   try {

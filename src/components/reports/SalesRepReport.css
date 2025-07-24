@@ -366,37 +366,7 @@
   margin-bottom: 0;
 }
 
-/* Geographic Distribution Section */
-.geographic-overview {
-  margin-bottom: 20px;
-}
-
-.geo-main-cards {
-  display: flex;
-  gap: 24px;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-
-.geo-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px;
-  border-radius: 12px;
-  text-align: center;
-  min-width: 180px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  position: relative;
-  overflow: hidden;
-}
-
-.geo-card.local-card {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-}
-
-.geo-card.export-card {
-  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-}
+/* Geographic Distribution Section - Moved to ExecutiveSummary.css */
 
 .geo-card::before {
   content: '';
@@ -422,25 +392,7 @@
   letter-spacing: 1px;
 }
 
-.geo-percentage {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.geo-subtitle {
-  font-size: 0.85rem;
-  opacity: 0.9;
-  font-weight: 400;
-}
-
-.regional-breakdown {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
+/* Geographic styles moved to ExecutiveSummary.css */
 
 .region-card {
   background: white;

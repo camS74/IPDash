@@ -110,7 +110,8 @@ const SalesRepReport = ({
       amountTotals,
       insights,
       topProducts: getTopPerformers(kgsData, basePeriodIndex),
-      topCustomers: customerData.slice(0, 5),
+      topCustomers: customerData.slice(0, 5), // Still keep top 5 for other components
+      allCustomers: customerData, // Add full customer data for correct counts
       performanceMetrics: calculatePerformanceMetrics(kgsData, amountData),
       periodLabel: basePeriod,
       salesRep: rep

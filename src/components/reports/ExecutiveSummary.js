@@ -1,130 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { getRegionForCountry } from '../dashboard/CountryReference';
+import '../dashboard/KPIExecutiveSummary.css';
+import './ExecutiveSummary.css';
 
-// Regional mapping for countries (same as in master data)
-const regionalMapping = {
-  // UAE - Local
-  'United Arab Emirates': 'UAE',
-  'UAE': 'UAE',
-  'UNITED ARAB EMIRATES': 'UAE',
-  
-  // Arabian Peninsula
-  'Saudi Arabia': 'Arabian Peninsula',
-  'Kingdom Of Saudi Arabia': 'Arabian Peninsula',
-  'KINGDOM OF SAUDI ARABIA': 'Arabian Peninsula',
-  'Kuwait': 'Arabian Peninsula',
-  'KUWAIT': 'Arabian Peninsula',
-  'Qatar': 'Arabian Peninsula',
-  'QATAR': 'Arabian Peninsula',
-  'Bahrain': 'Arabian Peninsula',
-  'BAHRAIN': 'Arabian Peninsula',
-  'Oman': 'Arabian Peninsula',
-  'OMAN': 'Arabian Peninsula',
-  'Yemen': 'Arabian Peninsula',
-  'YEMEN': 'Arabian Peninsula',
-  'KSA': 'Arabian Peninsula',
-  
-  // West Asia
-  'Iraq': 'West Asia',
-  'IRAQ': 'West Asia',
-  
-  // Levant
-  'Lebanon': 'Levant',
-  'LEBANON': 'Levant',
-  'Jordan': 'Levant',
-  'JORDAN': 'Levant',
-  'Syria': 'Levant',
-  'SYRIA': 'Levant',
-  'Syrian Arab Republic': 'Levant',
-  'Palestine': 'Levant',
-  'PALESTINE': 'Levant',
-  'Israel': 'Levant',
-  'ISRAEL': 'Levant',
-  
-  // North Africa (MENA)
-  'Egypt': 'North Africa',
-  'EGYPT': 'North Africa',
-  'Libya': 'North Africa',
-  'LIBYA': 'North Africa',
-  'Tunisia': 'North Africa',
-  'TUNISIA': 'North Africa',
-  'Algeria': 'North Africa',
-  'ALGERIA': 'North Africa',
-  'Morocco': 'North Africa',
-  'MOROCCO': 'North Africa',
-  'Sudan': 'North Africa',
-  'SUDAN': 'North Africa',
-  
-  // Southern Africa
-  'South Africa': 'Southern Africa',
-  'SOUTH AFRICA': 'Southern Africa',
-  'Angola': 'Southern Africa',
-  'ANGOLA': 'Southern Africa',
-  'Tanzania': 'Southern Africa',
-  'TANZANIA': 'Southern Africa',
-  
-  // Europe
-  'Germany': 'Europe',
-  'GERMANY': 'Europe',
-  'France': 'Europe',
-  'FRANCE': 'Europe',
-  'Italy': 'Europe',
-  'ITALY': 'Europe',
-  'Spain': 'Europe',
-  'SPAIN': 'Europe',
-  'United Kingdom': 'Europe',
-  'UNITED KINGDOM': 'Europe',
-  
-  // Americas
-  'United States': 'Americas',
-  'UNITED STATES': 'Americas',
-  'United States of America': 'Americas',
-  'Canada': 'Americas',
-  'CANADA': 'Americas',
-  'USA': 'Americas',
-  
-  // Asia-Pacific
-  'China': 'Asia-Pacific',
-  'CHINA': 'Asia-Pacific',
-  'Japan': 'Asia-Pacific',
-  'JAPAN': 'Asia-Pacific',
-  'India': 'Asia-Pacific',
-  'INDIA': 'Asia-Pacific',
-  'Pakistan': 'Asia-Pacific',
-  'PAKISTAN': 'Asia-Pacific',
-  'Singapore': 'Asia-Pacific',
-  'SINGAPORE': 'Asia-Pacific'
-};
+// Regional mapping moved to CountryReference.js for consistency
 
-// Function to get region for a country
-const getRegionForCountry = (countryName) => {
-  // Direct lookup
-  let region = regionalMapping[countryName];
-  
-  // If no direct match, try case-insensitive matching
-  if (!region) {
-    const countryLower = countryName.toLowerCase();
-    
-    // Check for UAE variations first
-    if (countryLower.includes('emirates') || countryLower === 'uae') {
-      region = 'UAE';
-    } 
-    // Check for Saudi Arabia variations
-    else if (countryLower.includes('saudi') || countryLower === 'ksa' || countryLower.includes('kingdom')) {
-      region = 'Arabian Peninsula';
-    }
-    // Try exact case-insensitive match
-    else {
-      for (const [key, value] of Object.entries(regionalMapping)) {
-        if (key.toLowerCase() === countryLower) {
-          region = value;
-          break;
-        }
-      }
-    }
-  }
-  
-  return region || 'Unassigned';
-};
+  // Note: getRegionForCountry is now imported from CountryReference.js for consistency
+
+  // Helper function to get region-specific color based on export percentage
+  const getRegionColor = (exportPercentage) => {
+    if (exportPercentage >= 50) return '#0D47A1';      // Dark blue for high percentages
+    if (exportPercentage >= 30) return '#1565C0';      // Medium-dark blue
+    if (exportPercentage >= 20) return '#1976D2';      // Medium blue
+    if (exportPercentage >= 10) return '#1E88E5';      // Medium-light blue
+    if (exportPercentage >= 5) return '#42A5F5';       // Light blue
+    return '#64B5F6';                                   // Very light blue for low percentages
+  };
+
+  // Helper function to get region-specific emoji icons
+  const getRegionIcon = (regionName) => {
+    const iconMap = {
+      'North Africa': '🌍',
+      'Arabian Peninsula': '🌏',
+      'West Asia': '🌎',
+      'Southern Africa': '🌍',
+      'Levant': '🌏',
+      'Europe': '🌎',
+      'Americas': '🌍',
+      'Asia-Pacific': '🌏'
+    };
+    return iconMap[regionName] || '🌐';
+  };
 
 const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodIndex }) => {
   // React hooks must be called before any early returns
@@ -218,42 +124,42 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
         
         // Extract period information from reportData.periodLabel (this comes from SalesRepReport.js)
         const period = reportData.periodLabel;
-        let year, month;
+        let year, months;
         
         if (typeof period === 'object' && period.year) {
           year = period.year;
           
           // Handle different period types
           if (period.months && Array.isArray(period.months) && period.months.length > 0) {
-            // Use first month from the period
-            month = period.months[0];
+            // Use all months from the period
+            months = period.months;
           } else if (period.month) {
-            // Handle quarter/half-year periods
+            // Handle quarter/half-year periods by converting to month arrays
             if (period.month === 'HY1' || period.month === 'H1') {
-              month = 'May';  // Representative month for first half
+              months = ['January', 'February', 'March', 'April', 'May', 'June'];
             } else if (period.month === 'HY2' || period.month === 'H2') {
-              month = 'September';  // Representative month for second half
+              months = ['July', 'August', 'September', 'October', 'November', 'December'];
             } else if (period.month === 'Q1') {
-              month = 'February';
+              months = ['January', 'February', 'March'];
             } else if (period.month === 'Q2') {
-              month = 'May';
+              months = ['April', 'May', 'June'];
             } else if (period.month === 'Q3') {
-              month = 'August';
+              months = ['July', 'August', 'September'];
             } else if (period.month === 'Q4') {
-              month = 'November';
+              months = ['October', 'November', 'December'];
             } else {
-              month = period.month;  // Regular month name
+              months = [period.month];  // Single month as array
             }
           } else {
-            month = 'May';  // Default fallback
+            months = ['January', 'February', 'March', 'April', 'May', 'June'];  // Default to HY1
           }
         } else {
           // Fallback to working values
           year = 2025;
-          month = 'May';
+          months = ['January', 'February', 'March', 'April', 'May', 'June'];
         }
         
-        console.log('Requesting country data for:', { salesRep: reportData.salesRep, year, month });
+        console.log('Requesting country data for:', { salesRep: reportData.salesRep, year, months });
         
         const response = await fetch('/api/fp/sales-by-country', {
           method: 'POST',
@@ -261,7 +167,7 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
           body: JSON.stringify({
             salesRep: reportData.salesRep,
             year: year,
-            month: month,
+            months: months,
             dataType: 'Actual'
           })
         });
@@ -272,7 +178,7 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
           
           setCountryData({
             data: result.data || [],
-            actualPeriod: { year, month, salesRep: reportData.salesRep },
+            actualPeriod: { year, months, salesRep: reportData.salesRep },
             isDifferentSalesRep: false
           });
         } else {
@@ -292,7 +198,7 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
     return <div>Loading performance metrics...</div>;
   }
 
-  const { totalKgs, totalAmount, avgPricePerKg } = performanceMetrics;
+  const { totalKgs, totalAmount } = performanceMetrics;
 
   // Calculate YoY Growth from period comparison data for Volume (KGS)
   const currentTotal = totalKgs || 0;
@@ -348,21 +254,27 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
   };
 
   const formatPeriodLabel = (period) => {
+    console.log('formatPeriodLabel called with:', period, 'type:', typeof period);
     if (!period) return 'Current Period';
-    if (typeof period === 'string') return period;
+    if (typeof period === 'string') {
+      // If it's a string, try to capitalize period types like HY1, HY2, Q1, Q2
+      return period.replace(/\b(hy[12]|q[1-4]|h[12])\b/gi, (match) => match.toUpperCase());
+    }
     if (typeof period === 'object' && period.year && period.month) {
-      return `${period.month} ${period.year}`;
+      // Capitalize period types like HY1, HY2, Q1, Q2, etc.
+      const formattedMonth = period.month.toUpperCase();
+      return `${formattedMonth} ${period.year}`;
     }
     return 'Current Period';
   };
 
-  const getDetailedDescription = () => {
-    const currentPeriod = formatPeriodLabel(reportData.periodLabel);
-    const previousPeriod = formatPeriodLabel(reportData.prevPeriod);
-    const budgetPeriod = formatPeriodLabel(reportData.nextPeriod);
-    
-    return `This report analyzes actual ${currentPeriod} sales & volume performance versus ${previousPeriod} and against ${budgetPeriod} budget targets.`;
-  };
+  // const getDetailedDescription = () => {
+  //   const currentPeriod = formatPeriodLabel(reportData.periodLabel);
+  //   const previousPeriod = formatPeriodLabel(reportData.prevPeriod);
+  //   const budgetPeriod = formatPeriodLabel(reportData.nextPeriod);
+  //   
+  //   return `This report analyzes actual ${currentPeriod} sales & volume performance versus ${previousPeriod} and against ${budgetPeriod} budget targets.`;
+  // };
 
   // Calculate top 3 product groups from kgsData with growth comparison
   const getTop3ProductGroups = () => {
@@ -464,10 +376,12 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
   // Calculate geographic distribution - EXACTLY LIKE MAIN KPI PAGE
   const getGeographicDistribution = () => {
     console.log('=== CALCULATING GEOGRAPHIC DISTRIBUTION (LIKE MAIN KPI) ===');
+    console.log('countryData:', countryData);
+    console.log('countryData?.data:', countryData?.data);
     
     const actualData = countryData?.data || [];
     if (!actualData || actualData.length === 0) {
-      console.log('No country data available');
+      console.log('❌ No country data available - actualData:', actualData);
       return {
         localSales: 0,
         exportSales: 0,
@@ -504,7 +418,7 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
       
       // Use getRegionForCountry function - SAME AS MAIN KPI PAGE
       const region = getRegionForCountry(countryName);
-      console.log(`  → Mapped to region: ${region}`);
+      console.log(`  → Mapped to region: ${region} (function type: ${typeof getRegionForCountry})`);
       
       if (region && regionalSales[region] !== undefined) {
         regionalSales[region] += countryValue;
@@ -570,7 +484,7 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
     return result;
   };
 
-  // Calculate customer insights from reportData.topCustomers
+  // Calculate customer insights from reportData.topCustomers and allCustomers
   const getCustomerInsights = () => {
     if (!reportData.topCustomers || !Array.isArray(reportData.topCustomers) || basePeriodIndex === null) {
       return {
@@ -585,7 +499,7 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
       };
     }
     
-    // Get customer data with values for base period
+    // Use top customers for percentage calculations (display purposes)
     const customersWithValues = reportData.topCustomers
       .filter(customer => (customer.rawValues[basePeriodIndex] || 0) > 0)
       .map(customer => ({
@@ -594,8 +508,20 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
         originalCustomer: customer
       }));
     
-    // Group similar customers using fuzzy matching
+    // Use all customers for total count calculation (accurate count)
+    const allCustomersWithValues = (reportData.allCustomers || reportData.topCustomers)
+      .filter(customer => (customer.rawValues[basePeriodIndex] || 0) > 0)
+      .map(customer => ({
+        name: toProperCase(customer.name),
+        value: customer.rawValues[basePeriodIndex] || 0,
+        originalCustomer: customer
+      }));
+    
+    // Group similar customers using fuzzy matching (for percentages - top customers only)
     const groupedCustomers = groupSimilarCustomers(customersWithValues);
+    
+    // Group ALL customers for accurate total count
+    const groupedAllCustomers = groupSimilarCustomers(allCustomersWithValues);
     
     // Calculate total customer sales
     const totalCustomerSales = groupedCustomers.reduce((sum, customer) => sum + customer.value, 0);
@@ -606,31 +532,31 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
       percentage: totalCustomerSales > 0 ? (customer.value / totalCustomerSales * 100) : 0
     }));
 
-    // Calculate customer growth compared to previous period
+    // Calculate customer growth compared to previous period using ALL customers
     let customerGrowth = 0;
     let newCustomers = 0;
     let newCustomerNames = [];
     
     if (basePeriodIndex > 0) {
-      // Get customers from previous period
-      const previousPeriodCustomers = reportData.topCustomers
+      // Get ALL customers from previous period for accurate growth calculation
+      const previousPeriodAllCustomers = (reportData.allCustomers || reportData.topCustomers)
         .filter(customer => (customer.rawValues[basePeriodIndex - 1] || 0) > 0)
         .map(customer => ({
           name: toProperCase(customer.name),
           value: customer.rawValues[basePeriodIndex - 1] || 0
         }));
       
-      const groupedPreviousCustomers = groupSimilarCustomers(previousPeriodCustomers);
-      const previousCustomerCount = groupedPreviousCustomers.length;
-      const currentCustomerCount = groupedCustomers.length;
+      const groupedPreviousAllCustomers = groupSimilarCustomers(previousPeriodAllCustomers);
+      const previousCustomerCount = groupedPreviousAllCustomers.length;
+      const currentCustomerCount = groupedAllCustomers.length;
       
       // Calculate growth percentage
       customerGrowth = previousCustomerCount > 0 ? 
         ((currentCustomerCount - previousCustomerCount) / previousCustomerCount * 100) : 0;
       
-      // Find new customers (present in current but not in previous)
-      const previousCustomerNames = new Set(groupedPreviousCustomers.map(c => normalizeCustomerName(c.name)));
-      const newCustomerList = groupedCustomers.filter(currentCustomer => 
+      // Find new customers (present in current but not in previous) - using ALL customers
+      const previousCustomerNames = new Set(groupedPreviousAllCustomers.map(c => normalizeCustomerName(c.name)));
+      const newCustomerList = groupedAllCustomers.filter(currentCustomer => 
         !previousCustomerNames.has(normalizeCustomerName(currentCustomer.name))
       );
       
@@ -642,8 +568,8 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
       topCustomer: customersWithPercentages[0] || null,
       top3Customers: customersWithPercentages.slice(0, 3),
       top5Customers: customersWithPercentages.slice(0, 5),
-      avgSalesPerCustomer: customersWithPercentages.length > 0 ? totalCustomerSales / customersWithPercentages.length : 0,
-      totalCustomers: groupedCustomers.length,
+      avgSalesPerCustomer: groupedAllCustomers.length > 0 ? totalCustomerSales / groupedAllCustomers.length : 0,
+      totalCustomers: groupedAllCustomers.length, // Use ALL customers for accurate count
       customerGrowth: customerGrowth,
       newCustomers: newCustomers,
       newCustomerNames: newCustomerNames
@@ -857,40 +783,86 @@ const ExecutiveSummary = ({ performanceMetrics, reportData, kgsData, basePeriodI
           </div>
         )}
         
-        {/* Local vs Export */}
-        <div className="geographic-overview">
-          <div className="geo-main-cards">
-            <div className="geo-card local-card">
-              <div className="geo-flag">🇦🇪</div>
-              <div className="geo-label">UAE</div>
-              <div className="geo-percentage">{geographicDistribution.localSales.toFixed(1)}%</div>
-              <div className="geo-subtitle">of total sales</div>
+        {/* Row 1: Local vs Export - Same structure as main KPI */}
+        <div className="kpi-cards">
+          <div className="kpi-card large">
+            <div className="uae-icon-container">
+              {/* Embedded UAE Flag SVG */}
+              <svg className="uae-icon" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+                <rect width="900" height="200" fill="#00732f"/>
+                <rect width="900" height="200" y="200" fill="#ffffff"/>
+                <rect width="900" height="200" y="400" fill="#000000"/>
+                <rect width="300" height="600" fill="#ff0000"/>
+              </svg>
             </div>
-            
-            <div className="geo-card export-card">
-              <div className="geo-flag">🌍</div>
-              <div className="geo-label">Export</div>
-              <div className="geo-percentage">{geographicDistribution.exportSales.toFixed(1)}%</div>
-              <div className="geo-subtitle">of total sales</div>
+            <div className="kpi-label">UAE</div>
+            <div className="kpi-value">{geographicDistribution.localSales.toFixed(1)}%</div>
+            <div className="kpi-trend">of total sales</div>
+          </div>
+          <div className="kpi-card large">
+            <div className="rotating-emoji-container">
+              <div className="rotating-emoji">🌍</div>
             </div>
+            <div className="kpi-label">Export</div>
+            <div className="kpi-value">{geographicDistribution.exportSales.toFixed(1)}%</div>
+            <div className="kpi-trend">of total sales</div>
           </div>
         </div>
-
-        {/* Regional Breakdown */}
+        
+        {/* Row 2: Export Regions - Same structure as main KPI */}
         {geographicDistribution.topRegions.length > 0 && (
-          <div className="regional-breakdown">
-            {geographicDistribution.topRegions.map((region, index) => (
-              <div key={region.name} className="region-card">
-                <div className="region-icon">🌐</div>
-                <div className="region-content">
-                  <div className="region-name">{region.name}</div>
-                  <div className="region-percentage">{region.percentage.toFixed(1)}%</div>
-                  <div className="region-export-detail">{region.exportPercentage.toFixed(1)}% of export</div>
+          <div className="kpi-cards export-regions">
+            {geographicDistribution.topRegions.map((region) => {
+              // Calculate gradient color based on percentage
+              const gradientColor = getRegionColor(region.exportPercentage);
+              
+              return (
+                <div 
+                  key={region.name} 
+                  className="kpi-card"
+                  style={{
+                    background: `linear-gradient(135deg, ${gradientColor}, ${gradientColor}cc)`,
+                    borderLeft: `4px solid ${gradientColor}`,
+                    boxShadow: `0 4px 12px ${gradientColor}44`,
+                    color: region.exportPercentage >= 10 ? 'white' : '#1a365d'
+                  }}
+                >
+                  <div className="region-globe-container">
+                    <div className="region-globe">{getRegionIcon(region.name)}</div>
+                  </div>
+                  <div className="kpi-label" style={{ 
+                    color: region.exportPercentage >= 10 ? 'white' : '#2d3748', 
+                    fontWeight: '700' 
+                  }}>{region.name}</div>
+                  <div className="kpi-value" style={{ 
+                    color: region.exportPercentage >= 10 ? 'white' : '#1a365d', 
+                    fontWeight: '800' 
+                  }}>{region.percentage.toFixed(1)}%</div>
+                  <div className="kpi-trend" style={{ 
+                    color: region.exportPercentage >= 10 ? '#e2e8f0' : '#4a5568' 
+                  }}>{region.exportPercentage.toFixed(1)}% of export</div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+
+        {/* Warning for unassigned countries */}
+        {(() => {
+          let unassignedCountries = [];
+          if (reportData && reportData.selectedDivision === 'FP' && countryData?.data) {
+            unassignedCountries = countryData.data.filter(cs => getRegionForCountry(cs.country) === 'Unassigned').map(cs => cs.country);
+            if (unassignedCountries.length > 0) {
+              console.warn('Unassigned countries in FP:', unassignedCountries);
+            }
+          }
+          
+          return unassignedCountries.length > 0 && (
+            <div style={{marginTop: 16, color: '#d32f2f', fontWeight: 'bold', textAlign: 'center'}}>
+              Warning: Unassigned countries in FP: {unassignedCountries.join(', ')}
+            </div>
+          );
+        })()}
         
         {/* Show message if no regional data */}
         {geographicDistribution.topRegions.length === 0 && geographicDistribution.totalSales > 0 && (

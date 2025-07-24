@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useExcelData } from '../../contexts/ExcelDataContext';
+import CountryReference from './CountryReference';
 import './MasterData.css';
 
 const MasterData = () => {
@@ -289,10 +290,7 @@ const MasterData = () => {
     }, 1000);
   };
 
-  const handleTestButton3 = () => {
-    setTestMessage('🔄 Button 3 clicked - Country Reference management');
-    alert('PLACEHOLDER: Country Reference - Future implementation for geographic groupings');
-  };
+
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
@@ -941,36 +939,8 @@ const MasterData = () => {
 
       {/* Tab 3: Country Reference */}
       {activeTab === 'test3' && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '2px solid #ffc107' }}>
-          <h3>🌍 Country Reference</h3>
-          <p>Manage country groupings and regional classifications</p>
-          
-          <button 
-            onClick={handleTestButton3}
-            style={{
-              background: '#ffc107',
-              color: '#212529',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '6px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
-            🔄 Create Group
-          </button>
-
-          <div style={{ background: '#f8f9fa', padding: '15px', marginTop: '15px', borderRadius: '4px' }}>
-            <p><strong>This section will contain:</strong></p>
-            <ul>
-              <li>Country to region mapping</li>
-              <li>Custom regional groupings</li>
-              <li>Geographic classification management</li>
-            </ul>
-          </div>
-          </div>
-        )}
+        <CountryReference />
+      )}
     </div>
   );
 };

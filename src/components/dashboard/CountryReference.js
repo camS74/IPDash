@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import countryCoordinates from './countryCoordinates';
 import { useSalesData } from '../../contexts/SalesDataContext';
 import { useExcelData } from '../../contexts/ExcelDataContext';
@@ -444,80 +444,43 @@ const regionalMapping = {
   'San Marino': 'Europe',
   'SAN MARINO': 'Europe',
   
-  // Common country variations
+  // Americas
   'United States': 'Americas',
-  'UNITED STATES': 'Americas',
   'United States of America': 'Americas',
   'USA': 'Americas',
-  'U.S.A.': 'Americas',
-  'U.S.': 'Americas',
   
-  // United Kingdom variations
+  // Europe  
   'United Kingdom': 'Europe',
-  'UNITED KINGDOM': 'Europe',
   'UK': 'Europe',
-  'U.K.': 'Europe',
   'Great Britain': 'Europe',
-  'GREAT BRITAIN': 'Europe',
   'Britain': 'Europe',
-  'BRITAIN': 'Europe',
   'England': 'Europe',
-  'ENGLAND': 'Europe',
-  
-  // Ivory Coast variations
-  'Ivory Coast': 'Southern Africa',
-  'IVORY COAST': 'Southern Africa',
-  'Cote D\'Ivoire': 'Southern Africa',
-  'COTE D\'IVOIRE': 'Southern Africa',
-  'Côte d\'Ivoire': 'Southern Africa',
-  'CÔTE D\'IVOIRE': 'Southern Africa',
-  
-  // Czech Republic variations
   'Czech Republic': 'Europe',
-  'CZECH REPUBLIC': 'Europe',
   'Czechia': 'Europe',
-  'CZECHIA': 'Europe',
-  
-  // North Macedonia variations
   'North Macedonia': 'Europe',
-  'NORTH MACEDONIA': 'Europe',
   'Macedonia': 'Europe',
-  'MACEDONIA': 'Europe',
   'FYROM': 'Europe',
   
-  // Myanmar variations
-  'Myanmar': 'Asia-Pacific',
-  'MYANMAR': 'Asia-Pacific',
-  'Burma': 'Asia-Pacific',
-  'BURMA': 'Asia-Pacific',
-  
-  // Eswatini variations
+  // Africa variations
+  'Ivory Coast': 'Southern Africa',
+  'Cote D\'Ivoire': 'Southern Africa',
+  'Côte d\'Ivoire': 'Southern Africa',
   'Eswatini': 'Southern Africa',
-  'ESWATINI': 'Southern Africa',
   'Swaziland': 'Southern Africa',
-  'SWAZILAND': 'Southern Africa',
-  
-  // Cabo Verde variations
   'Cabo Verde': 'Southern Africa',
-  'CABO VERDE': 'Southern Africa',
   'Cape Verde': 'Southern Africa',
-  'CAPE VERDE': 'Southern Africa',
   
-  // Taiwan variations
+  // Asia-Pacific
+  'Myanmar': 'Asia-Pacific',
+  'Burma': 'Asia-Pacific',
   'Taiwan': 'Asia-Pacific',
-  'TAIWAN': 'Asia-Pacific',
   'Republic of China': 'Asia-Pacific',
-  'REPUBLIC OF CHINA': 'Asia-Pacific',
   'Chinese Taipei': 'Asia-Pacific',
-  'CHINESE TAIPEI': 'Asia-Pacific',
   
-  // Palestine variations
+  // Levant
   'Palestine': 'Levant',
-  'PALESTINE': 'Levant',
   'Palestinian Territory': 'Levant',
-  'PALESTINIAN TERRITORY': 'Levant',
   'State of Palestine': 'Levant',
-  'STATE OF PALESTINE': 'Levant',
   'West Bank and Gaza': 'Levant',
   'WEST BANK AND GAZA': 'Levant'
 };
@@ -706,54 +669,97 @@ const CountryReference = () => {
     return null;
   };
 
-  // Function to get countries from the selected division only
-  const getAllCountriesFromExcel = () => {
+  // Function to get region for a country
+  const getRegionForCountry = (countryName) => {
+    return regionalMapping[countryName] || regionalMapping[countryName.toUpperCase()] || 'Unassigned';
+  };
+
+  // Helper to classify market type
+  const getMarketType = (countryName) => {
+    if (!countryName) return 'Unknown';
+    const normalized = countryName.trim().toUpperCase();
+    return normalized === 'UNITED ARAB EMIRATES' || normalized === 'UAE' ? 'Local Market' : 'Export Market';
+  };
+
+  // Function to get countries from database (for FP) or Excel (for other divisions)
+  const getAllCountriesFromDataSource = useCallback(async () => {
     const countriesMap = new Map(); // originalName -> matchedName
-    
-    if (!salesData || Object.keys(salesData).length === 0) {
-      return countriesMap;
-    }
     
     if (!selectedDivision) {
       return countriesMap;
     }
-    
-    const divisionName = selectedDivision; // Already just the division name
-    const countriesSheetName = `${divisionName}-Countries`;
-    
-    const countriesData = salesData[countriesSheetName];
-    
-    if (countriesData && countriesData.length > 0) {
-      const countries = [];
-      for (let i = 3; i < countriesData.length; i++) { // Starting from row 3 (index 3)
-        const row = countriesData[i];
-        if (row && row[0] && typeof row[0] === 'string') { // First column (index 0)
-          const countryName = row[0].toString().trim();
-          if (!countries.includes(countryName)) {
-            countries.push(countryName);
+
+    // For FP division, use database data
+    if (selectedDivision === 'FP') {
+      try {
+        console.log('🔍 Fetching countries from database for FP division...');
+        const response = await fetch('/api/fp/countries');
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Countries from database:', result.data);
+          
+          if (result.success && result.data) {
+            result.data.forEach(countryData => {
+              const countryName = countryData.country;
+              const matchedCountry = findBestCountryMatch(countryName);
+              if (matchedCountry) {
+                countriesMap.set(countryName, matchedCountry);
+              }
+            });
           }
+        } else {
+          console.error('❌ Failed to fetch countries from database:', response.statusText);
         }
+      } catch (error) {
+        console.error('❌ Error fetching countries from database:', error);
+      }
+    } 
+    // For other divisions (SB, TF, HCM), use Excel data
+    else {
+      if (!salesData || Object.keys(salesData).length === 0) {
+        return countriesMap;
       }
       
-      countries.forEach(countryName => {
-        const matchedCountry = findBestCountryMatch(countryName);
-        if (matchedCountry) {
-          countriesMap.set(countryName, matchedCountry);
-        }
-      });
+      const divisionName = selectedDivision; // Already just the division name
+      const countriesSheetName = `${divisionName}-Countries`;
       
-      return countriesMap;
+      const countriesData = salesData[countriesSheetName];
+      
+      if (countriesData && countriesData.length > 0) {
+        const countries = [];
+        for (let i = 3; i < countriesData.length; i++) { // Starting from row 3 (index 3)
+          const row = countriesData[i];
+          if (row && row[0] && typeof row[0] === 'string') { // First column (index 0)
+            const countryName = row[0].toString().trim();
+            if (!countries.includes(countryName)) {
+              countries.push(countryName);
+            }
+          }
+        }
+        
+        countries.forEach(countryName => {
+          const matchedCountry = findBestCountryMatch(countryName);
+          if (matchedCountry) {
+            countriesMap.set(countryName, matchedCountry);
+          }
+        });
+      }
     }
     
     return countriesMap;
-  };
+  }, [selectedDivision, salesData]);
 
   useEffect(() => {
-    if (!salesLoading && salesData && Object.keys(salesData).length > 0 && selectedDivision) {
-      const countriesMap = getAllCountriesFromExcel();
-      setExcelCountries(countriesMap);
-    }
-  }, [salesData, salesLoading, selectedDivision]);
+    const loadCountries = async () => {
+      if (selectedDivision && (selectedDivision === 'FP' || (!salesLoading && salesData && Object.keys(salesData).length > 0))) {
+        const countriesMap = await getAllCountriesFromDataSource();
+        setExcelCountries(countriesMap);
+      }
+    };
+    
+    loadCountries();
+  }, [salesData, salesLoading, selectedDivision, getAllCountriesFromDataSource]);
 
   // Get unique matched countries from Excel
   const matchedCountriesSet = new Set(Array.from(excelCountries.values()));
@@ -770,39 +776,33 @@ const CountryReference = () => {
   // Get actual Excel countries count (before coordinate matching)
   const actualExcelCountries = Array.from(excelCountries.keys()).length;
   
+  // Update stats to remove withCoordinates
   const stats = {
     total: Object.keys(countryCoordinates).length,
-    inExcel: matchedCountriesSet.size, // Countries with coordinates that match Excel
-    inExcelRaw: actualExcelCountries, // Raw countries found in Excel (may not have coordinates)
-    notInExcel: Object.keys(countryCoordinates).length - matchedCountriesSet.size
+    inDatabase: actualExcelCountries, // Countries found in division data
+    notInDatabase: Object.keys(countryCoordinates).length - actualExcelCountries
   };
 
   return (
     <div className="country-reference">
       <div className="country-reference-header">
         <h2>🌍 World Countries Reference</h2>
-        <p>Countries from {selectedDivision?.split('-')[0] || 'Selected'} division with geographical coordinates</p>
-        
+        <p>Countries from {selectedDivision || 'Selected'} division {selectedDivision === 'FP' ? '(Database)' : '(Excel)'} with geographical coordinates</p>
         <div className="stats-summary">
           <div className="stat-box total">
             <span className="stat-number">{stats.total}</span>
             <span className="stat-label">Total Countries</span>
           </div>
           <div className="stat-box in-excel">
-            <span className="stat-number">{stats.inExcel}</span>
-            <span className="stat-label">With Coordinates</span>
-          </div>
-          <div className="stat-box excel-raw">
-            <span className="stat-number">{stats.inExcelRaw}</span>
-            <span className="stat-label">In Excel Sheet</span>
+            <span className="stat-number">{stats.inDatabase}</span>
+            <span className="stat-label">In Database</span>
           </div>
           <div className="stat-box not-in-excel">
-            <span className="stat-number">{stats.notInExcel}</span>
-            <span className="stat-label">Not in Excel</span>
+            <span className="stat-number">{stats.notInDatabase}</span>
+            <span className="stat-label">Not in Database</span>
           </div>
         </div>
       </div>
-
       <div className="filters-section">
         <div className="search-box">
           <input
@@ -813,7 +813,6 @@ const CountryReference = () => {
             className="search-input"
           />
         </div>
-        
         <div className="filter-buttons">
           <button
             className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
@@ -825,13 +824,13 @@ const CountryReference = () => {
             className={`filter-btn in-excel ${filterType === 'inExcel' ? 'active' : ''}`}
             onClick={() => setFilterType('inExcel')}
           >
-            In Excel Data ({stats.inExcel})
+            In Database ({stats.inDatabase})
           </button>
           <button
             className={`filter-btn not-in-excel ${filterType === 'notInExcel' ? 'active' : ''}`}
             onClick={() => setFilterType('notInExcel')}
           >
-            Not in Excel ({stats.notInExcel})
+            Not in Database ({stats.notInDatabase})
           </button>
         </div>
       </div>
@@ -843,6 +842,7 @@ const CountryReference = () => {
               <th>Status</th>
               <th>Country Name</th>
               <th>Region</th>
+              <th>Market Type</th>
               <th>Longitude</th>
               <th>Latitude</th>
               <th>Coordinates</th>
@@ -854,32 +854,32 @@ const CountryReference = () => {
               // Find original Excel name if matched
               const originalName = Array.from(excelCountries.entries())
                 .find(([orig, matched]) => matched === countryName)?.[0];
-              
               // Get region for this country
               const region = getRegionForCountry(countryName);
-              
+              // Check if this country is unmatched (no coordinates)
+              const isUnmatched = inExcel && (!coords || coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1]));
+              // Market type logic
+              const marketType = getMarketType(countryName);
               return (
                 <tr 
                   key={countryName} 
-                  className={`country-row ${inExcel ? 'in-excel' : 'not-in-excel'}`}
+                  className={`country-row ${inExcel ? 'in-excel' : 'not-in-excel'}${isUnmatched ? ' unmatched-country' : ''}`}
                 >
                   <td className="status-cell">
-                    <span className={`status-indicator ${inExcel ? 'in-excel' : 'not-in-excel'}`}>
-                      {inExcel ? '✅' : '⚪'}
-                    </span>
+                    <span className={`status-indicator ${inExcel ? 'in-excel' : 'not-in-excel'}`}>{inExcel ? (isUnmatched ? '⚠️' : '✅') : '⚪'}</span>
                   </td>
                   <td className="country-name-cell">
-                    <div className="country-name">{countryName}</div>
+                    <div className={`country-name${isUnmatched ? ' unmatched-country-text' : ''}`}>{countryName}</div>
                     {originalName && originalName !== countryName && (
-                      <div className="excel-name">Excel: "{originalName}"</div>
+                      <div className="excel-name">{selectedDivision === 'FP' ? 'Database' : 'Excel'}: "{originalName}"</div>
                     )}
+                    {isUnmatched && <div className="unmatched-warning">No coordinates found</div>}
                   </td>
-                  <td className={`region-cell ${region === 'Unassigned' ? 'unassigned' : region.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {region}
-                  </td>
-                  <td className="coord-cell">{coords[0].toFixed(4)}°</td>
-                  <td className="coord-cell">{coords[1].toFixed(4)}°</td>
-                  <td className="coords-array">[{coords[0].toFixed(4)}, {coords[1].toFixed(4)}]</td>
+                  <td className={`region-cell ${region === 'Unassigned' ? 'unassigned' : region.toLowerCase().replace(/\s+/g, '-')}`}>{region}</td>
+                  <td className="market-type-cell">{marketType}</td>
+                  <td className="coord-cell">{coords && coords[0] ? coords[0].toFixed(4) + '°' : <span className="unmatched-country-text">N/A</span>}</td>
+                  <td className="coord-cell">{coords && coords[1] ? coords[1].toFixed(4) + '°' : <span className="unmatched-country-text">N/A</span>}</td>
+                  <td className="coords-array">{coords && coords[0] && coords[1] ? `[${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}]` : <span className="unmatched-country-text">N/A</span>}</td>
                 </tr>
               );
             })}

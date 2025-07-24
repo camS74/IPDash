@@ -509,142 +509,14 @@ const processCustomerData = (customerName, extendedColumns, dashboardData) => {
   };
 };
 
-// Helper to normalize customer names for robust matching
-const normalizeName = (name) =>
-  name ? name.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+// Removed unused helper functions
 
-// Fetch confirmed merges from backend
-const fetchConfirmedMerges = async () => {
-  try {
-    const response = await fetch('/api/confirmed-merges');
-    const result = await response.json();
-    if (result.success && Array.isArray(result.data)) {
-      return result.data;
-    }
-    return [];
-  } catch {
-    return [];
-  }
-};
+// Removed unused getCustomersForSalesRep function
 
-// Main function to get customers for a sales rep with volume-based sorting
-const getCustomersForSalesRep = async (salesRep, columnOrder, basePeriodIndex) => {
-  try {
-    // Step 1: Prepare periods from column order
-    const periods = preparePeriods(columnOrder);
-    
-    // Step 2: Fetch data from API
-    const { customers, dashboardData } = await fetchCustomerDashboardData(salesRep, periods);
-    
-    // Step 3: Build extended columns structure
-    const extendedColumns = buildExtendedColumns(columnOrder);
-    
-    // Step 4: Fetch confirmed merges
-    const confirmedMerges = await fetchConfirmedMerges();
-    // Build a normalized map of all merged groups
-    const groupMap = [];
-    confirmedMerges.forEach((group, idx) => {
-      groupMap[idx] = group.map(normalizeName);
-    });
-    // For each customer from SQL, assign to group if normalized name matches any in group
-    const groupToCustomerNames = {};
-    const ungrouped = [];
-    customers.forEach(name => {
-      const norm = normalizeName(name);
-      let found = false;
-      groupMap.forEach((normNames, idx) => {
-        if (normNames.includes(norm)) {
-          if (!groupToCustomerNames[idx]) groupToCustomerNames[idx] = [];
-          groupToCustomerNames[idx].push(name);
-          found = true;
-        }
-      });
-      if (!found) {
-        ungrouped.push(name);
-      }
-    });
-    // Step 5: Build merged customer groups
-    const groupResults = [];
-    const processed = new Set();
-    confirmedMerges.forEach((group, idx) => {
-      const sqlNames = groupToCustomerNames[idx] || [];
-      if (sqlNames.length === 0) return; // No matches in SQL
-      let groupValues = null;
-      let groupRawValues = null;
-      sqlNames.forEach((customerName, i) => {
-        const customerData = processCustomerData(customerName, extendedColumns, dashboardData);
-        if (i === 0) {
-          groupValues = [...customerData.values];
-          groupRawValues = [...customerData.rawValues];
-        } else {
-          groupValues = groupValues.map((v, j) => (typeof v === 'number' && typeof customerData.values[j] === 'number') ? v + customerData.values[j] : v);
-          groupRawValues = groupRawValues.map((v, j) => (typeof v === 'number' && typeof customerData.rawValues[j] === 'number') ? v + customerData.rawValues[j] : v);
-        }
-        processed.add(customerName);
-      });
-      if (groupValues) {
-        groupResults.push({
-          name: group[0], // Use first name in group as display name
-          group: sqlNames,
-          values: groupValues,
-          rawValues: groupRawValues,
-          isMergedGroup: true
-        });
-      }
-    });
-    // Step 6: Add ungrouped customers
-    ungrouped.forEach(customerName => {
-      const customerData = processCustomerData(customerName, extendedColumns, dashboardData);
-      groupResults.push({
-        name: customerData.name, // Use formatted name for display
-        originalName: customerName, // Keep original for potential future data queries
-        values: customerData.values,
-        rawValues: customerData.rawValues,
-        isMergedGroup: false
-      });
-    });
-    // Step 7: Sort by base period volume (highest to lowest)
-    let baseDataColIdx = -1;
-    if (basePeriodIndex != null && basePeriodIndex >= 0) {
-      let dataColCount = 0;
-      for (let i = 0; i < extendedColumns.length; i++) {
-        if (extendedColumns[i].columnType === 'data') {
-          if (dataColCount === basePeriodIndex) {
-            baseDataColIdx = i;
-            break;
-          }
-          dataColCount++;
-        }
-      }
-    }
-    if (baseDataColIdx !== -1) {
-      groupResults.sort((a, b) => {
-        const aValue = a.values[baseDataColIdx] || 0;
-        const bValue = b.values[baseDataColIdx] || 0;
-        return bValue - aValue; // Sort descending (highest first)
-      });
-    }
-    return groupResults;
-  } catch (error) {
-    console.error('Error getting customers for sales rep:', error);
-    throw error;
-  }
-};
-
-// Add utility to store and retrieve confirmed merges (simulate backend with localStorage)
-const CONFIRMED_MERGES_KEY = 'confirmedCustomerMerges';
-function getConfirmedMerges() {
-  try {
-    const data = localStorage.getItem(CONFIRMED_MERGES_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-// Note: addConfirmedMerge function removed to clean up unused code
+// Removed unused getConfirmedMerges function - was not being used
 
 const SalesBySaleRepTable = () => {
-  const { columnOrder, dataGenerated } = useFilter();
+  const { dataGenerated } = useFilter();
   const { selectedDivision } = useExcelData();
   const { defaultReps, salesRepGroups, loadSalesRepConfig } = useSalesData();
 
@@ -653,7 +525,8 @@ const SalesBySaleRepTable = () => {
     if (selectedDivision) {
       loadSalesRepConfig(false, selectedDivision);
     }
-  }, [selectedDivision]); // Remove loadSalesRepConfig from dependencies to prevent loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDivision]); // loadSalesRepConfig removed from dependencies to prevent loop
 
   // Check if division is selected
   if (!selectedDivision) {
@@ -911,12 +784,7 @@ const SalesRepTabContent = ({ rep }) => {
     };
   };
   
-  const getCellStyle = (isTotal, isDelta) => {
-    if (isTotal) {
-      return { fontWeight: 'bold', backgroundColor: '#f8f9fa' };
-    }
-    return {};
-  };
+  // Removed unused getCellStyle function
 
   // Check if a column is the base period
   const isBasePeriodColumn = (colIndex) => {
